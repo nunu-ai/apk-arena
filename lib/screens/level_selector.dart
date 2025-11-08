@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-
+import '../models/level_status.dart';
+import '../services/progress_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/level_tile.dart';
 import '../level_registry.dart';
@@ -13,7 +14,7 @@ class LevelSelectorScreen extends StatefulWidget {
 }
 
 class _LevelSelectorScreenState extends State<LevelSelectorScreen> {
-  Set<int> completedLevels = {1, 5, 12, 23};
+  final _progressService = ProgressService.instance;
 
   int selectedDifficulty = 0;
 
@@ -40,9 +41,8 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> {
           ),
           FilledButton(
             onPressed: () {
-              setState(() {
-                completedLevels.clear();
-              });
+              _progressService.resetAllProgress();
+              setState(() {});
               Navigator.pop(context);
             },
             style: FilledButton.styleFrom(
@@ -65,13 +65,8 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> {
       MaterialPageRoute(
         builder: (context) => LevelScreen(levelNumber: levelNumber),
       ),
-    ).then((completed) {
-      // Mark as completed if returned true
-      if (completed == true) {
-        setState(() {
-          completedLevels.add(levelNumber);
-        });
-      }
+    ).then((_) {
+      setState(() {});
     });
   }
 
@@ -135,11 +130,11 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> {
               itemCount: visibleLevels.length,
               itemBuilder: (context, index) {
                 final levelNumber = visibleLevels[index];
-                final isCompleted = completedLevels.contains(levelNumber);
+                final status = _progressService.getLevelStatus(levelNumber);
 
                 return LevelTile(
                   levelNumber: levelNumber,
-                  isCompleted: isCompleted,
+                  status: status,
                   onTap: () => openLevel(levelNumber),
                 );
               },

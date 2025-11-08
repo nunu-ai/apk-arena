@@ -1,8 +1,14 @@
 import 'package:apk_arena/screens/level_selector.dart';
 import 'package:flutter/material.dart';
+import 'services/progress_service.dart';
 import 'theme/app_theme.dart';
 
-void main() {
+void main() async {
+
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await ProgressService.instance.initialize();
+  
   runApp(const MyApp());
 }
 
