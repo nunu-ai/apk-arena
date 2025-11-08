@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 import '../widgets/level_tile.dart';
+import '../level_registry.dart';
+import 'level_screen.dart';
 
 class LevelSelectorScreen extends StatefulWidget {
   const LevelSelectorScreen({Key? key}) : super(key: key);
@@ -13,20 +15,16 @@ class LevelSelectorScreen extends StatefulWidget {
 class _LevelSelectorScreenState extends State<LevelSelectorScreen> {
   Set<int> completedLevels = {1, 5, 12, 23};
 
-  String selectedDifficulty = 'baby';
+  int selectedDifficulty = 0;
 
-  final Map<String, List<int>> difficulties = {
-    'baby': [0, 45],
-    'human': [100, 167],
-    'agi': [200, 234],
+  final Map<int, String> difficultyNames = {
+    0: 'baby',
+    1: 'human',
+    2: 'agi',
   };
 
   List<int> get visibleLevels {
-    final range = difficulties[selectedDifficulty]!;
-    return List.generate(
-      range[1] - range[0] + 1,
-          (index) => range[0] + index,
-    );
+    return getLevelsForDifficulty(selectedDifficulty);
   }
 
   void resetProgress() {
@@ -62,9 +60,19 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> {
   }
 
   void openLevel(int levelNumber) {
-    // TODO: Navigate to your level screen
-    print('opening level $levelNumber');
-    // Example: Navigator.push(context, MaterialPageRoute(builder: (context) => LevelScreen(levelNumber: levelNumber)));
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LevelScreen(levelNumber: levelNumber),
+      ),
+    ).then((completed) {
+      // Mark as completed if returned true
+      if (completed == true) {
+        setState(() {
+          completedLevels.add(levelNumber);
+        });
+      }
+    });
   }
 
   @override
@@ -87,15 +95,15 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> {
             padding: const EdgeInsets.all(16),
             child: Wrap(
               spacing: 8,
-              children: difficulties.keys.map((difficulty) {
-                final isSelected = selectedDifficulty == difficulty;
+              children: difficultyNames.entries.map((entry) {
+                final isSelected = selectedDifficulty == entry.key;
                 return ChoiceChip(
-                  label: Text(difficulty),
+                  label: Text(entry.value),
                   selected: isSelected,
                   onSelected: (selected) {
                     if (selected) {
                       setState(() {
-                        selectedDifficulty = difficulty;
+                        selectedDifficulty = entry.key;
                       });
                     }
                   },
@@ -113,9 +121,7 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> {
               }).toList(),
             ),
           ),
-
-          const Divider(height: 1),
-
+          
           // Grid of levels
           Expanded(
             child: GridView.builder(
