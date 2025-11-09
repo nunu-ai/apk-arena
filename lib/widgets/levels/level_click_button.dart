@@ -20,8 +20,8 @@ class _LevelClickButton extends State<LevelClickButton> {
         },
         style: FilledButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 24),
-          backgroundColor: NunuColors.primaryMain,
-          foregroundColor: Colors.black,
+          backgroundColor: NunuColors.primaryMain.withValues(alpha: 0.4),
+          foregroundColor: NunuColors.primaryLight,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),

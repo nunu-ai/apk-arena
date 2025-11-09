@@ -93,6 +93,7 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> {
               children: difficultyNames.entries.map((entry) {
                 final isSelected = selectedDifficulty == entry.key;
                 return ChoiceChip(
+                  surfaceTintColor: Colors.transparent,
                   label: Text(entry.value),
                   selected: isSelected,
                   onSelected: (selected) {
@@ -110,7 +111,7 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> {
                   ),
                   side: BorderSide(
                     color: isSelected ? NunuColors.primaryMain : NunuColors.textPrimary.withValues(alpha: 0.2),
-                    width: 2
+                    width: 2,
                   )
                 );
               }).toList(),
