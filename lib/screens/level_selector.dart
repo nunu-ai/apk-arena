@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import '../models/level_status.dart';
 import '../services/progress_service.dart';
@@ -59,15 +61,14 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> {
     );
   }
 
-  void openLevel(int levelNumber) {
-    Navigator.push(
+  void openLevel(int levelNumber) async {
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => LevelScreen(levelNumber: levelNumber),
-      ),
-    ).then((_) {
-      setState(() {});
-    });
+      )
+    );
+    setState(() { });
   }
 
   @override

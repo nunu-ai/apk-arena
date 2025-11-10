@@ -1,6 +1,12 @@
+import 'package:apk_arena/widgets/levels/level_2fa_login.dart';
+import 'package:apk_arena/widgets/levels/level_bomb_defuse.dart';
+import 'package:apk_arena/widgets/levels/level_captcha.dart';
 import 'package:apk_arena/widgets/levels/level_connect_the_dots.dart';
 import 'package:apk_arena/widgets/levels/level_double_tap_like.dart';
+import 'package:apk_arena/widgets/levels/level_dvd_logo.dart';
 import 'package:apk_arena/widgets/levels/level_hold.dart';
+import 'package:apk_arena/widgets/levels/level_scroll_contacts.dart';
+import 'package:apk_arena/widgets/levels/level_set_alarm.dart';
 import 'package:apk_arena/widgets/levels/level_simple_signup.dart';
 import 'package:apk_arena/widgets/levels/level_swipe_directions.dart';
 import 'package:apk_arena/widgets/levels/level_wire_task.dart';
@@ -18,36 +24,79 @@ class LevelEntry {
   });
 }
 
-final Map<int, LevelEntry> levelsRegistry = {
-  0: LevelEntry(
+final List<LevelEntry> easyLevels = [
+  LevelEntry(
     data: LevelData(title: "Simple Button", instructions: "Click the Button!"),
     widgetBuilder: (onComplete) => LevelClickButton(onComplete: onComplete),
   ),
-  1: LevelEntry(
+  LevelEntry(
     data: LevelData(title: "Swipe Directions", instructions: "Swipe in the shown direction!"),
     widgetBuilder: (onComplete) => LevelSwipeDirections(onComplete: onComplete),
   ),
-  3: LevelEntry(
+  LevelEntry(
     data: LevelData(title: "Feeding the Algorithm", instructions: "Like the post!"),
     widgetBuilder: (onComplete) => LevelDoubleTapLike(onComplete: onComplete),
   ),
-  4: LevelEntry(
+  LevelEntry(
     data: LevelData(title: "Connect the Stars", instructions: "Draw a line through all the stars!"),
     widgetBuilder: (onComplete) => LevelConnectTheDots(onComplete: onComplete),
   ),
-  5: LevelEntry(
+  LevelEntry(
     data: LevelData(title: "Hold your Ground", instructions: "Click the button for the specified duration!"),
     widgetBuilder: (onComplete) => LevelHold(onComplete: onComplete),
   ),
-  6: LevelEntry(
+  LevelEntry(
     data: LevelData(title: "Fix Wiring", instructions: "Connect each wire to its matching color!"),
     widgetBuilder: (onComplete) => LevelWireTask(onComplete: onComplete),
   ),
-  100: LevelEntry(
+  LevelEntry(
+    data: LevelData(title: "Prove You're Human", instructions: "Complete the CAPTCHA verification!"),
+    widgetBuilder: (onComplete) => LevelCaptcha(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(title: "Better Call Saul", instructions: "Find Saul Goodman in your contacts!"),
+    widgetBuilder: (onComplete) => LevelScrollContacts(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(title: "Bomb Squad", instructions: "Press the button exactly X times, then cut the wire!"),
+    widgetBuilder: (onComplete) => LevelBombDefuse(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(title: "Morning Alarm", instructions: "Set the alarm correctly and enable it!"),
+    widgetBuilder: (onComplete) => LevelSetAlarm(onComplete: onComplete),
+  ),
+
+];
+
+final List<LevelEntry> mediumLevels = [
+  LevelEntry(
+    data: LevelData(title: "2FA Login", instructions: "Complete the login flow!"),
+    widgetBuilder: (onComplete) => Level2FALogin(onComplete: onComplete),
+  ),
+  LevelEntry(
     data: LevelData(title: "Sign Up Flow", instructions: "Complete the sign-up form!"),
     widgetBuilder: (onComplete) => LevelSimpleSignup(onComplete: onComplete),
   ),
+];
+
+final List<LevelEntry> hardLevels = [
+  LevelEntry(
+  data: LevelData(title: "Catch the DVD", instructions: "Click the bouncing DVD logo!"),
+  widgetBuilder: (onComplete) => LevelDvdLogo(onComplete: onComplete),
+  )
+];
+
+final Map<int, LevelEntry> levelsRegistry = {
+  // Easy levels: 0-99
+  for (var i = 0; i < easyLevels.length; i++) i: easyLevels[i],
+
+  // Medium levels: 100-199
+  for (var i = 0; i < mediumLevels.length; i++) 100 + i: mediumLevels[i],
+
+  // Hard levels: 200-299
+  for (var i = 0; i < hardLevels.length; i++) 200 + i: hardLevels[i],
 };
+
 
 List<int> getAvailableLevels() {
   return levelsRegistry.keys.toList()..sort();

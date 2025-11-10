@@ -15,13 +15,14 @@ class _LevelHoldState extends State<LevelHold> with SingleTickerProviderStateMix
   double _progress = 0.0;
   late double _targetDuration;
   double _tolerance = 0.15; // ±0.15 seconds tolerance
-  DateTime? _holdStartTime;
+  late Stopwatch _stopwatch;
   bool _hasFailed = false;
   late AnimationController _progressController;
 
   @override
   void initState() {
     super.initState();
+    _stopwatch = Stopwatch();
     _progressController = AnimationController(vsync: this);
     _generateNewTarget();
   }
@@ -46,14 +47,17 @@ class _LevelHoldState extends State<LevelHold> with SingleTickerProviderStateMix
       _isPressing = true;
       _progress = 0.0;
       _hasFailed = false;
-      _holdStartTime = DateTime.now();
     });
+    _stopwatch.reset();
+    _stopwatch.start();
     _startProgress();
   }
 
   void _onLongPressEnd(LongPressEndDetails details) {
-    if (_isPressing && !_hasFailed && _holdStartTime != null) {
-      final holdDuration = DateTime.now().difference(_holdStartTime!).inMilliseconds / 1000.0;
+    _stopwatch.stop();
+
+    if (_isPressing && !_hasFailed) {
+      final holdDuration = _stopwatch.elapsedMilliseconds / 1000.0;
       final difference = (holdDuration - _targetDuration).abs();
 
       if (difference <= _tolerance) {
@@ -85,23 +89,16 @@ class _LevelHoldState extends State<LevelHold> with SingleTickerProviderStateMix
   }
 
   void _startProgress() {
-    _progressController.duration = Duration(milliseconds: (_targetDuration * 1000).toInt());
-    _progressController.reset();
-    _progressController.forward();
-
-    // Update progress in real-time
     void updateProgress() {
       if (!_isPressing || !mounted) return;
 
-      if (_holdStartTime != null) {
-        final elapsed = DateTime.now().difference(_holdStartTime!).inMilliseconds / 1000.0;
-        setState(() {
-          _progress = elapsed / _targetDuration;
-        });
+      final elapsed = _stopwatch.elapsedMilliseconds / 1000.0;
+      setState(() {
+        _progress = elapsed / _targetDuration;
+      });
 
-        if (_isPressing) {
-          Future.delayed(const Duration(milliseconds: 16), updateProgress);
-        }
+      if (_isPressing) {
+        Future.delayed(const Duration(milliseconds: 16), updateProgress);
       }
     }
 
@@ -117,8 +114,8 @@ class _LevelHoldState extends State<LevelHold> with SingleTickerProviderStateMix
         ? Colors.orange
         : NunuColors.primaryLight;
 
-    final currentTime = _holdStartTime != null && _isPressing
-        ? DateTime.now().difference(_holdStartTime!).inMilliseconds / 1000.0
+    final currentTime = _isPressing
+        ? _stopwatch.elapsedMilliseconds / 1000.0
         : 0.0;
 
     return Container(
@@ -128,6 +125,7 @@ class _LevelHoldState extends State<LevelHold> with SingleTickerProviderStateMix
           onLongPressStart: _onLongPressStart,
           onLongPressEnd: _onLongPressEnd,
           onLongPressCancel: () {
+            _stopwatch.stop();
             setState(() {
               _isPressing = false;
               _progress = 0.0;

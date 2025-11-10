@@ -5,6 +5,7 @@ import '../services/progress_service.dart';
 import '../theme/app_theme.dart';
 import '../../level_registry.dart';
 import 'level_completion_screen.dart';
+import 'level_selector.dart';
 
 class LevelScreen extends StatefulWidget {
   final int levelNumber;
@@ -68,14 +69,17 @@ class _LevelScreenState extends State<LevelScreen> {
                 style: TextStyle(color: NunuColors.secondaryMain, fontWeight: FontWeight.bold)),
           ),
           FilledButton(
-            onPressed: () async {
+            onPressed: () async { 
               await _progressService.completeLevel(
                 widget.levelNumber,
                 LevelResult.failed,
                 null, // No completion time for failed attempts
               );
-              Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Return to level selector
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const LevelSelectorScreen()),
+                    (route) => false, // Remove all routes
+              );
             },
             style: FilledButton.styleFrom(
               backgroundColor: NunuColors.primaryMain.withValues(alpha: 0.2),
@@ -99,12 +103,13 @@ class _LevelScreenState extends State<LevelScreen> {
         LevelResult.success,
         _stopwatch.elapsed,
       );
-      
+
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => LevelCompletionScreen(
             levelNumber: widget.levelNumber,
+            levelName: levelEntry.data.title,
             completionTime: _stopwatch.elapsed,
           ),
         ),

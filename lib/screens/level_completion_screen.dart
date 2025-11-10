@@ -2,14 +2,17 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../../level_registry.dart';
 import 'level_screen.dart';
+import 'level_selector.dart';
 
 class LevelCompletionScreen extends StatelessWidget {
   final int levelNumber;
+  final String levelName;
   final Duration completionTime;
 
   const LevelCompletionScreen({
     Key? key,
     required this.levelNumber,
+    required this.levelName,
     required this.completionTime,
   }) : super(key: key);
 
@@ -50,7 +53,7 @@ class LevelCompletionScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Level $levelNumber',
+                'LVL ${levelNumber}: ${levelName.toUpperCase()}',
                 style: const TextStyle(
                   fontSize: 20,
                   color: NunuColors.textPrimary,
@@ -92,7 +95,11 @@ class LevelCompletionScreen extends StatelessWidget {
                 children: [
                   FilledButton(
                     onPressed: () {
-                      Navigator.popUntil(context, (route) => route.isFirst);
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (context) => const LevelSelectorScreen()),
+                            (route) => false, // Remove all routes
+                      );
                     },
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
@@ -109,11 +116,12 @@ class LevelCompletionScreen extends StatelessWidget {
                   FilledButton(
                     onPressed: nextLevelNumber != null
                         ? () {
-                      Navigator.pushReplacement(
+                      Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(
                           builder: (context) => LevelScreen(levelNumber: nextLevelNumber!),
                         ),
+                            (route) => false,
                       );
                     }
                         : null,
