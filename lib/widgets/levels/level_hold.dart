@@ -122,9 +122,20 @@ class _LevelHoldState extends State<LevelHold> with SingleTickerProviderStateMix
       color: Colors.transparent,
       child: Center(
         child: GestureDetector(
-          onLongPressStart: _onLongPressStart,
-          onLongPressEnd: _onLongPressEnd,
-          onLongPressCancel: () {
+          onPanDown: (details) {
+            _stopwatch.reset();
+            _stopwatch.start();
+            setState(() {
+              _isPressing = true;
+              _progress = 0.0;
+              _hasFailed = false;
+            });
+            _startProgress();
+          },
+          onPanEnd: (details) {
+            _onLongPressEnd(LongPressEndDetails());
+          },
+          onPanCancel: () {
             _stopwatch.stop();
             setState(() {
               _isPressing = false;

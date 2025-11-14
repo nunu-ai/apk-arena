@@ -7,19 +7,22 @@ import 'level_selector.dart';
 class LevelCompletionScreen extends StatelessWidget {
   final int levelNumber;
   final String levelName;
-  final Duration completionTime;
+  final Duration? completionTime;
+  final bool success;
 
   const LevelCompletionScreen({
     Key? key,
     required this.levelNumber,
     required this.levelName,
-    required this.completionTime,
+    required this.success,
+    this.completionTime,
   }) : super(key: key);
 
   String get formattedTime {
-    final minutes = completionTime.inMinutes.toString().padLeft(2, '0');
-    final seconds = (completionTime.inSeconds % 60).toString().padLeft(2, '0');
-    final milliseconds = ((completionTime.inMilliseconds % 1000) ~/ 100).toString();
+    if (completionTime == null) return '--:--.--';
+    final minutes = completionTime!.inMinutes.toString().padLeft(2, '0');
+    final seconds = (completionTime!.inSeconds % 60).toString().padLeft(2, '0');
+    final milliseconds = ((completionTime!.inMilliseconds % 1000) ~/ 100).toString();
     return '$minutes:$seconds.$milliseconds';
   }
 
@@ -41,14 +44,17 @@ class LevelCompletionScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('🎉', style: TextStyle(fontSize: 80)),
+              Text(
+                success ? '🎉' : '💔',
+                style: const TextStyle(fontSize: 80),
+              ),
               const SizedBox(height: 24),
-              const Text(
-                'LEVEL COMPLETE!',
+              Text(
+                success ? 'LEVEL COMPLETE!' : 'LEVEL FAILED',
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
-                  color: NunuColors.primaryMain,
+                  color: success ? NunuColors.primaryMain : NunuColors.errorMain,
                 ),
               ),
               const SizedBox(height: 16),
@@ -60,36 +66,38 @@ class LevelCompletionScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 32),
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: NunuColors.backgroundPaper,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: NunuColors.secondaryLight, width: 2),
-                ),
-                child: Column(
-                  children: [
-                    const Text(
-                      'TIME',
-                      style: TextStyle(
-                        color: NunuColors.textSecondary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+              if (success) ...[
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: NunuColors.backgroundPaper,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: NunuColors.secondaryLight, width: 2),
+                  ),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'TIME',
+                        style: TextStyle(
+                          color: NunuColors.textSecondary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      formattedTime,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'monospace',
+                      const SizedBox(height: 8),
+                      Text(
+                        formattedTime,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'monospace',
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 36),
+                const SizedBox(height: 36),
+              ],
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -133,8 +141,10 @@ class LevelCompletionScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: const Text('NEXT LEVEL',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      'NEXT LEVEL',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ],
               ),

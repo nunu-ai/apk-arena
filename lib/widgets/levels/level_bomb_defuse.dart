@@ -15,14 +15,23 @@ class _LevelBombDefuseState extends State<LevelBombDefuse> with TickerProviderSt
   int _currentTaps = 0;
   bool _isExploding = false;
   bool _isDefused = false;
+  late int _correctWireIndex; // 0-3 for the four wires
   late AnimationController _buttonController;
   late AnimationController _explosionController;
   late Animation<double> _buttonScale;
+
+  final List<Color> _wireColors = [
+    Colors.red,
+    Colors.blue,
+    Colors.green,
+    Colors.yellow,
+  ];
 
   @override
   void initState() {
     super.initState();
     _targetTaps = 5 + Random().nextInt(11); // 5-15
+    _correctWireIndex = Random().nextInt(4); // Random wire 0-3
 
     _buttonController = AnimationController(
       duration: const Duration(milliseconds: 100),
@@ -56,10 +65,10 @@ class _LevelBombDefuseState extends State<LevelBombDefuse> with TickerProviderSt
     _buttonController.forward().then((_) => _buttonController.reverse());
   }
 
-  void _handleCutWire() {
+  void _handleCutWire(int wireIndex) {
     if (_isExploding || _isDefused) return;
 
-    if (_currentTaps == _targetTaps) {
+    if (_currentTaps == _targetTaps && wireIndex == _correctWireIndex) {
       // Success!
       setState(() {
         _isDefused = true;
@@ -69,7 +78,7 @@ class _LevelBombDefuseState extends State<LevelBombDefuse> with TickerProviderSt
         widget.onComplete(true);
       });
     } else {
-      // Wrong! Explode and reset
+      // Wrong! Explode and fail
       setState(() {
         _isExploding = true;
       });
@@ -77,14 +86,14 @@ class _LevelBombDefuseState extends State<LevelBombDefuse> with TickerProviderSt
       _explosionController.forward();
 
       Future.delayed(const Duration(milliseconds: 1000), () {
-        setState(() {
-          _isExploding = false;
-          _currentTaps = 0;
-          _targetTaps = 5 + Random().nextInt(11);
-        });
-        _explosionController.reset();
+        widget.onComplete(false);
       });
     }
+  }
+
+  String _getWireColorName(int index) {
+    const colorNames = ['red', 'blue', 'green', 'yellow'];
+    return colorNames[index];
   }
 
   @override
@@ -130,7 +139,7 @@ class _LevelBombDefuseState extends State<LevelBombDefuse> with TickerProviderSt
                           const SizedBox(width: 8),
                           Flexible(
                             child: Text(
-                              'Press exactly $_targetTaps times, then cut green wire!',
+                              'Press exactly $_targetTaps times, then cut ${_getWireColorName(_correctWireIndex)} wire!',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.orange.shade200,
@@ -289,12 +298,10 @@ class _LevelBombDefuseState extends State<LevelBombDefuse> with TickerProviderSt
                         // Wire buttons
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            _buildWire(Colors.red, false),
-                            _buildWire(Colors.blue, false),
-                            _buildWire(Colors.green, true), // Correct wire
-                            _buildWire(Colors.yellow, false),
-                          ],
+                          children: List.generate(
+                            4,
+                                (index) => _buildWire(_wireColors[index], index),
+                          ),
                         ),
                       ],
                     ),
@@ -338,11 +345,11 @@ class _LevelBombDefuseState extends State<LevelBombDefuse> with TickerProviderSt
     );
   }
 
-  Widget _buildWire(Color color, bool isCorrect) {
-    final isCut = _isDefused && isCorrect;
+  Widget _buildWire(Color color, int wireIndex) {
+    final isCut = _isDefused && wireIndex == _correctWireIndex;
 
     return GestureDetector(
-      onTap: isCorrect ? _handleCutWire : null,
+      onTap: () => _handleCutWire(wireIndex),
       child: Column(
         children: [
           Container(
@@ -354,26 +361,23 @@ class _LevelBombDefuseState extends State<LevelBombDefuse> with TickerProviderSt
             ),
           ),
           const SizedBox(height: 6),
-          if (isCorrect)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: color, width: 2),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: color, width: 2),
+            ),
+            child: Text(
+              'CUT',
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+                color: color,
+                letterSpacing: 0.5,
               ),
-              child: Text(
-                'CUT',
-                style: TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            )
-          else
-            const SizedBox(height: 20),
+            ),
+          ),
         ],
       ),
     );

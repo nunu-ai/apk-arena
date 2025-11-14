@@ -89,6 +89,9 @@ class _LevelScrollContactsState extends State<LevelScrollContacts> {
     if (index == _targetIndex) {
       // Found Saul!
       widget.onComplete(true);
+    } else {
+      // Wrong contact!
+      widget.onComplete(false);
     }
   }
 

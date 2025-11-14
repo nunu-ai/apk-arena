@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'dart:async';import '../models/level_status.dart';
-
+import 'dart:async';
+import '../models/level_status.dart';
 import '../services/progress_service.dart';
 import '../theme/app_theme.dart';
 import '../../level_registry.dart';
@@ -69,7 +69,7 @@ class _LevelScreenState extends State<LevelScreen> {
                 style: TextStyle(color: NunuColors.secondaryMain, fontWeight: FontWeight.bold)),
           ),
           FilledButton(
-            onPressed: () async { 
+            onPressed: () async {
               await _progressService.completeLevel(
                 widget.levelNumber,
                 LevelResult.failed,
@@ -94,27 +94,26 @@ class _LevelScreenState extends State<LevelScreen> {
   }
 
   void _onLevelComplete(bool success) async {
-    if (success) {
-      _stopwatch.stop();
-      _timer?.cancel();
+    _stopwatch.stop();
+    _timer?.cancel();
 
-      await _progressService.completeLevel(
-        widget.levelNumber,
-        LevelResult.success,
-        _stopwatch.elapsed,
-      );
+    await _progressService.completeLevel(
+      widget.levelNumber,
+      success ? LevelResult.success : LevelResult.failed,
+      success ? _stopwatch.elapsed : null,
+    );
 
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => LevelCompletionScreen(
-            levelNumber: widget.levelNumber,
-            levelName: levelEntry.data.title,
-            completionTime: _stopwatch.elapsed,
-          ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LevelCompletionScreen(
+          levelNumber: widget.levelNumber,
+          levelName: levelEntry.data.title,
+          success: success,
+          completionTime: success ? _stopwatch.elapsed : null,
         ),
-      );
-    }
+      ),
+    );
   }
 
   @override
