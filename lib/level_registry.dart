@@ -1,10 +1,14 @@
 import 'package:apk_arena/widgets/levels/level_2fa_login.dart';
+import 'package:apk_arena/widgets/levels/level_age_slider.dart';
+import 'package:apk_arena/widgets/levels/level_blue_whale.dart';
 import 'package:apk_arena/widgets/levels/level_bomb_defuse.dart';
 import 'package:apk_arena/widgets/levels/level_captcha.dart';
 import 'package:apk_arena/widgets/levels/level_connect_the_dots.dart';
+import 'package:apk_arena/widgets/levels/level_dice_recognition.dart';
 import 'package:apk_arena/widgets/levels/level_double_tap_like.dart';
 import 'package:apk_arena/widgets/levels/level_dvd_logo.dart';
 import 'package:apk_arena/widgets/levels/level_hold.dart';
+import 'package:apk_arena/widgets/levels/level_overlapping_popups.dart';
 import 'package:apk_arena/widgets/levels/level_scroll_contacts.dart';
 import 'package:apk_arena/widgets/levels/level_set_alarm.dart';
 import 'package:apk_arena/widgets/levels/level_simple_signup.dart';
@@ -38,6 +42,10 @@ final List<LevelEntry> easyLevels = [
     widgetBuilder: (onComplete) => LevelDoubleTapLike(onComplete: onComplete),
   ),
   LevelEntry(
+    data: LevelData(title: "Age Verification", instructions: "Set the slider to the exact required age!"),
+    widgetBuilder: (onComplete) => LevelAgeSlider(onComplete: onComplete),
+  ),
+  LevelEntry(
     data: LevelData(title: "Connect the Stars", instructions: "Draw a line through all the stars!"),
     widgetBuilder: (onComplete) => LevelConnectTheDots(onComplete: onComplete),
   ),
@@ -65,6 +73,14 @@ final List<LevelEntry> easyLevels = [
     data: LevelData(title: "Morning Alarm", instructions: "Set the alarm correctly and enable it!"),
     widgetBuilder: (onComplete) => LevelSetAlarm(onComplete: onComplete),
   ),
+  LevelEntry(
+    data: LevelData(title: "Popup Hell", instructions: "Close the popups!"),
+    widgetBuilder: (onComplete) => LevelOverlappingPopups(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(title: "Biggest Animal", instructions: "What is Larger?"),
+    widgetBuilder: (onComplete) => LevelBlueWhale(onComplete: onComplete),
+  )
 
 ];
 
@@ -77,6 +93,10 @@ final List<LevelEntry> mediumLevels = [
     data: LevelData(title: "Sign Up Flow", instructions: "Complete the sign-up form!"),
     widgetBuilder: (onComplete) => LevelSimpleSignup(onComplete: onComplete),
   ),
+  LevelEntry(
+    data: LevelData(title: "Count the Dots", instructions: "Enter the numbers on each die from left to right!"),
+    widgetBuilder: (onComplete) => LevelDiceRecognition(onComplete: onComplete),
+  )
 ];
 
 final List<LevelEntry> hardLevels = [

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
-import '../../theme/app_theme.dart';
-import '../contact_list_item.dart';
+import '../level_components/contact_list_item.dart';
 import 'dart:math';
 
 class LevelScrollContacts extends LevelWidget {
