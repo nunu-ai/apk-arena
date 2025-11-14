@@ -1,5 +1,6 @@
 import 'package:apk_arena/widgets/levels/level_2fa_login.dart';
 import 'package:apk_arena/widgets/levels/level_age_slider.dart';
+import 'package:apk_arena/widgets/levels/level_annoying_tos.dart';
 import 'package:apk_arena/widgets/levels/level_blue_whale.dart';
 import 'package:apk_arena/widgets/levels/level_bomb_defuse.dart';
 import 'package:apk_arena/widgets/levels/level_captcha.dart';
@@ -13,6 +14,7 @@ import 'package:apk_arena/widgets/levels/level_scroll_contacts.dart';
 import 'package:apk_arena/widgets/levels/level_set_alarm.dart';
 import 'package:apk_arena/widgets/levels/level_simple_signup.dart';
 import 'package:apk_arena/widgets/levels/level_swipe_directions.dart';
+import 'package:apk_arena/widgets/levels/level_tos_quiz.dart';
 import 'package:apk_arena/widgets/levels/level_wire_task.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
@@ -80,8 +82,11 @@ final List<LevelEntry> easyLevels = [
   LevelEntry(
     data: LevelData(title: "Size Comparison", instructions: "What is Larger?"),
     widgetBuilder: (onComplete) => LevelBlueWhale(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(title: "Accept Terms", instructions: "Read and accept the terms of service."),
+    widgetBuilder: (onComplete) => LevelAnnoyingTos(onComplete: onComplete),
   )
-
 ];
 
 final List<LevelEntry> mediumLevels = [
@@ -96,6 +101,10 @@ final List<LevelEntry> mediumLevels = [
   LevelEntry(
     data: LevelData(title: "Count the Dots", instructions: "Enter the numbers on each die from left to right!"),
     widgetBuilder: (onComplete) => LevelDiceRecognition(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(title: "User Agreement", instructions: "Review the user agreement."),
+    widgetBuilder: (onComplete) => LevelTosQuiz(onComplete: onComplete),
   )
 ];
 
