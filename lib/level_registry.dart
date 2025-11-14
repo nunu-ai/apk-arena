@@ -8,6 +8,7 @@ import 'package:apk_arena/widgets/levels/level_connect_the_dots.dart';
 import 'package:apk_arena/widgets/levels/level_dice_recognition.dart';
 import 'package:apk_arena/widgets/levels/level_double_tap_like.dart';
 import 'package:apk_arena/widgets/levels/level_dvd_logo.dart';
+import 'package:apk_arena/widgets/levels/level_email_riddle.dart';
 import 'package:apk_arena/widgets/levels/level_hold.dart';
 import 'package:apk_arena/widgets/levels/level_overlapping_popups.dart';
 import 'package:apk_arena/widgets/levels/level_scroll_contacts.dart';
@@ -105,6 +106,13 @@ final List<LevelEntry> mediumLevels = [
   LevelEntry(
     data: LevelData(title: "User Agreement", instructions: "Review the user agreement."),
     widgetBuilder: (onComplete) => LevelTosQuiz(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+        title: "Email Riddle",
+        instructions: "Read the riddle and send the answer to the right person!"
+    ),
+    widgetBuilder: (onComplete) => LevelEmailRiddle(onComplete: onComplete),
   )
 ];
 
