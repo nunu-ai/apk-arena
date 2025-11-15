@@ -19,6 +19,7 @@ import 'package:apk_arena/widgets/levels/level_swipe_directions.dart';
 import 'package:apk_arena/widgets/levels/level_tos_quiz.dart';
 import 'package:apk_arena/widgets/levels/level_wire_task.dart';
 import 'package:apk_arena/widgets/levels/level_click_grid_coordinate.dart';
+import 'package:apk_arena/widgets/levels/level_sudoku.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -175,6 +176,13 @@ final List<LevelEntry> mediumLevels = [
       instructions: "Read the riddle and send the answer to the right person!",
     ),
     widgetBuilder: (onComplete) => LevelEmailRiddle(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "sudoku",
+      instructions: "solve the middle 3x3 sudoku block.",
+    ),
+    widgetBuilder: (onComplete) => LevelSudoku(onComplete: onComplete),
   ),
 ];
 
