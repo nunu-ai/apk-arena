@@ -18,6 +18,7 @@ import 'package:apk_arena/widgets/levels/level_simple_signup.dart';
 import 'package:apk_arena/widgets/levels/level_swipe_directions.dart';
 import 'package:apk_arena/widgets/levels/level_tos_quiz.dart';
 import 'package:apk_arena/widgets/levels/level_wire_task.dart';
+import 'package:apk_arena/widgets/levels/level_click_grid_coordinate.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -145,6 +146,15 @@ final List<LevelEntry> easyLevels = [
 ];
 
 final List<LevelEntry> mediumLevels = [
+  LevelEntry(
+    data: LevelData(
+      title: "Coordinate Clicker",
+      instructions:
+          "Click the object at the given (row, column) three times in a row! (1,1) is bottom-left!",
+    ),
+    widgetBuilder: (onComplete) =>
+        LevelClickGridCoordinate(onComplete: onComplete),
+  ),
   LevelEntry(
     data: LevelData(
       title: "Count the Dots",
