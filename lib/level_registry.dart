@@ -5,6 +5,7 @@ import 'package:apk_arena/widgets/levels/level_blue_whale.dart';
 import 'package:apk_arena/widgets/levels/level_bomb_defuse.dart';
 import 'package:apk_arena/widgets/levels/level_captcha.dart';
 import 'package:apk_arena/widgets/levels/level_connect_the_dots.dart';
+import 'package:apk_arena/widgets/levels/level_advanced_click_button.dart';
 import 'package:apk_arena/widgets/levels/level_dice_recognition.dart';
 import 'package:apk_arena/widgets/levels/level_double_tap_like.dart';
 import 'package:apk_arena/widgets/levels/level_dvd_logo.dart';
@@ -25,10 +26,7 @@ class LevelEntry {
   final LevelData data;
   final LevelWidget Function(Function(bool) onComplete) widgetBuilder;
 
-  LevelEntry({
-    required this.data,
-    required this.widgetBuilder,
-  });
+  LevelEntry({required this.data, required this.widgetBuilder});
 }
 
 final List<LevelEntry> easyLevels = [
@@ -37,91 +35,147 @@ final List<LevelEntry> easyLevels = [
     widgetBuilder: (onComplete) => LevelClickButton(onComplete: onComplete),
   ),
   LevelEntry(
-    data: LevelData(title: "Swipe Directions", instructions: "Swipe in the shown direction!"),
+    data: LevelData(
+      title: "Advanced Button",
+      instructions: "Find and click the small button!",
+    ),
+    widgetBuilder: (onComplete) =>
+        LevelAdvancedClickButton(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Swipe Directions",
+      instructions: "Swipe in the shown direction!",
+    ),
     widgetBuilder: (onComplete) => LevelSwipeDirections(onComplete: onComplete),
   ),
   LevelEntry(
-    data: LevelData(title: "Feeding the Algorithm", instructions: "Like the post!"),
+    data: LevelData(
+      title: "Feeding the Algorithm",
+      instructions: "Like the post!",
+    ),
     widgetBuilder: (onComplete) => LevelDoubleTapLike(onComplete: onComplete),
   ),
   LevelEntry(
-    data: LevelData(title: "Age Verification", instructions: "Set the slider to the exact required age!"),
+    data: LevelData(
+      title: "Age Verification",
+      instructions: "Set the slider to the exact required age!",
+    ),
     widgetBuilder: (onComplete) => LevelAgeSlider(onComplete: onComplete),
   ),
   LevelEntry(
-    data: LevelData(title: "Connect the Stars", instructions: "Draw a line through all the stars!"),
+    data: LevelData(
+      title: "Connect the Stars",
+      instructions: "Draw a line through all the stars!",
+    ),
     widgetBuilder: (onComplete) => LevelConnectTheDots(onComplete: onComplete),
   ),
   LevelEntry(
-    data: LevelData(title: "Hold your Ground", instructions: "Click the button for the specified duration!"),
+    data: LevelData(
+      title: "Hold your Ground",
+      instructions: "Click the button for the specified duration!",
+    ),
     widgetBuilder: (onComplete) => LevelHold(onComplete: onComplete),
   ),
   LevelEntry(
-    data: LevelData(title: "Fix Wiring", instructions: "Connect each wire to its matching color!"),
+    data: LevelData(
+      title: "Fix Wiring",
+      instructions: "Connect each wire to its matching color!",
+    ),
     widgetBuilder: (onComplete) => LevelWireTask(onComplete: onComplete),
   ),
   LevelEntry(
-    data: LevelData(title: "Prove You're Human", instructions: "Complete the CAPTCHA verification!"),
+    data: LevelData(
+      title: "Prove You're Human",
+      instructions: "Complete the CAPTCHA verification!",
+    ),
     widgetBuilder: (onComplete) => LevelCaptcha(onComplete: onComplete),
   ),
   LevelEntry(
-    data: LevelData(title: "Better Call Saul", instructions: "Find Saul Goodman in your contacts!"),
+    data: LevelData(
+      title: "Better Call Saul",
+      instructions: "Find Saul Goodman in your contacts!",
+    ),
     widgetBuilder: (onComplete) => LevelScrollContacts(onComplete: onComplete),
   ),
   LevelEntry(
-    data: LevelData(title: "Bomb Squad", instructions: "Press the button exactly X times, then cut the wire!"),
+    data: LevelData(
+      title: "Bomb Squad",
+      instructions: "Press the button exactly X times, then cut the wire!",
+    ),
     widgetBuilder: (onComplete) => LevelBombDefuse(onComplete: onComplete),
   ),
   LevelEntry(
-    data: LevelData(title: "Morning Alarm", instructions: "Set the alarm correctly and enable it!"),
+    data: LevelData(
+      title: "Morning Alarm",
+      instructions: "Set the alarm correctly and enable it!",
+    ),
     widgetBuilder: (onComplete) => LevelSetAlarm(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(title: "Popup Hell", instructions: "Close the popups!"),
-    widgetBuilder: (onComplete) => LevelOverlappingPopups(onComplete: onComplete),
+    widgetBuilder: (onComplete) =>
+        LevelOverlappingPopups(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(title: "Size Comparison", instructions: "What is Larger?"),
     widgetBuilder: (onComplete) => LevelBlueWhale(onComplete: onComplete),
   ),
   LevelEntry(
-    data: LevelData(title: "Accept Terms", instructions: "Read and accept the terms of service."),
+    data: LevelData(
+      title: "Accept Terms",
+      instructions: "Read and accept the terms of service.",
+    ),
     widgetBuilder: (onComplete) => LevelAnnoyingTos(onComplete: onComplete),
   ),
   LevelEntry(
-    data: LevelData(title: "2FA Login", instructions: "Complete the login flow!"),
+    data: LevelData(
+      title: "2FA Login",
+      instructions: "Complete the login flow!",
+    ),
     widgetBuilder: (onComplete) => Level2FALogin(onComplete: onComplete),
   ),
   LevelEntry(
-    data: LevelData(title: "Sign Up Flow", instructions: "Complete the sign-up form!"),
+    data: LevelData(
+      title: "Sign Up Flow",
+      instructions: "Complete the sign-up form!",
+    ),
     widgetBuilder: (onComplete) => LevelSimpleSignup(onComplete: onComplete),
   ),
 ];
 
 final List<LevelEntry> mediumLevels = [
-
   LevelEntry(
-    data: LevelData(title: "Count the Dots", instructions: "Enter the numbers on each die from left to right!"),
+    data: LevelData(
+      title: "Count the Dots",
+      instructions: "Enter the numbers on each die from left to right!",
+    ),
     widgetBuilder: (onComplete) => LevelDiceRecognition(onComplete: onComplete),
   ),
   LevelEntry(
-    data: LevelData(title: "User Agreement", instructions: "Review the user agreement."),
+    data: LevelData(
+      title: "User Agreement",
+      instructions: "Review the user agreement.",
+    ),
     widgetBuilder: (onComplete) => LevelTosQuiz(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
-        title: "Email Riddle",
-        instructions: "Read the riddle and send the answer to the right person!"
+      title: "Email Riddle",
+      instructions: "Read the riddle and send the answer to the right person!",
     ),
     widgetBuilder: (onComplete) => LevelEmailRiddle(onComplete: onComplete),
-  )
+  ),
 ];
 
 final List<LevelEntry> hardLevels = [
   LevelEntry(
-  data: LevelData(title: "Catch the DVD", instructions: "Click the bouncing DVD logo!"),
-  widgetBuilder: (onComplete) => LevelDvdLogo(onComplete: onComplete),
-  )
+    data: LevelData(
+      title: "Catch the DVD",
+      instructions: "Click the bouncing DVD logo!",
+    ),
+    widgetBuilder: (onComplete) => LevelDvdLogo(onComplete: onComplete),
+  ),
 ];
 
 final Map<int, LevelEntry> levelsRegistry = {
@@ -135,16 +189,19 @@ final Map<int, LevelEntry> levelsRegistry = {
   for (var i = 0; i < hardLevels.length; i++) 200 + i: hardLevels[i],
 };
 
-
 List<int> getAvailableLevels() {
   return levelsRegistry.keys.toList()..sort();
 }
 
 List<int> getLevelsForDifficulty(int difficulty) {
   return levelsRegistry.entries
-      .where((entry) => 100*difficulty <= entry.key && entry.key < 100*(difficulty+1))
+      .where(
+        (entry) =>
+            100 * difficulty <= entry.key && entry.key < 100 * (difficulty + 1),
+      )
       .map((entry) => entry.key)
-      .toList()..sort();
+      .toList()
+    ..sort();
 }
 
 LevelEntry? getLevel(int levelNumber) {
