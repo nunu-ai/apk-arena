@@ -91,6 +91,13 @@ When recreating existing app interfaces, match their design:
 
 **Key principle:** *Authenticity over brand consistency for UI recreation levels*
 
+## ✍️ Writing & Text Casing
+
+- **default casing**: use all-lowercase for UI labels, buttons, and copy
+- **caps usage**: ALL-CAPS is acceptable as a deliberate style, but use sparingly
+- **consistency**: pick one per level/screen (all-lowercase or ALL-CAPS) and stick to it
+- **exceptions**: when mimicking real apps, match their original casing (e.g., Gmail, Android Calendar) including component text
+
 ## 🎮 Level Design Philosophy
 
 ### Cultural References & Humor
