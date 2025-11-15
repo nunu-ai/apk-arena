@@ -87,10 +87,7 @@ final List<LevelEntry> easyLevels = [
   LevelEntry(
     data: LevelData(title: "Accept Terms", instructions: "Read and accept the terms of service."),
     widgetBuilder: (onComplete) => LevelAnnoyingTos(onComplete: onComplete),
-  )
-];
-
-final List<LevelEntry> mediumLevels = [
+  ),
   LevelEntry(
     data: LevelData(title: "2FA Login", instructions: "Complete the login flow!"),
     widgetBuilder: (onComplete) => Level2FALogin(onComplete: onComplete),
@@ -99,6 +96,10 @@ final List<LevelEntry> mediumLevels = [
     data: LevelData(title: "Sign Up Flow", instructions: "Complete the sign-up form!"),
     widgetBuilder: (onComplete) => LevelSimpleSignup(onComplete: onComplete),
   ),
+];
+
+final List<LevelEntry> mediumLevels = [
+
   LevelEntry(
     data: LevelData(title: "Count the Dots", instructions: "Enter the numbers on each die from left to right!"),
     widgetBuilder: (onComplete) => LevelDiceRecognition(onComplete: onComplete),

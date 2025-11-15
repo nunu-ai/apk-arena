@@ -175,6 +175,11 @@ Aperture Science''',
       avatarColor: Colors.amber.shade700,
     ),
     RecipientSuggestion(
+      name: 'Cave Johnson',
+      email: 'cjohnson@aperture.science',
+      avatarColor: Colors.lightGreenAccent.shade700,
+    ),
+    RecipientSuggestion(
       name: 'Wheatley',
       email: 'wheatley@aperture.science',
       avatarColor: Colors.blue.shade600,
