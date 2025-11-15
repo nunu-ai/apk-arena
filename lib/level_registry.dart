@@ -37,7 +37,7 @@ final List<LevelEntry> easyLevels = [
   LevelEntry(
     data: LevelData(
       title: "Advanced Button",
-      instructions: "Find and click the small button!",
+      instructions: "Find and click the small button three times in a row!",
     ),
     widgetBuilder: (onComplete) =>
         LevelAdvancedClickButton(onComplete: onComplete),
