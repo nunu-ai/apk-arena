@@ -194,13 +194,6 @@ final List<LevelEntry> mediumLevels = [
     ),
     widgetBuilder: (onComplete) => LevelMatch3(onComplete: onComplete),
   ),
-  LevelEntry(
-    data: LevelData(
-      title: "word builder",
-      instructions: "make the word \"paper\"",
-    ),
-    widgetBuilder: (onComplete) => LevelScrabble(onComplete: onComplete),
-  ),
 ];
 
 final List<LevelEntry> hardLevels = [
