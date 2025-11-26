@@ -45,5 +45,17 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Deep link scheme: apkarena -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>apkarena</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>apkarena</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
