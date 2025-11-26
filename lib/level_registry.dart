@@ -22,6 +22,9 @@ import 'package:apk_arena/widgets/levels/level_click_grid_coordinate.dart';
 import 'package:apk_arena/widgets/levels/level_sudoku.dart';
 import 'package:apk_arena/widgets/levels/level_match3.dart';
 import 'package:apk_arena/widgets/levels/level_scrabble.dart';
+import 'package:apk_arena/widgets/levels/level_emoji_ball_hunt.dart';
+import 'package:apk_arena/widgets/levels/level_emoji_count_flags.dart';
+import 'package:apk_arena/widgets/levels/level_emoji_count_fruits.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -145,6 +148,13 @@ final List<LevelEntry> easyLevels = [
       instructions: "Complete the sign-up form!",
     ),
     widgetBuilder: (onComplete) => LevelSimpleSignup(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "emoji soup",
+      instructions: "find and tap the 3 balls.",
+    ),
+    widgetBuilder: (onComplete) => LevelEmojiBallHunt(onComplete: onComplete),
   ),
 ];
 
