@@ -26,6 +26,7 @@ import 'package:apk_arena/widgets/levels/level_emoji_ball_hunt.dart';
 import 'package:apk_arena/widgets/levels/level_emoji_count_flags.dart';
 import 'package:apk_arena/widgets/levels/level_emoji_count_fruits.dart';
 import 'package:apk_arena/widgets/levels/level_memory_match.dart';
+import 'package:apk_arena/widgets/levels/level_qr_deeplink.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -229,6 +230,13 @@ final List<LevelEntry> hardLevels = [
     ),
     widgetBuilder: (onComplete) => LevelDvdLogo(onComplete: onComplete),
   ),
+  LevelEntry(
+    data: LevelData(
+      title: "qr handshake",
+      instructions: "scan the qr to complete the link.",
+    ),
+    widgetBuilder: (onComplete) => LevelQrDeeplink(onComplete: onComplete),
+  ),
 ];
 
 final Map<int, LevelEntry> levelsRegistry = {
@@ -255,6 +263,13 @@ List<int> getLevelsForDifficulty(int difficulty) {
       .map((entry) => entry.key)
       .toList()
     ..sort();
+}
+
+int? findLevelNumberByTitle(String title) {
+  for (final entry in levelsRegistry.entries) {
+    if (entry.value.data.title == title) return entry.key;
+  }
+  return null;
 }
 
 LevelEntry? getLevel(int levelNumber) {
