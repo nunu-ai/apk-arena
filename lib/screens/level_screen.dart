@@ -120,15 +120,23 @@ class _LevelScreenState extends State<LevelScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 48,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
+          iconSize: 20,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
           onPressed: _showGiveUpDialog,
         ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("LVL ${widget.levelNumber}: ${levelEntry.data.title.toUpperCase()}",
-                style: const TextStyle(fontSize: 16, color: NunuColors.textPrimary)),
+            Text(
+              "LVL ${widget.levelNumber}: ${levelEntry.data.title.toUpperCase()}",
+              style: const TextStyle(
+                fontSize: 14,
+                color: NunuColors.textPrimary,
+              ),
+            ),
           ],
         ),
       ),

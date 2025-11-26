@@ -122,7 +122,7 @@ final List<LevelEntry> easyLevels = [
         LevelOverlappingPopups(onComplete: onComplete),
   ),
   LevelEntry(
-    data: LevelData(title: "Size Comparison", instructions: "What is Larger?"),
+    data: LevelData(title: "Size Comparison", instructions: "What is Larger here?"),
     widgetBuilder: (onComplete) => LevelBlueWhale(onComplete: onComplete),
   ),
   LevelEntry(
