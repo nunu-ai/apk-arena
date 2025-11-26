@@ -66,34 +66,13 @@ class _LevelQrDeeplinkState extends State<LevelQrDeeplink> {
   void _maybeHandle(Uri uri) {
     if (_consumed) return;
     if (uri.scheme != 'apkarena') return;
-    // support newer format: apkarena://open/level/<id>
-    // also accept legacy host/path variants for robustness
-    String? id;
-    if (uri.host == 'open') {
-      if (uri.pathSegments.length >= 2 && uri.pathSegments.first == 'level') {
-        id = uri.pathSegments[1];
-      } else {
-        return;
-      }
-    } else if (uri.pathSegments.length >= 3 && uri.pathSegments[0] == 'open' && uri.pathSegments[1] == 'level') {
-      id = uri.pathSegments[2];
-    } else if (uri.host == 'level') {
-      // legacy: apkarena://level/<id>
-      if (uri.pathSegments.isEmpty) return;
-      id = uri.pathSegments.first;
-    } else if (uri.pathSegments.isNotEmpty && uri.pathSegments.first == 'level' && uri.pathSegments.length >= 2) {
-      // legacy: apkarena:/level/<id>
-      id = uri.pathSegments[1];
-    } else {
-      return;
-    }
-
-    if (_qrLevelNumber != null) {
-      final n = int.tryParse(id!);
-      if (n != _qrLevelNumber) return; // not for this level
-    } else if (id != 'qr') {
-      return;
-    }
+    // canonical format only: apkarena://open/level/<number>?token=...
+    if (uri.host != 'open') return;
+    if (uri.pathSegments.length < 2 || uri.pathSegments.first != 'level') return;
+    final id = uri.pathSegments[1];
+    if (_qrLevelNumber == null) return;
+    final n = int.tryParse(id);
+    if (n != _qrLevelNumber) return; // not for this level
     final token = uri.queryParameters['token'];
     if (token == null || token.isEmpty) {
       // no token provided: open normally, do nothing

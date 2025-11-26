@@ -17,6 +17,7 @@ class _LevelEmojiCountFruitsState extends State<LevelEmojiCountFruits> {
   final List<_EmojiItem> _items = [];
   late final int _targetCount;
   late final String _target;
+  int _wrongAttempts = 0; // allow one retry before failing
 
   final TextEditingController _controller = TextEditingController();
 
@@ -85,10 +86,18 @@ class _LevelEmojiCountFruitsState extends State<LevelEmojiCountFruits> {
     if (value == _targetCount) {
       widget.onComplete(true);
     } else {
-      _showSnack('wrong number');
-      Future.delayed(const Duration(milliseconds: 900), () {
-        if (mounted) widget.onComplete(false);
-      });
+      if (_wrongAttempts == 0) {
+        _wrongAttempts = 1;
+        _controller.clear();
+        _showSnack('not quite — try once more');
+      } else {
+        _wrongAttempts = 2; // show 0 tries left before failing
+        setState(() {});
+        _showSnack('wrong number');
+        Future.delayed(const Duration(milliseconds: 900), () {
+          if (mounted) widget.onComplete(false);
+        });
+      }
     }
   }
 
@@ -140,6 +149,24 @@ class _LevelEmojiCountFruitsState extends State<LevelEmojiCountFruits> {
                       const SizedBox(width: 8),
                       Text(_target, style: const TextStyle(fontSize: 18)),
                     ],
+                  ),
+                ),
+              ),
+
+              // top-right tries indicator
+              Positioned(
+                right: 12,
+                top: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: NunuColors.backgroundPaper.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: NunuColors.secondaryMain.withOpacity(0.6)),
+                  ),
+                  child: Text(
+                    'tries left: ${2 - _wrongAttempts}',
+                    style: const TextStyle(fontSize: 12),
                   ),
                 ),
               ),
