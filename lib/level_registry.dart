@@ -25,6 +25,7 @@ import 'package:apk_arena/widgets/levels/level_scrabble.dart';
 import 'package:apk_arena/widgets/levels/level_emoji_ball_hunt.dart';
 import 'package:apk_arena/widgets/levels/level_emoji_count_flags.dart';
 import 'package:apk_arena/widgets/levels/level_emoji_count_fruits.dart';
+import 'package:apk_arena/widgets/levels/level_memory_match.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -156,6 +157,13 @@ final List<LevelEntry> easyLevels = [
     ),
     widgetBuilder: (onComplete) => LevelEmojiBallHunt(onComplete: onComplete),
   ),
+  LevelEntry(
+    data: LevelData(
+      title: "parade of nations",
+      instructions: "count the country flags and enter the total.",
+    ),
+    widgetBuilder: (onComplete) => LevelEmojiCountFlags(onComplete: onComplete),
+  ),
 ];
 
 final List<LevelEntry> mediumLevels = [
@@ -203,6 +211,13 @@ final List<LevelEntry> mediumLevels = [
           "make three match-3 combos in a row. the board grows after each one.",
     ),
     widgetBuilder: (onComplete) => LevelMatch3(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "fruit salad census",
+      instructions: "count the target fruit. ignore the rest.",
+    ),
+    widgetBuilder: (onComplete) => LevelEmojiCountFruits(onComplete: onComplete),
   ),
 ];
 
