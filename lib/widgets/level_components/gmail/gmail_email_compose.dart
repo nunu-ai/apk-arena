@@ -50,6 +50,9 @@ class _GmailEmailComposeState extends State<GmailEmailCompose> {
   List<RecipientSuggestion> _filteredSuggestions = [];
   final FocusNode _recipientFocusNode = FocusNode();
   final FocusNode _subjectFocusNode = FocusNode();
+  // Anchor and key to position the suggestions relative to the "To" row
+  final LayerLink _recipientFieldLink = LayerLink();
+  final GlobalKey _recipientRowKey = GlobalKey();
 
   @override
   void initState() {
@@ -141,7 +144,7 @@ class _GmailEmailComposeState extends State<GmailEmailCompose> {
             child: SafeArea(
               bottom: false,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 child: Row(
                   children: [
                     IconButton(
@@ -176,9 +179,9 @@ class _GmailEmailComposeState extends State<GmailEmailCompose> {
                     color: Colors.white,
                     child: Column(
                       children: [
-                        // From field
+                        // From field (compact)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           decoration: BoxDecoration(
                             border: Border(
                               bottom: BorderSide(color: Colors.grey.shade300, width: 1),
@@ -187,11 +190,11 @@ class _GmailEmailComposeState extends State<GmailEmailCompose> {
                           child: Row(
                             children: [
                               SizedBox(
-                                width: 80,
+                                width: 64,
                                 child: Text(
                                   'From',
                                   style: TextStyle(
-                                    fontSize: 16,
+                                    fontSize: 14,
                                     color: Colors.grey.shade600,
                                   ),
                                 ),
@@ -200,7 +203,7 @@ class _GmailEmailComposeState extends State<GmailEmailCompose> {
                                 child: Text(
                                   widget.fromAddress,
                                   style: const TextStyle(
-                                    fontSize: 16,
+                                    fontSize: 14,
                                     color: Colors.black87,
                                   ),
                                 ),
@@ -209,22 +212,25 @@ class _GmailEmailComposeState extends State<GmailEmailCompose> {
                           ),
                         ),
 
-                        // To field with intentional overlap issue
+                        // To field (anchored for suggestions + compact)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          key: _recipientRowKey,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           decoration: BoxDecoration(
                             border: Border(
                               bottom: BorderSide(color: Colors.grey.shade300, width: 1),
                             ),
                           ),
-                          child: Row(
+                          child: CompositedTransformTarget(
+                            link: _recipientFieldLink,
+                            child: Row(
                             children: [
                               SizedBox(
-                                width: 80,
+                                width: 64,
                                 child: Text(
                                   'To',
                                   style: TextStyle(
-                                    fontSize: 16,
+                                    fontSize: 14,
                                     color: Colors.grey.shade600,
                                   ),
                                 ),
@@ -239,24 +245,50 @@ class _GmailEmailComposeState extends State<GmailEmailCompose> {
                                     contentPadding: EdgeInsets.zero,
                                   ),
                                   style: const TextStyle(
-                                    fontSize: 16,
+                                    fontSize: 14,
                                     color: Colors.black87,
                                   ),
                                 ),
                               ),
                               IconButton(
                                 icon: Icon(Icons.arrow_drop_down, color: Colors.grey.shade600),
-                                onPressed: () {},
+                                onPressed: () {
+                                  // Toggle suggestions when tapping the dropdown arrow.
+                                  // If the input is empty, show all available suggestions.
+                                  setState(() {
+                                    // Ensure the recipient field has focus so keyboard/nav feel natural
+                                    if (!_recipientFocusNode.hasFocus) {
+                                      _recipientFocusNode.requestFocus();
+                                    }
+
+                                    if (_showSuggestions) {
+                                      _showSuggestions = false;
+                                      return;
+                                    }
+
+                                    final text = _recipientController.text.trim().toLowerCase();
+                                    if (text.isEmpty) {
+                                      _filteredSuggestions = List.of(widget.suggestions);
+                                    } else {
+                                      _filteredSuggestions = widget.suggestions.where((suggestion) {
+                                        return suggestion.name.toLowerCase().contains(text) ||
+                                            suggestion.email.toLowerCase().contains(text);
+                                      }).toList();
+                                    }
+                                    _showSuggestions = _filteredSuggestions.isNotEmpty;
+                                  });
+                                },
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
                               ),
                             ],
                           ),
                         ),
+                        ),
 
-                        // Subject field
+                        // Subject field (compact)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           decoration: BoxDecoration(
                             border: Border(
                               bottom: BorderSide(color: Colors.grey.shade300, width: 1),
@@ -265,11 +297,11 @@ class _GmailEmailComposeState extends State<GmailEmailCompose> {
                           child: Row(
                             children: [
                               SizedBox(
-                                width: 80,
+                                width: 64,
                                 child: Text(
                                   'Subject',
                                   style: TextStyle(
-                                    fontSize: 16,
+                                    fontSize: 14,
                                     color: Colors.grey.shade600,
                                   ),
                                 ),
@@ -285,7 +317,7 @@ class _GmailEmailComposeState extends State<GmailEmailCompose> {
                                     contentPadding: EdgeInsets.zero,
                                   ),
                                   style: const TextStyle(
-                                    fontSize: 16,
+                                    fontSize: 14,
                                     color: Colors.black87,
                                   ),
                                 ),
@@ -294,9 +326,9 @@ class _GmailEmailComposeState extends State<GmailEmailCompose> {
                           ),
                         ),
 
-                        // Body field
+                        // Body field (compact)
                         Padding(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(12),
                           child: TextField(
                             controller: _bodyController,
                             maxLines: null,
@@ -306,7 +338,7 @@ class _GmailEmailComposeState extends State<GmailEmailCompose> {
                               hintText: '',
                             ),
                             style: const TextStyle(
-                              fontSize: 16,
+                              fontSize: 14,
                               color: Colors.black87,
                             ),
                           ),
@@ -316,52 +348,67 @@ class _GmailEmailComposeState extends State<GmailEmailCompose> {
                   ),
                 ),
 
-                // Suggestions overlay - positioned to overlap the subject field
-                // This is the intentional bug mentioned by the user
+                // Suggestions overlay anchored to the "To" row and sized to avoid keyboard overlap
                 if (_showSuggestions)
-                  Positioned(
-                    top: 128, // Position right after the "To" field, overlapping subject
-                    left: 0,
-                    right: 0,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                            child: Row(
-                              children: [
-                                Text(
-                                  'Suggestions',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade600,
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                  Builder(builder: (context) {
+                    // Measure the "To" row height and position
+                    double rowHeight = 44;
+                    double rowTop = 0;
+                    try {
+                      final ctx = _recipientRowKey.currentContext;
+                      if (ctx != null) {
+                        final box = ctx.findRenderObject() as RenderBox;
+                        rowHeight = box.size.height;
+                        rowTop = box.localToGlobal(Offset.zero).dy;
+                      }
+                    } catch (_) {}
+
+                    final media = MediaQuery.of(context);
+                    final screenHeight = media.size.height;
+                    final keyboard = media.viewInsets.bottom;
+                    final availableBelow = (screenHeight - keyboard) - (rowTop + rowHeight) - 8;
+                    final maxHeight = availableBelow.clamp(120.0, 320.0);
+
+                    return CompositedTransformFollower(
+                      link: _recipientFieldLink,
+                      offset: Offset(0, rowHeight),
+                      showWhenUnlinked: false,
+                      child: SizedBox(
+                        width: MediaQuery.of(context).size.width,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(maxHeight: maxHeight),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.08),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
                                 ),
-                                const SizedBox(width: 4),
-                                Icon(Icons.info_outline, size: 16, color: Colors.grey.shade600),
                               ],
                             ),
+                            child: Material(
+                              color: Colors.white,
+                              child: ListView.separated(
+                                shrinkWrap: true,
+                                padding: EdgeInsets.zero,
+                                itemCount: _filteredSuggestions.length,
+                                separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade200),
+                                itemBuilder: (context, index) {
+                                  final suggestion = _filteredSuggestions[index];
+                                  return _SuggestionItem(
+                                    suggestion: suggestion,
+                                    onTap: () => _selectSuggestion(suggestion),
+                                  );
+                                },
+                              ),
+                            ),
                           ),
-                          ..._filteredSuggestions.map((suggestion) => _SuggestionItem(
-                            suggestion: suggestion,
-                            onTap: () => _selectSuggestion(suggestion),
-                          )),
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
+                    );
+                  }),
               ],
             ),
           ),
@@ -440,12 +487,12 @@ class _SuggestionItem extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Row(
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: suggestion.avatarColor ?? Colors.grey.shade400,
@@ -470,7 +517,7 @@ class _SuggestionItem extends StatelessWidget {
                   Text(
                     suggestion.name,
                     style: const TextStyle(
-                      fontSize: 16,
+                      fontSize: 14,
                       color: Colors.black87,
                       fontWeight: FontWeight.w500,
                     ),
@@ -478,7 +525,7 @@ class _SuggestionItem extends StatelessWidget {
                   Text(
                     suggestion.email,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 12,
                       color: Colors.grey.shade600,
                     ),
                   ),
