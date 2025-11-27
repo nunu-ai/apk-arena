@@ -56,12 +56,21 @@ class _LevelScreenState extends State<LevelScreen> {
   }
 
   void _showGiveUpDialog() {
+    final status = _progressService.getLevelStatus(widget.levelNumber);
+    final alreadyCompleted = status?.result == LevelResult.success;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('GIVE UP?', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text('are you sure you want to give up on this level?',
-            style: TextStyle(color: NunuColors.textSecondary)),
+        title: Text(
+          alreadyCompleted ? 'EXIT LEVEL?' : 'GIVE UP?',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          alreadyCompleted
+              ? 'exit to main menu? your completion stays recorded.'
+              : 'are you sure you want to give up on this level?',
+          style: const TextStyle(color: NunuColors.textSecondary),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -70,11 +79,13 @@ class _LevelScreenState extends State<LevelScreen> {
           ),
           FilledButton(
             onPressed: () async {
-              await _progressService.completeLevel(
-                widget.levelNumber,
-                LevelResult.failed,
-                null, // No completion time for failed attempts
-              );
+              if (!alreadyCompleted) {
+                await _progressService.completeLevel(
+                  widget.levelNumber,
+                  LevelResult.failed,
+                  null, // No completion time for failed attempts
+                );
+              }
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (context) => const LevelSelectorScreen()),
@@ -86,7 +97,10 @@ class _LevelScreenState extends State<LevelScreen> {
               foregroundColor: NunuColors.primaryLight,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('GIVE UP', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(
+              alreadyCompleted ? 'EXIT' : 'GIVE UP',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -130,12 +144,31 @@ class _LevelScreenState extends State<LevelScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              "LVL ${widget.levelNumber}: ${levelEntry.data.title.toUpperCase()}",
-              style: const TextStyle(
-                fontSize: 14,
-                color: NunuColors.textPrimary,
-              ),
+            Builder(
+              builder: (_) {
+                final status = _progressService.getLevelStatus(widget.levelNumber);
+                final isCompleted = status?.result == LevelResult.success;
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      "LVL ${widget.levelNumber}: ${levelEntry.data.title.toUpperCase()}",
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: NunuColors.textPrimary,
+                      ),
+                    ),
+                    if (isCompleted) ...[
+                      const SizedBox(width: 6),
+                      const Icon(
+                        Icons.check_circle,
+                        size: 16,
+                        color: NunuColors.successLight,
+                      )
+                    ]
+                  ],
+                );
+              },
             ),
           ],
         ),
