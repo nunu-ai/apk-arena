@@ -30,6 +30,7 @@ import 'package:apk_arena/widgets/levels/level_qr_deeplink.dart';
 import 'package:apk_arena/widgets/levels/level_button_alchemy.dart';
 import 'package:apk_arena/widgets/levels/level_enter_date.dart';
 import 'package:apk_arena/widgets/levels/level_emerald_runtime.dart';
+import 'package:apk_arena/widgets/levels/level_do_not_click.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -123,6 +124,13 @@ final List<LevelEntry> easyLevels = [
       instructions: "Set the alarm correctly and enable it!",
     ),
     widgetBuilder: (onComplete) => LevelSetAlarm(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "the one forbidden button",
+      instructions: "don't do it :)",
+    ),
+    widgetBuilder: (onComplete) => LevelDoNotClick(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(title: "Popup Hell", instructions: "Close the popups!"),
