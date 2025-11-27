@@ -109,14 +109,28 @@ class _LevelQrDeeplinkState extends State<LevelQrDeeplink> {
             ],
             border: Border.all(color: NunuColors.secondaryMain.withOpacity(0.5), width: 2),
           ),
-          child: QrImageView(
-            data: _url,
-            version: QrVersions.auto,
-            size: 260,
-            backgroundColor: NunuColors.backgroundPaper,
-            // color the modules/eyes with secondary light for style
-            eyeStyle: QrEyeStyle(eyeShape: QrEyeShape.square, color: NunuColors.secondaryLight),
-            dataModuleStyle: QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: NunuColors.secondaryLight),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              QrImageView(
+                data: _url,
+                version: QrVersions.auto,
+                size: 260,
+                backgroundColor: NunuColors.backgroundPaper,
+                // color the modules/eyes with secondary light for style
+                eyeStyle: QrEyeStyle(eyeShape: QrEyeShape.square, color: NunuColors.secondaryLight),
+                dataModuleStyle: QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: NunuColors.secondaryLight),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'hint: you might need to briefly leave the app to complete this.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: NunuColors.textSecondary,
+                    ),
+              ),
+            ],
           ),
         ),
       ),

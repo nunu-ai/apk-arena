@@ -28,6 +28,7 @@ import 'package:apk_arena/widgets/levels/level_emoji_count_fruits.dart';
 import 'package:apk_arena/widgets/levels/level_memory_match.dart';
 import 'package:apk_arena/widgets/levels/level_qr_deeplink.dart';
 import 'package:apk_arena/widgets/levels/level_button_alchemy.dart';
+import 'package:apk_arena/widgets/levels/level_enter_date.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -165,6 +166,13 @@ final List<LevelEntry> easyLevels = [
       instructions: "count the country flags and enter the total.",
     ),
     widgetBuilder: (onComplete) => LevelEmojiCountFlags(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "today's date",
+      instructions: "enter today's date.",
+    ),
+    widgetBuilder: (onComplete) => LevelEnterDate(onComplete: onComplete),
   ),
 ];
 
