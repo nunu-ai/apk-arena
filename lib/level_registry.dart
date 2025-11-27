@@ -27,6 +27,7 @@ import 'package:apk_arena/widgets/levels/level_emoji_count_flags.dart';
 import 'package:apk_arena/widgets/levels/level_emoji_count_fruits.dart';
 import 'package:apk_arena/widgets/levels/level_memory_match.dart';
 import 'package:apk_arena/widgets/levels/level_qr_deeplink.dart';
+import 'package:apk_arena/widgets/levels/level_button_alchemy.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -219,6 +220,13 @@ final List<LevelEntry> mediumLevels = [
       instructions: "count the target fruit. ignore the rest.",
     ),
     widgetBuilder: (onComplete) => LevelEmojiCountFruits(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "button alchemy",
+      instructions: "reach the target using buttons a, b, c.",
+    ),
+    widgetBuilder: (onComplete) => LevelButtonAlchemy(onComplete: onComplete),
   ),
 ];
 
