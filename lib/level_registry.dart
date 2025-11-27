@@ -29,6 +29,7 @@ import 'package:apk_arena/widgets/levels/level_memory_match.dart';
 import 'package:apk_arena/widgets/levels/level_qr_deeplink.dart';
 import 'package:apk_arena/widgets/levels/level_button_alchemy.dart';
 import 'package:apk_arena/widgets/levels/level_enter_date.dart';
+import 'package:apk_arena/widgets/levels/level_emerald_runtime.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -173,6 +174,13 @@ final List<LevelEntry> easyLevels = [
       instructions: "enter today's date.",
     ),
     widgetBuilder: (onComplete) => LevelEnterDate(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "emerald runtime",
+      instructions: "how long did it take nunu.ai to beat the first 3 gyms in pokemon emerald?",
+    ),
+    widgetBuilder: (onComplete) => LevelEmeraldRuntime(onComplete: onComplete),
   ),
 ];
 
