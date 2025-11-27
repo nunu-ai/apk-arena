@@ -53,6 +53,45 @@ class ProgressService {
     return Map.unmodifiable(_levelStatuses);
   }
   
+  // Check if a level is completed successfully
+  bool isCompleted(int levelNumber) {
+    final s = _levelStatuses[levelNumber];
+    return s != null && s.result == LevelResult.success;
+  }
+
+  // Return levels from the given ordered list that are not completed
+  List<int> getUncompletedLevels(Iterable<int> orderedLevels) {
+    final result = <int>[];
+    for (final n in orderedLevels) {
+      final s = _levelStatuses[n];
+      if (s == null || s.result != LevelResult.success) {
+        result.add(n);
+      }
+    }
+    return result;
+  }
+
+  // Find the next uncompleted level after `afterLevel` within orderedLevels; wraps once.
+  int? nextUncompletedLevel(Iterable<int> orderedLevels, int afterLevel) {
+    final list = List<int>.from(orderedLevels);
+    if (list.isEmpty) return null;
+    final start = list.indexOf(afterLevel);
+    if (start == -1) return null;
+    // forward scan
+    for (int i = start + 1; i < list.length; i++) {
+      final n = list[i];
+      final s = _levelStatuses[n];
+      if (s == null || s.result != LevelResult.success) return n;
+    }
+    // wrap
+    for (int i = 0; i < start; i++) {
+      final n = list[i];
+      final s = _levelStatuses[n];
+      if (s == null || s.result != LevelResult.success) return n;
+    }
+    return null; // all completed
+  }
+  
   // Get level status
   LevelStatus? getLevelStatus(int levelNumber) {
     return _levelStatuses[levelNumber];

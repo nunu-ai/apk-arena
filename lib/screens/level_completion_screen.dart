@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../../level_registry.dart';
+import '../services/progress_service.dart';
 import 'level_screen.dart';
 import 'level_selector.dart';
 
@@ -28,11 +29,7 @@ class LevelCompletionScreen extends StatelessWidget {
 
   int? get nextLevelNumber {
     final allLevels = getAvailableLevels();
-    final currentIndex = allLevels.indexOf(levelNumber);
-    if (currentIndex != -1 && currentIndex < allLevels.length - 1) {
-      return allLevels[currentIndex + 1];
-    }
-    return null;
+    return ProgressService.instance.nextUncompletedLevel(allLevels, levelNumber);
   }
 
   @override
