@@ -22,6 +22,16 @@ import 'package:apk_arena/widgets/levels/level_click_grid_coordinate.dart';
 import 'package:apk_arena/widgets/levels/level_sudoku.dart';
 import 'package:apk_arena/widgets/levels/level_match3.dart';
 import 'package:apk_arena/widgets/levels/level_scrabble.dart';
+import 'package:apk_arena/widgets/levels/level_emoji_ball_hunt.dart';
+import 'package:apk_arena/widgets/levels/level_emoji_count_flags.dart';
+import 'package:apk_arena/widgets/levels/level_emoji_count_fruits.dart';
+import 'package:apk_arena/widgets/levels/level_memory_match.dart';
+import 'package:apk_arena/widgets/levels/level_qr_deeplink.dart';
+import 'package:apk_arena/widgets/levels/level_button_alchemy.dart';
+import 'package:apk_arena/widgets/levels/level_enter_date.dart';
+import 'package:apk_arena/widgets/levels/level_emerald_runtime.dart';
+import 'package:apk_arena/widgets/levels/level_do_not_click.dart';
+import 'package:apk_arena/widgets/levels/level_closing_drawer.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -117,12 +127,19 @@ final List<LevelEntry> easyLevels = [
     widgetBuilder: (onComplete) => LevelSetAlarm(onComplete: onComplete),
   ),
   LevelEntry(
+    data: LevelData(
+      title: "the one forbidden button",
+      instructions: "don't do it :)",
+    ),
+    widgetBuilder: (onComplete) => LevelDoNotClick(onComplete: onComplete),
+  ),
+  LevelEntry(
     data: LevelData(title: "Popup Hell", instructions: "Close the popups!"),
     widgetBuilder: (onComplete) =>
         LevelOverlappingPopups(onComplete: onComplete),
   ),
   LevelEntry(
-    data: LevelData(title: "Size Comparison", instructions: "What is Larger?"),
+    data: LevelData(title: "Size Comparison", instructions: "What is Larger here?"),
     widgetBuilder: (onComplete) => LevelBlueWhale(onComplete: onComplete),
   ),
   LevelEntry(
@@ -145,6 +162,34 @@ final List<LevelEntry> easyLevels = [
       instructions: "Complete the sign-up form!",
     ),
     widgetBuilder: (onComplete) => LevelSimpleSignup(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "emoji soup",
+      instructions: "find and tap the 3 balls.",
+    ),
+    widgetBuilder: (onComplete) => LevelEmojiBallHunt(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "parade of nations",
+      instructions: "count the country flags and enter the total.",
+    ),
+    widgetBuilder: (onComplete) => LevelEmojiCountFlags(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "today's date",
+      instructions: "enter today's date.",
+    ),
+    widgetBuilder: (onComplete) => LevelEnterDate(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "emerald runtime",
+      instructions: "how long did it take nunu.ai to beat the first 3 gyms in pokemon emerald?",
+    ),
+    widgetBuilder: (onComplete) => LevelEmeraldRuntime(onComplete: onComplete),
   ),
 ];
 
@@ -196,10 +241,24 @@ final List<LevelEntry> mediumLevels = [
   ),
   LevelEntry(
     data: LevelData(
-      title: "word builder",
-      instructions: "make the word \"paper\"",
+      title: "fruit salad census",
+      instructions: "count the target fruit. ignore the rest.",
     ),
-    widgetBuilder: (onComplete) => LevelScrabble(onComplete: onComplete),
+    widgetBuilder: (onComplete) => LevelEmojiCountFruits(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "button alchemy",
+      instructions: "reach the target using buttons a, b, c.",
+    ),
+    widgetBuilder: (onComplete) => LevelButtonAlchemy(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Focus Music",
+      instructions: "Skip to the next song.",
+    ),
+    widgetBuilder: (onComplete) => LevelClosingDrawer(onComplete: onComplete),
   ),
 ];
 
@@ -210,6 +269,13 @@ final List<LevelEntry> hardLevels = [
       instructions: "Click the bouncing DVD logo!",
     ),
     widgetBuilder: (onComplete) => LevelDvdLogo(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "qr handshake",
+      instructions: "scan the qr to complete the link.",
+    ),
+    widgetBuilder: (onComplete) => LevelQrDeeplink(onComplete: onComplete),
   ),
 ];
 
@@ -237,6 +303,13 @@ List<int> getLevelsForDifficulty(int difficulty) {
       .map((entry) => entry.key)
       .toList()
     ..sort();
+}
+
+int? findLevelNumberByTitle(String title) {
+  for (final entry in levelsRegistry.entries) {
+    if (entry.value.data.title == title) return entry.key;
+  }
+  return null;
 }
 
 LevelEntry? getLevel(int levelNumber) {

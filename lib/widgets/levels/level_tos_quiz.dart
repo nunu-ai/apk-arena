@@ -13,6 +13,11 @@ class _LevelTosMemoryState extends State<LevelTosQuiz> {
   bool _showQuestions = false;
   int _currentQuestionIndex = 0;
   final ScrollController _scrollController = ScrollController();
+  bool _hasScrolledToBottom = false;
+
+  // Shuffled option orders and derived correct indices per question
+  late final List<List<int>> _optionOrderPerQuestion;
+  late final List<int> _shuffledCorrectIndex;
 
   final List<Question> _questions = [
     Question(
@@ -67,7 +72,42 @@ class _LevelTosMemoryState extends State<LevelTosQuiz> {
     ),
   ];
 
+  @override
+  void initState() {
+    super.initState();
+
+    // Track scroll-to-bottom to unlock the quiz continue button
+    _scrollController.addListener(() {
+      if (!_hasScrolledToBottom &&
+          _scrollController.position.pixels >=
+              _scrollController.position.maxScrollExtent - 12) {
+        setState(() {
+          _hasScrolledToBottom = true;
+        });
+      }
+    });
+
+    // Precompute shuffled option orders and the visible correct index
+    _optionOrderPerQuestion = _questions.map((q) {
+      final order = List<int>.generate(q.options.length, (i) => i);
+      order.shuffle();
+      return order;
+    }).toList();
+    _shuffledCorrectIndex = List<int>.generate(_questions.length, (qi) {
+      return _optionOrderPerQuestion[qi].indexOf(_questions[qi].correctIndex);
+    });
+  }
+
   void _handleContinueToQuestions() {
+    if (!_hasScrolledToBottom) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('scroll to the bottom first'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
     setState(() {
       _showQuestions = true;
     });
@@ -76,7 +116,10 @@ class _LevelTosMemoryState extends State<LevelTosQuiz> {
   void _handleAnswer(int selectedIndex) {
     final currentQuestion = _questions[_currentQuestionIndex];
 
-    if (selectedIndex == currentQuestion.correctIndex) {
+    // Map the tapped option (in shuffled order) to the visible correct index
+    final isCorrect = selectedIndex == _shuffledCorrectIndex[_currentQuestionIndex];
+
+    if (isCorrect) {
       // Correct answer
       if (_currentQuestionIndex < _questions.length - 1) {
         // Move to next question
@@ -214,7 +257,7 @@ class _LevelTosMemoryState extends State<LevelTosQuiz> {
           child: SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: _handleContinueToQuestions,
+              onPressed: _hasScrolledToBottom ? _handleContinueToQuestions : null,
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 backgroundColor: NunuColors.primaryMain,
@@ -239,6 +282,7 @@ class _LevelTosMemoryState extends State<LevelTosQuiz> {
 
   Widget _buildQuestionScreen() {
     final currentQuestion = _questions[_currentQuestionIndex];
+    final order = _optionOrderPerQuestion[_currentQuestionIndex];
 
     return Column(
       children: [
@@ -338,7 +382,7 @@ class _LevelTosMemoryState extends State<LevelTosQuiz> {
                       (index) => Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: _buildAnswerOption(
-                      currentQuestion.options[index],
+                      currentQuestion.options[order[index]],
                       index,
                     ),
                   ),
