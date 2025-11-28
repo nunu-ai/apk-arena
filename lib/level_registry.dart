@@ -31,6 +31,7 @@ import 'package:apk_arena/widgets/levels/level_button_alchemy.dart';
 import 'package:apk_arena/widgets/levels/level_enter_date.dart';
 import 'package:apk_arena/widgets/levels/level_emerald_runtime.dart';
 import 'package:apk_arena/widgets/levels/level_do_not_click.dart';
+import 'package:apk_arena/widgets/levels/level_closing_drawer.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -251,6 +252,13 @@ final List<LevelEntry> mediumLevels = [
       instructions: "reach the target using buttons a, b, c.",
     ),
     widgetBuilder: (onComplete) => LevelButtonAlchemy(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Focus Music",
+      instructions: "Skip to the next song.",
+    ),
+    widgetBuilder: (onComplete) => LevelClosingDrawer(onComplete: onComplete),
   ),
 ];
 
