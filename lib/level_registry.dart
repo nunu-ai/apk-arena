@@ -21,6 +21,7 @@ import 'package:apk_arena/widgets/levels/level_wire_task.dart';
 import 'package:apk_arena/widgets/levels/level_click_grid_coordinate.dart';
 import 'package:apk_arena/widgets/levels/level_sudoku.dart';
 import 'package:apk_arena/widgets/levels/level_match3.dart';
+import 'package:apk_arena/widgets/levels/level_scrabble.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -192,6 +193,13 @@ final List<LevelEntry> mediumLevels = [
           "make three match-3 combos in a row. the board grows after each one.",
     ),
     widgetBuilder: (onComplete) => LevelMatch3(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "word builder",
+      instructions: "make the word \"paper\"",
+    ),
+    widgetBuilder: (onComplete) => LevelScrabble(onComplete: onComplete),
   ),
 ];
 
