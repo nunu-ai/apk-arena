@@ -4,7 +4,7 @@ import '../../theme/app_theme.dart';
 
 class LevelScrabbleHard extends LevelWidget {
   const LevelScrabbleHard({Key? key, required super.onComplete})
-      : super(key: key);
+    : super(key: key);
 
   @override
   State<LevelScrabbleHard> createState() => _LevelScrabbleHardState();
@@ -19,9 +19,7 @@ class _LevelScrabbleHardState extends State<LevelScrabbleHard> {
   final Map<String, String> _fixedTiles = {};
 
   // Tile rack letters - the player will use these
-  final List<String> _rackLetters = [
-    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M'
-  ];
+  final List<String> _rackLetters = ['F', 'L', 'N', 'P', 'R', 'S', 'U'];
 
   // Track placed letters on the board: Map<(row, col), letter>
   final Map<String, String> _placedTiles = {};
@@ -33,16 +31,75 @@ class _LevelScrabbleHardState extends State<LevelScrabbleHard> {
   }
 
   void _initializeBoard() {
-    // Place "AGENTS" horizontally in the middle of the board
-    // Center row is 7, center column starts at 4 (to center "AGENTS" which is 6 letters)
-    // So it goes from col 4 to col 9
-    const String centerWord = 'AGENTS';
-    const int centerRow = 7;
-    const int startCol = (15 - 6) ~/ 2; // 4
+    // Recreated from real Scrabble game screenshot
+    // Complex interconnected board with many words
+    //
+    // Main words visible:
+    // - REPOINT (horizontal)
+    // - JO (vertical, connects to REPOINT's O)
+    // - INK (horizontal)
+    // - CHIAO (horizontal)
+    // - ODA (horizontal)
+    // - BARF (horizontal)
+    // - AIYEE (horizontal)
+    // - WITTOLS (horizontal)
+    // - TUI (horizontal)
+    // - WOVEN (vertical, right side)
+    // - MAIMED (vertical, left side)
+    // And more connecting words
 
-    for (int i = 0; i < centerWord.length; i++) {
-      _fixedTiles[_cellKey(centerRow, startCol + i)] = centerWord[i];
+    // Helper to place a word
+    void placeWord(String word, int startRow, int startCol, bool horizontal) {
+      for (int i = 0; i < word.length; i++) {
+        final row = horizontal ? startRow : startRow + i;
+        final col = horizontal ? startCol + i : startCol;
+        _fixedTiles[_cellKey(row, col)] = word[i];
+      }
     }
+
+    // Helper to place single tile
+    void placeTile(String letter, int row, int col) {
+      _fixedTiles[_cellKey(row, col)] = letter;
+    }
+
+    // === TOP SECTION ===
+    placeWord('JO', 0, 7, true);
+
+    // REPOINT horizontal at row 2
+    placeWord('REPOINT', 1, 4, true);
+
+    // INK horizontal at row 3
+    placeWord('INK', 2, 10, true);
+    // OH horizontal at row 4
+    placeWord('OH', 3, 11, true);
+
+    // W on far right (part of WOVEN)
+    placeTile('W', 3, 14);
+    placeTile('V', 5, 14);
+    placeTile('E', 6, 14);
+    placeTile('N', 7, 14);
+
+    // VUG
+    placeTile('V', 5, 1);
+    placeTile('U', 6, 1);
+
+    // CHIAO horizontal at row 5
+    placeWord('CHIAO', 4, 10, true);
+    placeWord('ODA', 5, 8, true);
+    placeWord('BARF', 6, 8, true);
+    placeWord('AIYEE', 7, 7, true);
+    placeWord('AGOG', 7, 0, true);
+
+    // === ROW 9 - WITTOLS ===
+    placeWord('WITTOLS', 8, 2, true);
+    placeWord('TUI', 8, 10, true);
+    placeWord('MEG', 9, 1, true);
+
+    placeTile('A', 10, 1);
+    placeTile('I', 11, 1);
+    placeTile('M', 12, 1);
+    placeTile('E', 13, 1);
+    placeTile('D', 14, 1);
   }
 
   String _cellKey(int row, int col) => '$row,$col';
@@ -109,69 +166,109 @@ class _LevelScrabbleHardState extends State<LevelScrabbleHard> {
     // Standard Scrabble board pattern
     // Triple Word Score (red) - corners and cross pattern
     final tripleWord = [
-      [0, 0], [0, 7], [0, 14],
-      [7, 0], [7, 14],
-      [14, 0], [14, 7], [14, 14],
+      [0, 0],
+      [0, 7],
+      [0, 14],
+      [7, 0],
+      [7, 14],
+      [14, 0],
+      [14, 7],
+      [14, 14],
     ];
-    
+
     // Double Word Score (pink) - diagonal pattern
     final doubleWord = [
-      [1, 1], [2, 2], [3, 3], [4, 4],
-      [1, 13], [2, 12], [3, 11], [4, 10],
-      [13, 1], [12, 2], [11, 3], [10, 4],
-      [13, 13], [12, 12], [11, 11], [10, 10],
+      [1, 1],
+      [2, 2],
+      [3, 3],
+      [4, 4],
+      [1, 13],
+      [2, 12],
+      [3, 11],
+      [4, 10],
+      [13, 1],
+      [12, 2],
+      [11, 3],
+      [10, 4],
+      [13, 13],
+      [12, 12],
+      [11, 11],
+      [10, 10],
     ];
-    
+
     // Triple Letter Score (dark blue)
     final tripleLetter = [
-      [1, 5], [1, 9],
-      [5, 1], [5, 5], [5, 9], [5, 13],
-      [9, 1], [9, 5], [9, 9], [9, 13],
-      [13, 5], [13, 9],
+      [1, 5],
+      [1, 9],
+      [5, 1],
+      [5, 5],
+      [5, 9],
+      [5, 13],
+      [9, 1],
+      [9, 5],
+      [9, 9],
+      [9, 13],
+      [13, 5],
+      [13, 9],
     ];
-    
+
     // Double Letter Score (light blue)
     final doubleLetter = [
-      [0, 3], [0, 11],
-      [2, 6], [2, 8],
-      [3, 0], [3, 7], [3, 14],
-      [6, 2], [6, 6], [6, 8], [6, 12],
-      [7, 3], [7, 11],
-      [8, 2], [8, 6], [8, 8], [8, 12],
-      [11, 0], [11, 7], [11, 14],
-      [12, 6], [12, 8],
-      [14, 3], [14, 11],
+      [0, 3],
+      [0, 11],
+      [2, 6],
+      [2, 8],
+      [3, 0],
+      [3, 7],
+      [3, 14],
+      [6, 2],
+      [6, 6],
+      [6, 8],
+      [6, 12],
+      [7, 3],
+      [7, 11],
+      [8, 2],
+      [8, 6],
+      [8, 8],
+      [8, 12],
+      [11, 0],
+      [11, 7],
+      [11, 14],
+      [12, 6],
+      [12, 8],
+      [14, 3],
+      [14, 11],
     ];
-    
+
     // Center star
     if (row == 7 && col == 7) {
       return const Color(0xFFE55CD8).withOpacity(0.3); // Pink for center
     }
-    
+
     for (var pos in tripleWord) {
       if (pos[0] == row && pos[1] == col) {
         return const Color(0xFFFF5630).withOpacity(0.25); // Red
       }
     }
-    
+
     for (var pos in doubleWord) {
       if (pos[0] == row && pos[1] == col) {
         return const Color(0xFFFFAB00).withOpacity(0.2); // Orange/pink
       }
     }
-    
+
     for (var pos in tripleLetter) {
       if (pos[0] == row && pos[1] == col) {
         return const Color(0xFF1E90FF).withOpacity(0.3); // Blue
       }
     }
-    
+
     for (var pos in doubleLetter) {
       if (pos[0] == row && pos[1] == col) {
         return const Color(0xFF87CEEB).withOpacity(0.25); // Light blue
       }
     }
-    
+
     return NunuColors.backgroundDefault.withOpacity(0.25);
   }
 
@@ -457,4 +554,3 @@ class _RackTile extends StatelessWidget {
     );
   }
 }
-
