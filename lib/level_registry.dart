@@ -21,11 +21,10 @@ import 'package:apk_arena/widgets/levels/level_wire_task.dart';
 import 'package:apk_arena/widgets/levels/level_click_grid_coordinate.dart';
 import 'package:apk_arena/widgets/levels/level_sudoku.dart';
 import 'package:apk_arena/widgets/levels/level_match3.dart';
-import 'package:apk_arena/widgets/levels/level_scrabble.dart';
+import 'package:apk_arena/widgets/levels/level_scrabble_hard.dart';
 import 'package:apk_arena/widgets/levels/level_emoji_ball_hunt.dart';
 import 'package:apk_arena/widgets/levels/level_emoji_count_flags.dart';
 import 'package:apk_arena/widgets/levels/level_emoji_count_fruits.dart';
-import 'package:apk_arena/widgets/levels/level_memory_match.dart';
 import 'package:apk_arena/widgets/levels/level_qr_deeplink.dart';
 import 'package:apk_arena/widgets/levels/level_adversarial_system_prompt.dart';
 import 'package:apk_arena/widgets/levels/level_upsell_checkout.dart';
@@ -343,6 +342,13 @@ final List<LevelEntry> hardLevels = [
       instructions: "use the delivery receipt to update inventory.",
     ),
     widgetBuilder: (onComplete) => LevelInventoryReconciliation(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "crossword crisis",
+      instructions: "find a word that fits the board!",
+    ),
+    widgetBuilder: (onComplete) => LevelScrabbleHard(onComplete: onComplete),
   ),
 ];
 
