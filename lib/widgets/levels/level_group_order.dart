@@ -85,7 +85,7 @@ class _LevelGroupOrderState extends State<LevelGroupOrder>
       ChatMessage(id: 'm31', sender: 'sam', text: 'which pepperoni', time: now.subtract(const Duration(minutes: 12))),
       ChatMessage(id: 'm32', sender: 'pat', text: 'classic', time: now.subtract(const Duration(minutes: 11))),
       ChatMessage(id: 'm33', sender: 'pat', text: 'the regular one', time: now.subtract(const Duration(minutes: 11))),
-      ChatMessage(id: 'm34', sender: 'jamie', text: 'k', time: now.subtract(const Duration(minutes: 10))),
+      ChatMessage(id: 'm34', sender: 'jamie', text: 'ok so 2 coke, what do the others wanna drink?', time: now.subtract(const Duration(minutes: 10))),
       ChatMessage(id: 'm35', sender: 'alex', text: 'coke for me too pls', time: now.subtract(const Duration(minutes: 9))),
       ChatMessage(id: 'm36', sender: 'sam', text: 'wait how many garlic bread', time: now.subtract(const Duration(minutes: 8))),
       ChatMessage(id: 'm37', sender: 'jamie', text: 'one', time: now.subtract(const Duration(minutes: 7))),
