@@ -23,15 +23,15 @@ class _LevelInventoryReconciliationState extends State<LevelInventoryReconciliat
   late List<model.InventoryItem> _items;
   late Map<String, int> _initialQuantities;
 
-  // delivery document: item id -> delivered qty
-  final Map<String, int> _delivered = const {
-    'thermal_blanket': 8,
-    'mre_arctic': 25,
-    'hand_warmers': 3,
-    'sat_beacon': 1,
-    'radio_encrypted': 4,
-    'medkit_field': 2,
-    'fuel_cell': 6,
+  // Expected deliveries aggregated by SKU from receipts (case-insensitive)
+  final Map<String, int> _deliveredBySku = const {
+    'SRV-THM-001': 30,  // thermal survival blanket
+    'SRV-HW-001': 50,   // hand warmer (loose units)
+    'SRV-SLP-X40': 12,  // sleeping bag extreme cold (can be split across multiple items with same SKU)
+    'SRV-GOG-S01': 5,   // snow goggles (multiple items share this SKU)
+    'SRV-BOT-A42': 20,  // arctic boots size 42
+    'SRV-TNT-P04': 4,   // polar expedition tent (normalize mixed-case in receipts)
+    'SRV-WTR-P50': 8,   // water purifier (tablets)
   };
 
   // search + filters
@@ -42,6 +42,9 @@ class _LevelInventoryReconciliationState extends State<LevelInventoryReconciliat
   List<_PdfDoc> _pdfDocs = [];
   bool _loadingPdfs = true;
 
+  // initial totals by SKU (normalized)
+  late Map<String, int> _initialSkuTotals;
+
   @override
   void initState() {
     super.initState();
@@ -50,6 +53,7 @@ class _LevelInventoryReconciliationState extends State<LevelInventoryReconciliat
     _items = List.from(inventory_data.items);
     // Store initial quantities
     _initialQuantities = {for (final item in _items) item.id: item.quantity};
+    _initialSkuTotals = _sumBySku(_items);
     // Load receipt PDFs from assets
     _loadPdfAssets();
   }
@@ -109,27 +113,41 @@ class _LevelInventoryReconciliationState extends State<LevelInventoryReconciliat
   }
 
   bool _validateInventory() {
-    // expected final quantities = initial + delivered
-    for (final entry in _delivered.entries) {
-      final idx = _items.indexWhere((i) => i.id == entry.key);
-      if (idx == -1) {
-        // If the delivered item isn't in the visible list, ignore it for validation
-        continue;
-      }
-      final item = _items[idx];
-      final initialQty = _initialQuantityFor(item.id);
-      final expected = initialQty + entry.value;
-      if (item.quantity != expected) return false;
+    // Validate at the SKU level (handles duplicates across items and multiple receipt lines per SKU)
+    final currentTotals = _sumBySku(_items);
+
+    // For each delivered SKU, final total must equal initial + delivered
+    for (final entry in _deliveredBySku.entries) {
+      final sku = _normSku(entry.key);
+      final delivered = entry.value;
+      final initial = _initialSkuTotals[sku] ?? 0;
+      final current = currentTotals[sku] ?? 0;
+      if (current != initial + delivered) return false;
     }
 
-    // ensure no unrelated quantities were changed (i.e., match initial for non-delivered)
-    for (final item in _items) {
-      if (!_delivered.containsKey(item.id)) {
-        if (item.quantity != _initialQuantityFor(item.id)) return false;
+    // For SKUs not in delivered set, totals must remain unchanged
+    final deliveredSkus = _deliveredBySku.keys.map(_normSku).toSet();
+    final allSkus = <String>{..._initialSkuTotals.keys, ...currentTotals.keys};
+    for (final sku in allSkus) {
+      if (!deliveredSkus.contains(sku)) {
+        final initial = _initialSkuTotals[sku] ?? 0;
+        final current = currentTotals[sku] ?? 0;
+        if (current != initial) return false;
       }
     }
 
     return true;
+  }
+
+  String _normSku(String sku) => sku.trim().toUpperCase();
+
+  Map<String, int> _sumBySku(List<model.InventoryItem> items) {
+    final map = <String, int>{};
+    for (final i in items) {
+      final key = _normSku(i.sku);
+      map[key] = (map[key] ?? 0) + i.quantity;
+    }
+    return map;
   }
 
   int _initialQuantityFor(String id) {
@@ -273,7 +291,7 @@ class _LevelInventoryReconciliationState extends State<LevelInventoryReconciliat
               tabs: const [
                 Tab(
                   icon: Icon(Icons.receipt_long),
-                  text: 'delivery',
+                  text: 'receipts',
                 ),
                 Tab(
                   icon: Icon(Icons.inventory_2),
@@ -343,17 +361,13 @@ class _LevelInventoryReconciliationState extends State<LevelInventoryReconciliat
                             color: NunuColors.primaryMain.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Icon(Icons.picture_as_pdf, color: NunuColors.primaryLight, size: 20),
+                          child: Icon(Icons.text_format, color: NunuColors.primaryLight, size: 20),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'RECEIPTS',
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                              ),
                               Text(
                                 _loadingPdfs
                                     ? 'loading receipts...'
@@ -891,6 +905,8 @@ class _ItemBottomSheetState extends State<_ItemBottomSheet> {
                         final safe = parsed.clamp(0, 999999);
                         widget.onQuantitySet(safe);
                         _controller.text = safe.toString();
+                        // Close the bottom sheet after setting quantity
+                        Navigator.of(context).pop();
                       }
                     },
                     style: ElevatedButton.styleFrom(
