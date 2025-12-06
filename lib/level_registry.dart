@@ -35,6 +35,7 @@ import 'package:apk_arena/widgets/levels/level_emerald_runtime.dart';
 import 'package:apk_arena/widgets/levels/level_do_not_click.dart';
 import 'package:apk_arena/widgets/levels/level_closing_drawer.dart';
 import 'package:apk_arena/widgets/levels/level_group_order.dart';
+import 'package:apk_arena/widgets/levels/level_trace_drawing.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -242,6 +243,10 @@ final List<LevelEntry> mediumLevels = [
     ),
     widgetBuilder: (onComplete) => LevelMatch3(onComplete: onComplete),
   ),
+  LevelEntry(data: LevelData(
+    title: "memory match",
+    instructions: "find all matching pairs.",
+  ), widgetBuilder: (onComplete) => LevelMemoryMatch(onComplete: onComplete)),
   LevelEntry(
     data: LevelData(
       title: "fruit salad census",
@@ -262,6 +267,13 @@ final List<LevelEntry> mediumLevels = [
       instructions: "Skip to the next song.",
     ),
     widgetBuilder: (onComplete) => LevelClosingDrawer(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "word builder",
+      instructions: "make the word \"paper\"",
+    ),
+    widgetBuilder: (onComplete) => LevelScrabble(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
@@ -300,6 +312,13 @@ final List<LevelEntry> hardLevels = [
       instructions: "scan the qr to complete the link.",
     ),
     widgetBuilder: (onComplete) => LevelQrDeeplink(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "ink discipline",
+      instructions: "trace the ship in order. stay inside the glow.",
+    ),
+    widgetBuilder: (onComplete) => LevelTraceDrawing(onComplete: onComplete),
   ),
 ];
 
