@@ -36,6 +36,7 @@ import 'package:apk_arena/widgets/levels/level_do_not_click.dart';
 import 'package:apk_arena/widgets/levels/level_closing_drawer.dart';
 import 'package:apk_arena/widgets/levels/level_group_order.dart';
 import 'package:apk_arena/widgets/levels/level_trace_drawing.dart';
+import 'package:apk_arena/widgets/levels/level_inventory_reconciliation.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -319,6 +320,13 @@ final List<LevelEntry> hardLevels = [
       instructions: "trace the ship in order. stay inside the glow.",
     ),
     widgetBuilder: (onComplete) => LevelTraceDrawing(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "operation warehouse",
+      instructions: "use the delivery receipt to update inventory.",
+    ),
+    widgetBuilder: (onComplete) => LevelInventoryReconciliation(onComplete: onComplete),
   ),
 ];
 
