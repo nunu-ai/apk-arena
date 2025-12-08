@@ -65,41 +65,51 @@ class _LevelInventoryReconciliationState extends State<LevelInventoryReconciliat
   }
 
   Future<void> _loadPdfAssets() async {
-    try {
-      // Read the asset manifest and find PDFs under assets/inventory
-      final manifestJson = await rootBundle.loadString('AssetManifest.json');
-      final Map<String, dynamic> manifestMap = manifestJson.isNotEmpty
-          ? Map<String, dynamic>.from(jsonDecode(manifestJson) as Map)
-          : {};
-      final paths = manifestMap.keys
-          .where((k) => k.startsWith('assets/inventory/') && k.toLowerCase().endsWith('.pdf'))
-          .toList();
-
-      final docs = <_PdfDoc>[];
-      for (final p in paths) {
-        try {
-          final data = await rootBundle.load(p);
-          final name = p.split('/').last;
-          docs.add(_PdfDoc(path: p, name: name, sizeBytes: data.lengthInBytes));
-        } catch (_) {
-          final name = p.split('/').last;
-          docs.add(_PdfDoc(path: p, name: name));
+    // Try multiple manifest formats, then fall back to known filenames
+    final found = <String>{};
+    for (final manifestName in const ['AssetManifest.json', 'AssetManifest.bin.json']) {
+      try {
+        final manifestStr = await rootBundle.loadString(manifestName);
+        if (manifestStr.isEmpty) continue;
+        final map = Map<String, dynamic>.from(jsonDecode(manifestStr) as Map);
+        for (final k in map.keys) {
+          if (k.startsWith('assets/inventory/') && k.toLowerCase().endsWith('.pdf')) {
+            found.add(k);
+          }
         }
+      } catch (_) {
+        // ignore and try the next manifest
       }
-      docs.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-      if (mounted) {
-        setState(() {
-          _pdfDocs = docs;
-          _loadingPdfs = false;
-        });
+    }
+
+    // Fallback: probe a known file if no manifest worked
+    if (found.isEmpty) {
+      const probe = 'assets/inventory/polartech-delivery-manifest.pdf';
+      try {
+        await rootBundle.load(probe);
+        found.add(probe);
+      } catch (_) {
+        // nothing found
       }
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _pdfDocs = [];
-          _loadingPdfs = false;
-        });
+    }
+
+    final docs = <_PdfDoc>[];
+    for (final p in found) {
+      try {
+        final data = await rootBundle.load(p);
+        final name = p.split('/').last;
+        docs.add(_PdfDoc(path: p, name: name, sizeBytes: data.lengthInBytes));
+      } catch (_) {
+        final name = p.split('/').last;
+        docs.add(_PdfDoc(path: p, name: name));
       }
+    }
+    docs.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    if (mounted) {
+      setState(() {
+        _pdfDocs = docs;
+        _loadingPdfs = false;
+      });
     }
   }
 
