@@ -3,7 +3,6 @@ import '../theme/app_theme.dart';
 import '../../level_registry.dart';
 import '../services/progress_service.dart';
 import 'level_screen.dart';
-import 'level_selector.dart';
 
 class LevelCompletionScreen extends StatelessWidget {
   final int levelNumber;
@@ -100,11 +99,7 @@ class LevelCompletionScreen extends StatelessWidget {
                 children: [
                   FilledButton(
                     onPressed: () {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (context) => const LevelSelectorScreen()),
-                            (route) => false, // Remove all routes
-                      );
+                      Navigator.popUntil(context, (route) => route.isFirst);
                     },
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
@@ -126,7 +121,7 @@ class LevelCompletionScreen extends StatelessWidget {
                         MaterialPageRoute(
                           builder: (context) => LevelScreen(levelNumber: nextLevelNumber!),
                         ),
-                            (route) => false,
+                        (route) => route.isFirst,
                       );
                     }
                         : null,

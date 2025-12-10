@@ -5,7 +5,6 @@ import '../services/progress_service.dart';
 import '../theme/app_theme.dart';
 import '../../level_registry.dart';
 import 'level_completion_screen.dart';
-import 'level_selector.dart';
 
 class LevelScreen extends StatefulWidget {
   final int levelNumber;
@@ -86,11 +85,7 @@ class _LevelScreenState extends State<LevelScreen> {
                   null, // No completion time for failed attempts
                 );
               }
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const LevelSelectorScreen()),
-                    (route) => false, // Remove all routes
-              );
+              Navigator.popUntil(context, (route) => route.isFirst);
             },
             style: FilledButton.styleFrom(
               backgroundColor: NunuColors.primaryMain.withValues(alpha: 0.2),
