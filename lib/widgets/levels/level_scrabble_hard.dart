@@ -19,10 +19,19 @@ class _LevelScrabbleHardState extends State<LevelScrabbleHard> {
   final Map<String, String> _fixedTiles = {};
 
   // Tile rack letters - the player will use these
-  final List<String> _rackLetters = ['F', 'L', 'N', 'P', 'R', 'S', 'U'];
+  // P, R, F, U, L are needed for POWERFUL (O, W, E already on board)
+  // E is a distractor
+  final List<String> _rackLetters = ['E', 'F', 'L', 'P', 'R', 'U'];
 
   // Track placed letters on the board: Map<(row, col), letter>
   final Map<String, String> _placedTiles = {};
+
+  // Target word: POWERFUL in column 2, rows 6-13
+  // Fixed letters: O at (7,2) from AGOG, W at (8,2) from WITTOLS, E at (9,2) from MEG
+  // Player places: P at (6,2), R at (10,2), F at (11,2), U at (12,2), L at (13,2)
+  static const String _targetWord = 'POWERFUL';
+  static const int _targetCol = 2;
+  static const int _targetStartRow = 6;
 
   @override
   void initState() {
@@ -132,13 +141,26 @@ class _LevelScrabbleHardState extends State<LevelScrabbleHard> {
     return _countUsed(letter) < _countInRack(letter);
   }
 
-  void _onDropLetter(int row, int col, String letter) {
-    if (!_isLetterAvailable(letter)) return;
+  void _onDropLetter(int row, int col, String letter, {String? sourceKey}) {
     if (_isFixedCell(row, col)) return;
-    final key = _cellKey(row, col);
-    if (_placedTiles.containsKey(key)) return;
+    final targetKey = _cellKey(row, col);
+
+    // If dropping on a cell that already has a tile (and it's not the source), reject
+    if (_placedTiles.containsKey(targetKey) && targetKey != sourceKey) return;
+
+    // If this is a move from another cell (sourceKey provided), remove from source
+    if (sourceKey != null) {
+      setState(() {
+        _placedTiles.remove(sourceKey);
+        _placedTiles[targetKey] = letter;
+      });
+      return;
+    }
+
+    // Otherwise, it's from the rack - check availability
+    if (!_isLetterAvailable(letter)) return;
     setState(() {
-      _placedTiles[key] = letter;
+      _placedTiles[targetKey] = letter;
     });
   }
 
@@ -152,19 +174,41 @@ class _LevelScrabbleHardState extends State<LevelScrabbleHard> {
   }
 
   void _submit() {
-    // TODO: Add completion logic once more words are specified
-    // For now, just check if any tiles are placed
-    if (_placedTiles.isNotEmpty) {
+    // Check if POWERFUL is formed vertically in column 2, rows 6-13
+    // P(6,2) - O(7,2 fixed) - W(8,2 fixed) - E(9,2 fixed) - R(10,2) - F(11,2) - U(12,2) - L(13,2)
+    String formedWord = '';
+    for (
+      int row = _targetStartRow;
+      row < _targetStartRow + _targetWord.length;
+      row++
+    ) {
+      final fixedLetter = _getFixedLetter(row, _targetCol);
+      if (fixedLetter != null) {
+        formedWord += fixedLetter;
+      } else {
+        final key = _cellKey(row, _targetCol);
+        final placed = _placedTiles[key];
+        if (placed != null) {
+          formedWord += placed;
+        } else {
+          // Empty cell in the target word
+          widget.onComplete(false);
+          return;
+        }
+      }
+    }
+
+    if (formedWord == _targetWord) {
       widget.onComplete(true);
     } else {
       widget.onComplete(false);
     }
   }
 
-  // Get cell background color based on special tile types
+  // Get cell background color based on special tile types - Nunu themed
   Color _getCellColor(int row, int col) {
     // Standard Scrabble board pattern
-    // Triple Word Score (red) - corners and cross pattern
+    // Triple Word Score - corners and cross pattern
     final tripleWord = [
       [0, 0],
       [0, 7],
@@ -176,7 +220,7 @@ class _LevelScrabbleHardState extends State<LevelScrabbleHard> {
       [14, 14],
     ];
 
-    // Double Word Score (pink) - diagonal pattern
+    // Double Word Score - diagonal pattern
     final doubleWord = [
       [1, 1],
       [2, 2],
@@ -196,7 +240,7 @@ class _LevelScrabbleHardState extends State<LevelScrabbleHard> {
       [10, 10],
     ];
 
-    // Triple Letter Score (dark blue)
+    // Triple Letter Score
     final tripleLetter = [
       [1, 5],
       [1, 9],
@@ -212,7 +256,7 @@ class _LevelScrabbleHardState extends State<LevelScrabbleHard> {
       [13, 9],
     ];
 
-    // Double Letter Score (light blue)
+    // Double Letter Score
     final doubleLetter = [
       [0, 3],
       [0, 11],
@@ -240,36 +284,41 @@ class _LevelScrabbleHardState extends State<LevelScrabbleHard> {
       [14, 11],
     ];
 
-    // Center star
+    // Center star - bright primary pink glow
     if (row == 7 && col == 7) {
-      return const Color(0xFFE55CD8).withOpacity(0.3); // Pink for center
+      return NunuColors.primaryMain.withOpacity(0.4);
     }
 
+    // Triple Word - Error red (hot zones)
     for (var pos in tripleWord) {
       if (pos[0] == row && pos[1] == col) {
-        return const Color(0xFFFF5630).withOpacity(0.25); // Red
+        return NunuColors.errorMain.withOpacity(0.35);
       }
     }
 
+    // Double Word - Warning amber/gold
     for (var pos in doubleWord) {
       if (pos[0] == row && pos[1] == col) {
-        return const Color(0xFFFFAB00).withOpacity(0.2); // Orange/pink
+        return NunuColors.warningMain.withOpacity(0.25);
       }
     }
 
+    // Triple Letter - Secondary purple (premium)
     for (var pos in tripleLetter) {
       if (pos[0] == row && pos[1] == col) {
-        return const Color(0xFF1E90FF).withOpacity(0.3); // Blue
+        return NunuColors.secondaryMain.withOpacity(0.4);
       }
     }
 
+    // Double Letter - Info cyan/teal
     for (var pos in doubleLetter) {
       if (pos[0] == row && pos[1] == col) {
-        return const Color(0xFF87CEEB).withOpacity(0.25); // Light blue
+        return NunuColors.infoMain.withOpacity(0.25);
       }
     }
 
-    return NunuColors.backgroundDefault.withOpacity(0.25);
+    // Default cell - subtle dark
+    return NunuColors.backgroundPaper.withOpacity(0.6);
   }
 
   @override
@@ -285,12 +334,12 @@ class _LevelScrabbleHardState extends State<LevelScrabbleHard> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                'place your tiles',
+                "hint: it's a vertical word in column 3 and starts with 'P'.",
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  color: NunuColors.textPrimary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  color: NunuColors.textSecondary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
@@ -303,14 +352,26 @@ class _LevelScrabbleHardState extends State<LevelScrabbleHard> {
                     aspectRatio: 1,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: const Color(0xFF2D1F3D),
-                        borderRadius: BorderRadius.circular(8),
+                        color: NunuColors.backgroundDefault,
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: NunuColors.primaryDark.withOpacity(0.5),
+                          color: NunuColors.primaryMain.withOpacity(0.6),
                           width: 2,
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: NunuColors.primaryMain.withOpacity(0.2),
+                            blurRadius: 20,
+                            spreadRadius: 2,
+                          ),
+                          BoxShadow(
+                            color: NunuColors.secondaryMain.withOpacity(0.1),
+                            blurRadius: 40,
+                            spreadRadius: 5,
+                          ),
+                        ],
                       ),
-                      padding: const EdgeInsets.all(2),
+                      padding: const EdgeInsets.all(3),
                       child: Column(
                         children: List.generate(_rows, (r) {
                           return Expanded(
@@ -330,8 +391,15 @@ class _LevelScrabbleHardState extends State<LevelScrabbleHard> {
                                 return Expanded(
                                   child: _DroppableCell(
                                     letter: placedLetter,
+                                    cellKey: key,
                                     backgroundColor: cellColor,
-                                    onDrop: (l) => _onDropLetter(r, c, l),
+                                    onDrop: (letter, sourceKey) =>
+                                        _onDropLetter(
+                                          r,
+                                          c,
+                                          letter,
+                                          sourceKey: sourceKey,
+                                        ),
                                     onTap: () => _onTapCell(r, c),
                                   ),
                                 );
@@ -368,32 +436,55 @@ class _LevelScrabbleHardState extends State<LevelScrabbleHard> {
 
   Widget _buildRack() {
     return Container(
-      height: 52,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: _rackLetters.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 6),
-        itemBuilder: (context, index) {
-          final letter = _rackLetters[index];
-          final isAvailable = _isLetterAvailable(letter);
+      height: 64,
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: NunuColors.backgroundPaper,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: NunuColors.primaryDark.withOpacity(0.4),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: NunuColors.primaryMain.withOpacity(0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Center(
+        child: ListView.separated(
+          shrinkWrap: true,
+          scrollDirection: Axis.horizontal,
+          itemCount: _rackLetters.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          itemBuilder: (context, index) {
+            final letter = _rackLetters[index];
+            final isAvailable = _isLetterAvailable(letter);
 
-          return Draggable<String>(
-            data: letter,
-            feedback: _RackTile(letter: letter, dragging: true, enabled: true),
-            childWhenDragging: _RackTile(
-              letter: letter,
-              dragging: false,
-              enabled: false,
-            ),
-            maxSimultaneousDrags: isAvailable ? 1 : 0,
-            child: _RackTile(
-              letter: letter,
-              dragging: false,
-              enabled: isAvailable,
-            ),
-          );
-        },
+            return Draggable<_DragData>(
+              data: _DragData(letter, null), // null sourceKey means from rack
+              feedback: _RackTile(
+                letter: letter,
+                dragging: true,
+                enabled: true,
+              ),
+              childWhenDragging: _RackTile(
+                letter: letter,
+                dragging: false,
+                enabled: false,
+              ),
+              maxSimultaneousDrags: isAvailable ? 1 : 0,
+              child: _RackTile(
+                letter: letter,
+                dragging: false,
+                enabled: isAvailable,
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -408,13 +499,24 @@ class _FixedTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.all(1),
       decoration: BoxDecoration(
-        color: const Color(0xFFDEB887), // Classic Scrabble tile color
-        borderRadius: BorderRadius.circular(3),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF2A1F4E), // Deep purple
+            Color(0xFF1A1238), // Darker purple
+          ],
+        ),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: NunuColors.secondaryMain.withOpacity(0.4),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            offset: const Offset(1, 1),
-            blurRadius: 1,
+            color: NunuColors.secondaryMain.withOpacity(0.15),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
@@ -426,9 +528,10 @@ class _FixedTile extends StatelessWidget {
           child: Text(
             letter,
             style: const TextStyle(
-              color: Color(0xFF1A1A1A),
+              color: NunuColors.secondaryLight,
               fontWeight: FontWeight.w800,
               fontSize: 14,
+              shadows: [Shadow(color: NunuColors.secondaryMain, blurRadius: 4)],
             ),
           ),
         ),
@@ -437,13 +540,23 @@ class _FixedTile extends StatelessWidget {
   }
 }
 
+/// Data class for drag operations - carries letter and optional source position
+class _DragData {
+  final String letter;
+  final String? sourceKey; // null if from rack, key if from board
+
+  const _DragData(this.letter, this.sourceKey);
+}
+
 class _DroppableCell extends StatelessWidget {
   final String? letter;
+  final String cellKey;
   final Color backgroundColor;
-  final void Function(String) onDrop;
+  final void Function(String letter, String? sourceKey) onDrop;
   final VoidCallback onTap;
   const _DroppableCell({
     required this.letter,
+    required this.cellKey,
     required this.backgroundColor,
     required this.onDrop,
     required this.onTap,
@@ -451,40 +564,75 @@ class _DroppableCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DragTarget<String>(
-      onWillAcceptWithDetails: (details) => letter == null,
-      onAcceptWithDetails: (details) => onDrop(details.data),
+    return DragTarget<_DragData>(
+      onWillAcceptWithDetails: (details) {
+        // Accept if cell is empty OR if it's the source cell (cancel drag)
+        return letter == null || details.data.sourceKey == cellKey;
+      },
+      onAcceptWithDetails: (details) =>
+          onDrop(details.data.letter, details.data.sourceKey),
       builder: (context, candidateData, rejectedData) {
         final bool isActive = candidateData.isNotEmpty;
         final bool hasLetter = letter != null;
 
         if (hasLetter) {
-          return InkWell(
-            onTap: onTap,
-            child: Container(
+          // Make placed tiles draggable so user can move them
+          return Draggable<_DragData>(
+            data: _DragData(letter!, cellKey),
+            feedback: _PlacedTileFeedback(letter: letter!),
+            childWhenDragging: Container(
               margin: const EdgeInsets.all(1),
               decoration: BoxDecoration(
-                color: const Color(0xFFDEB887),
-                borderRadius: BorderRadius.circular(3),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    offset: const Offset(1, 1),
-                    blurRadius: 1,
-                  ),
-                ],
+                color: NunuColors.backgroundPaper.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: NunuColors.primaryMain.withOpacity(0.5),
+                  width: 1,
+                  strokeAlign: BorderSide.strokeAlignInside,
+                ),
               ),
-              alignment: Alignment.center,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Padding(
-                  padding: const EdgeInsets.all(2),
-                  child: Text(
-                    letter!,
-                    style: const TextStyle(
-                      color: Color(0xFF1A1A1A),
-                      fontWeight: FontWeight.w800,
-                      fontSize: 14,
+            ),
+            child: GestureDetector(
+              onTap: onTap,
+              child: Container(
+                margin: const EdgeInsets.all(1),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF5E2A6E), // Purple-pink
+                      Color(0xFF3D1A4D), // Darker purple
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: NunuColors.primaryMain.withOpacity(0.7),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: NunuColors.primaryMain.withOpacity(0.3),
+                      blurRadius: 6,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+                alignment: Alignment.center,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Padding(
+                    padding: const EdgeInsets.all(2),
+                    child: Text(
+                      letter!,
+                      style: const TextStyle(
+                        color: NunuColors.primaryLight,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                        shadows: [
+                          Shadow(color: NunuColors.primaryMain, blurRadius: 6),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -497,16 +645,74 @@ class _DroppableCell extends StatelessWidget {
           margin: const EdgeInsets.all(1),
           decoration: BoxDecoration(
             color: backgroundColor,
-            borderRadius: BorderRadius.circular(2),
+            borderRadius: BorderRadius.circular(3),
             border: Border.all(
               color: isActive
                   ? NunuColors.primaryMain
-                  : NunuColors.primaryDark.withOpacity(0.15),
-              width: isActive ? 1.5 : 0.5,
+                  : NunuColors.primaryDark.withOpacity(0.2),
+              width: isActive ? 2 : 0.5,
             ),
+            boxShadow: isActive
+                ? [
+                    BoxShadow(
+                      color: NunuColors.primaryMain.withOpacity(0.4),
+                      blurRadius: 8,
+                    ),
+                  ]
+                : null,
           ),
         );
       },
+    );
+  }
+}
+
+class _PlacedTileFeedback extends StatelessWidget {
+  final String letter;
+  const _PlacedTileFeedback({required this.letter});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [NunuColors.primaryMain, NunuColors.primaryDark],
+          ),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: NunuColors.primaryLight.withOpacity(0.8),
+            width: 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: NunuColors.primaryMain.withOpacity(0.6),
+              blurRadius: 16,
+              spreadRadius: 2,
+            ),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          letter,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            shadows: [Shadow(color: NunuColors.primaryDarker, blurRadius: 4)],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -524,30 +730,54 @@ class _RackTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Opacity(
-      opacity: enabled ? 1.0 : 0.35,
+      opacity: enabled ? 1.0 : 0.3,
       child: Container(
-        width: 46,
-        height: 46,
+        width: 48,
+        height: 48,
         decoration: BoxDecoration(
-          color: dragging
-              ? const Color(0xFFDEB887)
-              : const Color(0xFFDEB887).withOpacity(0.95),
-          borderRadius: BorderRadius.circular(6),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: dragging
+                ? [NunuColors.primaryMain, NunuColors.primaryDark]
+                : [
+                    const Color(0xFF4A2A5E), // Muted purple
+                    const Color(0xFF2D1A3D), // Dark purple
+                  ],
+          ),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: enabled
+                ? NunuColors.primaryMain.withOpacity(0.8)
+                : NunuColors.primaryDark.withOpacity(0.4),
+            width: 2,
+          ),
           boxShadow: [
+            if (enabled)
+              BoxShadow(
+                color: NunuColors.primaryMain.withOpacity(0.3),
+                blurRadius: 8,
+                spreadRadius: 1,
+              ),
             BoxShadow(
               color: Colors.black.withOpacity(0.4),
               blurRadius: 4,
-              offset: const Offset(0, 2),
+              offset: const Offset(0, 3),
             ),
           ],
         ),
         alignment: Alignment.center,
         child: Text(
           letter,
-          style: const TextStyle(
-            color: Color(0xFF1A1A1A),
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
+          style: TextStyle(
+            color: enabled
+                ? NunuColors.primaryLighter
+                : NunuColors.primaryLight.withOpacity(0.5),
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            shadows: enabled
+                ? [const Shadow(color: NunuColors.primaryMain, blurRadius: 8)]
+                : null,
           ),
         ),
       ),

@@ -346,7 +346,7 @@ final List<LevelEntry> hardLevels = [
   LevelEntry(
     data: LevelData(
       title: "crossword crisis",
-      instructions: "find a word that fits the board!",
+      instructions: "put the highest scoring word.",
     ),
     widgetBuilder: (onComplete) => LevelScrabbleHard(onComplete: onComplete),
   ),
