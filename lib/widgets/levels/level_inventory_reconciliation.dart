@@ -25,13 +25,32 @@ class _LevelInventoryReconciliationState extends State<LevelInventoryReconciliat
 
   // Expected deliveries aggregated by SKU from receipts (case-insensitive)
   final Map<String, int> _deliveredBySku = const {
-    'SRV-THM-001': 30,  // thermal survival blanket
+    // polartech supplies
+    'SRV-THM-001': 26,  // thermal survival blanket
     'SRV-HW-001': 50,   // hand warmer (loose units)
     'SRV-SLP-X40': 12,  // sleeping bag extreme cold (can be split across multiple items with same SKU)
     'SRV-GOG-S01': 5,   // snow goggles (multiple items share this SKU)
     'SRV-BOT-A42': 20,  // arctic boots size 42
     'SRV-TNT-P04': 4,   // polar expedition tent (normalize mixed-case in receipts)
     'SRV-WTR-P50': 8,   // water purifier (tablets)
+    
+    // glacier supplies
+    'ORD-BRC-C01': 2,
+    'LOG-SLD-M02': 1,
+    'SRV-FLR-012': -2,
+    'SRV-WTR-F01': -2,
+    'SRV-HW-USB': -5,
+    'TCH-RAD-E01': -4,
+    
+    
+    // cryo delivery
+    'MED-BLD-S01': 10,
+    'MED-STM-E04': 8,
+    'MED-TRM-F02': 5,
+    'MED-BND-C01':  75,
+    'MED-IV-K01': 12,
+    'MED-SPL-S01': 15,
+    'MED-HYP-X01': 6
   };
 
   // search + filters
