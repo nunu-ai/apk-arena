@@ -48,7 +48,8 @@ class _LevelReactorStabilizationState extends State<LevelReactorStabilization> {
     _stabilityTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
       if (_isComplete) return;
 
-      bool stable = _isStable(_temp) && _isStable(_pressure) && _isStable(_output);
+      bool stable =
+          _isStable(_temp) && _isStable(_pressure) && _isStable(_output);
 
       setState(() {
         if (stable) {
@@ -78,31 +79,10 @@ class _LevelReactorStabilizationState extends State<LevelReactorStabilization> {
       child: SafeArea(
         child: Column(
           children: [
-            const SizedBox(height: 20),
-            // Header
-            const Text(
-              "REACTOR STABILIZATION",
-              style: TextStyle(
-                color: NunuColors.textPrimary,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 2,
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 32.0, vertical: 8),
-              child: Text(
-                "Adjust control rods to bring all readings into the green zone.",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: NunuColors.textSecondary, fontSize: 14),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
+            const SizedBox(height: 32),
             // Gauges Row
             Expanded(
-              flex: 4,
+              flex: 3,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -161,7 +141,7 @@ class _LevelReactorStabilizationState extends State<LevelReactorStabilization> {
 
             // Control Rods (Sliders)
             Expanded(
-              flex: 5,
+              flex: 6,
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -193,9 +173,21 @@ class _LevelReactorStabilizationState extends State<LevelReactorStabilization> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          _buildControlRod("ALPHA", _rodA, (v) => setState(() => _rodA = v)),
-                          _buildControlRod("BETA", _rodB, (v) => setState(() => _rodB = v)),
-                          _buildControlRod("GAMMA", _rodC, (v) => setState(() => _rodC = v)),
+                          _buildControlRod(
+                            "ALPHA",
+                            _rodA,
+                            (v) => setState(() => _rodA = v),
+                          ),
+                          _buildControlRod(
+                            "BETA",
+                            _rodB,
+                            (v) => setState(() => _rodB = v),
+                          ),
+                          _buildControlRod(
+                            "GAMMA",
+                            _rodC,
+                            (v) => setState(() => _rodC = v),
+                          ),
                         ],
                       ),
                     ),
@@ -211,7 +203,7 @@ class _LevelReactorStabilizationState extends State<LevelReactorStabilization> {
 
   Widget _buildGauge(String label, double value, Color color) {
     final bool isInZone = _isStable(value);
-    
+
     return Column(
       children: [
         Expanded(
@@ -238,24 +230,28 @@ class _LevelReactorStabilizationState extends State<LevelReactorStabilization> {
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final h = constraints.maxHeight;
-                    // top position for the green zone. 
+                    // top position for the green zone.
                     // value 1.0 is top, 0.0 is bottom.
                     // Green zone is 0.45 to 0.55.
                     // Top coordinate is (1 - 0.55) * h
                     // Height is (0.55 - 0.45) * h = 0.1 * h
                     return Stack(
                       children: [
-                         Positioned(
+                        Positioned(
                           top: (1 - _targetMax) * h,
                           height: (_targetMax - _targetMin) * h,
                           left: 2,
                           right: 2,
                           child: Container(
                             decoration: BoxDecoration(
-                              color: NunuColors.successMain.withValues(alpha: 0.3),
+                              color: NunuColors.successMain.withValues(
+                                alpha: 0.3,
+                              ),
                               border: Border.symmetric(
                                 horizontal: BorderSide(
-                                  color: NunuColors.successMain.withValues(alpha: 0.8),
+                                  color: NunuColors.successMain.withValues(
+                                    alpha: 0.8,
+                                  ),
                                   width: 1,
                                 ),
                               ),
@@ -271,13 +267,16 @@ class _LevelReactorStabilizationState extends State<LevelReactorStabilization> {
                             decoration: BoxDecoration(
                               color: isInZone ? NunuColors.successMain : color,
                               borderRadius: BorderRadius.circular(10),
-                              boxShadow: isInZone ? [
-                                BoxShadow(
-                                  color: NunuColors.successMain.withValues(alpha: 0.6),
-                                  blurRadius: 10,
-                                  spreadRadius: 2,
-                                )
-                              ] : [],
+                              boxShadow: isInZone
+                                  ? [
+                                      BoxShadow(
+                                        color: NunuColors.successMain
+                                            .withValues(alpha: 0.6),
+                                        blurRadius: 10,
+                                        spreadRadius: 2,
+                                      ),
+                                    ]
+                                  : [],
                             ),
                           ),
                         ),
@@ -311,7 +310,11 @@ class _LevelReactorStabilizationState extends State<LevelReactorStabilization> {
     );
   }
 
-  Widget _buildControlRod(String label, double value, ValueChanged<double> onChanged) {
+  Widget _buildControlRod(
+    String label,
+    double value,
+    ValueChanged<double> onChanged,
+  ) {
     return Column(
       children: [
         Expanded(
@@ -327,10 +330,7 @@ class _LevelReactorStabilizationState extends State<LevelReactorStabilization> {
                 thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 14),
                 overlayShape: const RoundSliderOverlayShape(overlayRadius: 24),
               ),
-              child: Slider(
-                value: value,
-                onChanged: onChanged,
-              ),
+              child: Slider(value: value, onChanged: onChanged),
             ),
           ),
         ),
@@ -347,4 +347,3 @@ class _LevelReactorStabilizationState extends State<LevelReactorStabilization> {
     );
   }
 }
-
