@@ -145,7 +145,10 @@ final List<LevelEntry> easyLevels = [
         LevelOverlappingPopups(onComplete: onComplete),
   ),
   LevelEntry(
-    data: LevelData(title: "Size Comparison", instructions: "What is Larger here?"),
+    data: LevelData(
+      title: "Size Comparison",
+      instructions: "What is Larger here?",
+    ),
     widgetBuilder: (onComplete) => LevelBlueWhale(onComplete: onComplete),
   ),
   LevelEntry(
@@ -184,16 +187,14 @@ final List<LevelEntry> easyLevels = [
     widgetBuilder: (onComplete) => LevelEmojiCountFlags(onComplete: onComplete),
   ),
   LevelEntry(
-    data: LevelData(
-      title: "today's date",
-      instructions: "enter today's date.",
-    ),
+    data: LevelData(title: "today's date", instructions: "enter today's date."),
     widgetBuilder: (onComplete) => LevelEnterDate(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
       title: "emerald runtime",
-      instructions: "how long did it take nunu.ai to beat the first 3 gyms in pokemon emerald?",
+      instructions:
+          "how long did it take nunu.ai to beat the first 3 gyms in pokemon emerald?",
     ),
     widgetBuilder: (onComplete) => LevelEmeraldRuntime(onComplete: onComplete),
   ),
@@ -261,7 +262,8 @@ final List<LevelEntry> mediumLevels = [
       title: "fruit salad census",
       instructions: "count the target fruit. ignore the rest.",
     ),
-    widgetBuilder: (onComplete) => LevelEmojiCountFruits(onComplete: onComplete),
+    widgetBuilder: (onComplete) =>
+        LevelEmojiCountFruits(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
