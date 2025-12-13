@@ -116,6 +116,9 @@ class _LevelPokemonMazeState extends State<LevelPokemonMaze>
         current = next;
       }
 
+      // If we failed to reach the UST (stuck), try again
+      if (unvisited.contains(current)) continue;
+
       // c. Add the path to the maze
       // Trace from pathStart using 'walk' map until we hit the UST (a cell not in unvisited)
       current = pathStart;
