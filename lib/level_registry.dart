@@ -21,6 +21,8 @@ import 'package:apk_arena/widgets/levels/level_wire_task.dart';
 import 'package:apk_arena/widgets/levels/level_click_grid_coordinate.dart';
 import 'package:apk_arena/widgets/levels/level_sudoku.dart';
 import 'package:apk_arena/widgets/levels/level_match3.dart';
+import 'package:apk_arena/widgets/levels/level_memory_match.dart';
+import 'package:apk_arena/widgets/levels/level_scrabble.dart';
 import 'package:apk_arena/widgets/levels/level_scrabble_hard.dart';
 import 'package:apk_arena/widgets/levels/level_emoji_ball_hunt.dart';
 import 'package:apk_arena/widgets/levels/level_emoji_count_flags.dart';
