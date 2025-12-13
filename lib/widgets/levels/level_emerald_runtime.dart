@@ -78,6 +78,14 @@ class _LevelEmeraldRuntimeState extends State<LevelEmeraldRuntime> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Text(
+                    'hint: you might need to briefly leave the app to complete this.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: NunuColors.textSecondary,
+                        ),
+                  ),
+                  const SizedBox(height: 12),
                   TextField(
                     controller: _controller,
                     decoration: const InputDecoration(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 
@@ -19,58 +20,16 @@ class _LevelTosMemoryState extends State<LevelTosQuiz> {
   late final List<List<int>> _optionOrderPerQuestion;
   late final List<int> _shuffledCorrectIndex;
 
-  final List<Question> _questions = [
-    Question(
-      question: 'What email should you contact for questions about the Terms?',
-      options: [
-        'support@apkarena.com',
-        'legal@apkarena.com',
-        'info@apkarena.com',
-        'help@apkarena.com',
-      ],
-      correctIndex: 1,
-    ),
-    Question(
-      question: 'Under which state\'s laws are these Terms governed?',
-      options: [
-        'New York',
-        'Texas',
-        'California',
-        'Washington',
-      ],
-      correctIndex: 2,
-    ),
-    Question(
-      question: 'How many days notice will APK Arena try to provide for material changes to the Terms?',
-      options: [
-        '15 days',
-        '30 days',
-        '60 days',
-        '90 days',
-      ],
-      correctIndex: 1,
-    ),
-    Question(
-      question: 'Which of the following is NOT listed as a prohibited use?',
-      options: [
-        'Using the service for illegal purposes',
-        'Creating multiple accounts',
-        'Harassing other users',
-        'Infringing on intellectual property rights',
-      ],
-      correctIndex: 1,
-    ),
-    Question(
-      question: 'What type of warranties does the Service provide?',
-      options: [
-        'Limited warranties',
-        'Express warranties only',
-        'Implied warranties only',
-        'No warranties of any kind',
-      ],
-      correctIndex: 3,
-    ),
-  ];
+  // Dynamic quiz data, built in initState for added randomness
+  late List<Question> _questions;
+
+  // Dynamic TOS parameters used in both the text and the quiz
+  late String _contactLocalPart; // e.g., legal, support, help
+  final String _contactDomain = 'apkarena.com';
+  late int _noticeDays; // e.g., 15, 30, 60, 90
+  late String _governingState; // e.g., California, New York, etc.
+  late List<String> _prohibitedIncluded; // 3 included items
+  late String _prohibitedExcluded; // the one NOT listed
 
   @override
   void initState() {
@@ -87,10 +46,43 @@ class _LevelTosMemoryState extends State<LevelTosQuiz> {
       }
     });
 
+    // Build dynamic TOS parameters
+    final rand = Random();
+
+    // Email local part
+    final emailLocals = ['legal', 'support', 'help', 'compliance', 'privacy', 'info'];
+    emailLocals.shuffle(rand);
+    _contactLocalPart = emailLocals.first;
+
+    // Notice days
+    final possibleDays = [15, 30, 60, 90];
+    _noticeDays = possibleDays[rand.nextInt(possibleDays.length)];
+
+    // Governing law state
+    final states = ['California', 'New York', 'Texas', 'Washington', 'Florida', 'Illinois'];
+    _governingState = states[rand.nextInt(states.length)];
+
+    // Prohibited uses pool (choose 3 to include, 1 to exclude)
+    final prohibitedPool = [
+      'Using the service for illegal purposes',
+      'Harassing other users',
+      'Infringing on intellectual property rights',
+      'Creating multiple accounts',
+    ];
+    prohibitedPool.shuffle(rand);
+    _prohibitedIncluded = prohibitedPool.take(3).toList();
+    _prohibitedExcluded = prohibitedPool.last;
+
+    // Build questions based on dynamic parameters
+    _questions = _buildDynamicQuestions(rand);
+
+    // Shuffle question order for extra randomness
+    _questions.shuffle(rand);
+
     // Precompute shuffled option orders and the visible correct index
     _optionOrderPerQuestion = _questions.map((q) {
       final order = List<int>.generate(q.options.length, (i) => i);
-      order.shuffle();
+      order.shuffle(rand);
       return order;
     }).toList();
     _shuffledCorrectIndex = List<int>.generate(_questions.length, (qi) {
@@ -219,8 +211,7 @@ class _LevelTosMemoryState extends State<LevelTosQuiz> {
                   _buildSection('4. User Content',
                       'Our Service may allow you to post, link, store, share and otherwise make available certain information, text, graphics, videos, or other material. You are responsible for the content that you post to the Service, including its legality, reliability, and appropriateness.'),
 
-                  _buildSection('5. Prohibited Uses',
-                      'You may not use the Service: (a) for any illegal purpose or to solicit others to perform illegal activities; (b) to violate any international, federal, provincial or state regulations, rules, laws, or local ordinances; (c) to infringe upon or violate our intellectual property rights or the intellectual property rights of others; (d) to harass, abuse, insult, harm, defame, slander, disparage, intimidate, or discriminate based on gender, sexual orientation, religion, ethnicity, race, age, national origin, or disability.'),
+                  _buildSection('5. Prohibited Uses', _buildProhibitedUsesText()),
 
                   _buildSection('6. Limitation of Liability',
                       'In no event shall APK Arena, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from your access to or use of or inability to access or use the Service.'),
@@ -229,13 +220,13 @@ class _LevelTosMemoryState extends State<LevelTosQuiz> {
                       'Your use of the Service is at your sole risk. The Service is provided on an "AS IS" and "AS AVAILABLE" basis. The Service is provided without warranties of any kind, whether express or implied, including, but not limited to, implied warranties of merchantability, fitness for a particular purpose, non-infringement or course of performance.'),
 
                   _buildSection('8. Governing Law',
-                      'These Terms shall be governed and construed in accordance with the laws of California, United States, without regard to its conflict of law provisions. Our failure to enforce any right or provision of these Terms will not be considered a waiver of those rights.'),
+                      'These Terms shall be governed and construed in accordance with the laws of ${_governingState}, United States, without regard to its conflict of law provisions. Our failure to enforce any right or provision of these Terms will not be considered a waiver of those rights.'),
 
                   _buildSection('9. Changes to Terms',
-                      'We reserve the right, at our sole discretion, to modify or replace these Terms at any time. If a revision is material we will try to provide at least 30 days notice prior to any new terms taking effect. What constitutes a material change will be determined at our sole discretion.'),
+                      'We reserve the right, at our sole discretion, to modify or replace these Terms at any time. If a revision is material we will try to provide at least ${_noticeDays} days notice prior to any new terms taking effect. What constitutes a material change will be determined at our sole discretion.'),
 
                   _buildSection('10. Contact Us',
-                      'If you have any questions about these Terms, please contact us at legal@apkarena.com. We will respond to your inquiry within 5 business days.'),
+                      'If you have any questions about these Terms, please contact us at ${_contactLocalPart}@${_contactDomain}. We will respond to your inquiry within 5 business days.'),
                 ],
               ),
             ),
@@ -446,6 +437,91 @@ class _LevelTosMemoryState extends State<LevelTosQuiz> {
         ),
       ),
     );
+  }
+
+  // Build dynamic prohibited uses text section based on included items
+  String _buildProhibitedUsesText() {
+    final bullets = [
+      for (final item in _prohibitedIncluded) item,
+      'Violating any applicable laws or regulations',
+    ];
+    final parts = <String>[];
+    for (var i = 0; i < bullets.length; i++) {
+      final label = String.fromCharCode(97 + i); // a, b, c, ...
+      parts.add('($label) ${bullets[i]}');
+    }
+    return 'You may not use the Service: ' + parts.join('; ') + '.';
+  }
+
+  // Construct questions reflecting the dynamic TOS content
+  List<Question> _buildDynamicQuestions(Random rand) {
+    // Email question
+    final allLocals = ['legal', 'support', 'help', 'compliance', 'privacy', 'info'];
+    final distractors = allLocals.where((l) => l != _contactLocalPart).toList()..shuffle(rand);
+    final emailOptions = [
+      '${distractors[0]}@$_contactDomain',
+      '${_contactLocalPart}@$_contactDomain', // correct
+      '${distractors[1]}@$_contactDomain',
+      '${distractors[2]}@$_contactDomain',
+    ];
+    const emailCorrect = 1;
+
+    // Governing law question
+    final statesOptions = ['California', 'New York', 'Texas', 'Washington'];
+    if (!statesOptions.contains(_governingState)) {
+      statesOptions[0] = _governingState; // ensure the set contains the chosen state
+    }
+    statesOptions.shuffle(rand);
+    final stateCorrect = statesOptions.indexOf(_governingState);
+
+    // Notice days
+    final daysOptionsRaw = [15, 30, 60, 90];
+    final daysOptions = daysOptionsRaw.map((d) => '$d days').toList();
+    final daysCorrect = daysOptions.indexOf('$_noticeDays days');
+
+    // Prohibited uses (NOT listed)
+    final prohibitedOptions = [
+      ..._prohibitedIncluded,
+      _prohibitedExcluded,
+    ];
+    final prohibitedCorrect = prohibitedOptions.length - 1; // excluded one
+
+    // Warranties (kept static, still shuffled by option order)
+    final warrantiesOptions = [
+      'Limited warranties',
+      'Express warranties only',
+      'Implied warranties only',
+      'No warranties of any kind',
+    ];
+    const warrantiesCorrect = 3;
+
+    return [
+      Question(
+        question: 'What email should you contact for questions about the Terms?',
+        options: emailOptions,
+        correctIndex: emailCorrect,
+      ),
+      Question(
+        question: 'Under which state\'s laws are these Terms governed?',
+        options: statesOptions,
+        correctIndex: stateCorrect,
+      ),
+      Question(
+        question: 'How many days notice will APK Arena try to provide for material changes to the Terms?',
+        options: daysOptions,
+        correctIndex: daysCorrect,
+      ),
+      Question(
+        question: 'Which of the following is NOT listed as a prohibited use?',
+        options: prohibitedOptions,
+        correctIndex: prohibitedCorrect,
+      ),
+      Question(
+        question: 'What type of warranties does the Service provide?',
+        options: warrantiesOptions,
+        correctIndex: warrantiesCorrect,
+      ),
+    ];
   }
 
   Widget _buildSection(String title, String content) {

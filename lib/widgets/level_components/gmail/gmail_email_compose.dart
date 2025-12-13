@@ -333,9 +333,13 @@ class _GmailEmailComposeState extends State<GmailEmailCompose> {
                             controller: _bodyController,
                             maxLines: null,
                             keyboardType: TextInputType.multiline,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               border: InputBorder.none,
-                              hintText: '',
+                              hintText: 'Compose email',
+                              hintStyle: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade600,
+                              ),
                             ),
                             style: const TextStyle(
                               fontSize: 14,

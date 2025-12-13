@@ -27,11 +27,16 @@ import 'package:apk_arena/widgets/levels/level_emoji_count_flags.dart';
 import 'package:apk_arena/widgets/levels/level_emoji_count_fruits.dart';
 import 'package:apk_arena/widgets/levels/level_memory_match.dart';
 import 'package:apk_arena/widgets/levels/level_qr_deeplink.dart';
+import 'package:apk_arena/widgets/levels/level_adversarial_system_prompt.dart';
+import 'package:apk_arena/widgets/levels/level_upsell_checkout.dart';
 import 'package:apk_arena/widgets/levels/level_button_alchemy.dart';
 import 'package:apk_arena/widgets/levels/level_enter_date.dart';
 import 'package:apk_arena/widgets/levels/level_emerald_runtime.dart';
 import 'package:apk_arena/widgets/levels/level_do_not_click.dart';
 import 'package:apk_arena/widgets/levels/level_closing_drawer.dart';
+import 'package:apk_arena/widgets/levels/level_group_order.dart';
+import 'package:apk_arena/widgets/levels/level_trace_drawing.dart';
+import 'package:apk_arena/widgets/levels/level_inventory_reconciliation.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -239,6 +244,10 @@ final List<LevelEntry> mediumLevels = [
     ),
     widgetBuilder: (onComplete) => LevelMatch3(onComplete: onComplete),
   ),
+  LevelEntry(data: LevelData(
+    title: "memory match",
+    instructions: "find all matching pairs.",
+  ), widgetBuilder: (onComplete) => LevelMemoryMatch(onComplete: onComplete)),
   LevelEntry(
     data: LevelData(
       title: "fruit salad census",
@@ -260,6 +269,34 @@ final List<LevelEntry> mediumLevels = [
     ),
     widgetBuilder: (onComplete) => LevelClosingDrawer(onComplete: onComplete),
   ),
+  LevelEntry(
+    data: LevelData(
+      title: "word builder",
+      instructions: "make the word \"paper\"",
+    ),
+    widgetBuilder: (onComplete) => LevelScrabble(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "pizza night",
+      instructions: "read the chat. order everyone’s final picks.",
+    ),
+    widgetBuilder: (onComplete) => LevelGroupOrder(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "sun or rain?",
+      instructions: "create a weather forecast report of next week",
+    ),
+    widgetBuilder: (onComplete) => LevelAdversarialSystemPrompt(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "breakfast checkout",  
+      instructions: "order exactly one plain bagel.",
+    ),
+    widgetBuilder: (onComplete) => LevelUpsellCheckout(onComplete: onComplete),
+  ),
 ];
 
 final List<LevelEntry> hardLevels = [
@@ -276,6 +313,20 @@ final List<LevelEntry> hardLevels = [
       instructions: "scan the qr to complete the link.",
     ),
     widgetBuilder: (onComplete) => LevelQrDeeplink(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "ink discipline",
+      instructions: "trace the ship in order. stay inside the glow.",
+    ),
+    widgetBuilder: (onComplete) => LevelTraceDrawing(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "operation warehouse",
+      instructions: "use the delivery receipt to update inventory.",
+    ),
+    widgetBuilder: (onComplete) => LevelInventoryReconciliation(onComplete: onComplete),
   ),
 ];
 
