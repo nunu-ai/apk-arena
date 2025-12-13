@@ -40,6 +40,7 @@ import 'package:apk_arena/widgets/levels/level_chess_puzzle.dart';
 import 'package:apk_arena/widgets/levels/level_spot_difference.dart';
 import 'package:apk_arena/widgets/levels/level_pokemon_maze.dart';
 import 'package:apk_arena/widgets/levels/level_reactor_stabilization.dart';
+import 'package:apk_arena/widgets/levels/level_warp_maze.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -368,6 +369,13 @@ final List<LevelEntry> hardLevels = [
     ),
     widgetBuilder: (onComplete) =>
         LevelReactorStabilization(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "warp warp warp",
+      instructions: "Find the exit using the warp gates.",
+    ),
+    widgetBuilder: (onComplete) => LevelWarpMaze(onComplete: onComplete),
   ),
 ];
 
