@@ -258,10 +258,13 @@ final List<LevelEntry> mediumLevels = [
     ),
     widgetBuilder: (onComplete) => LevelMatch3(onComplete: onComplete),
   ),
-  LevelEntry(data: LevelData(
-    title: "memory match",
-    instructions: "find all matching pairs.",
-  ), widgetBuilder: (onComplete) => LevelMemoryMatch(onComplete: onComplete)),
+  LevelEntry(
+    data: LevelData(
+      title: "memory match",
+      instructions: "find all matching pairs.",
+    ),
+    widgetBuilder: (onComplete) => LevelMemoryMatch(onComplete: onComplete),
+  ),
   LevelEntry(
     data: LevelData(
       title: "fruit salad census",
@@ -317,11 +320,12 @@ final List<LevelEntry> mediumLevels = [
       title: "sun or rain?",
       instructions: "create a weather forecast report of next week",
     ),
-    widgetBuilder: (onComplete) => LevelAdversarialSystemPrompt(onComplete: onComplete),
+    widgetBuilder: (onComplete) =>
+        LevelAdversarialSystemPrompt(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
-      title: "breakfast checkout",  
+      title: "breakfast checkout",
       instructions: "order exactly one plain bagel.",
     ),
     widgetBuilder: (onComplete) => LevelUpsellCheckout(onComplete: onComplete),
@@ -355,7 +359,8 @@ final List<LevelEntry> hardLevels = [
       title: "operation warehouse",
       instructions: "use the delivery receipt to update inventory.",
     ),
-    widgetBuilder: (onComplete) => LevelInventoryReconciliation(onComplete: onComplete),
+    widgetBuilder: (onComplete) =>
+        LevelInventoryReconciliation(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
