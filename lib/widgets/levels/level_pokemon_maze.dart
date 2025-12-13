@@ -55,51 +55,83 @@ class _LevelPokemonMazeState extends State<LevelPokemonMaze>
       (y) => List.generate(mazeWidth, (x) => CellType.wall),
     );
 
-    // Recursive Backtracker using a stack
-    final stack = <Point<int>>[];
+    // Wilson's Algorithm implementation
 
-    // Start at (1, 1)
-    var current = const Point(1, 1);
-    _maze[current.y][current.x] = CellType.path;
-    stack.add(current);
+    // 1. Identify all valid cells (odd coordinates) and mark them as unvisited
+    final unvisited = <Point<int>>{};
+    for (int y = 1; y < mazeHeight; y += 2) {
+      for (int x = 1; x < mazeWidth; x += 2) {
+        unvisited.add(Point(x, y));
+      }
+    }
 
-    while (stack.isNotEmpty) {
-      current = stack.last;
+    if (unvisited.isEmpty) return;
 
-      // Find unvisited neighbors (step 2)
-      final neighbors = <Point<int>>[];
-      final directions = [
-        const Point(0, -2), // Up
-        const Point(0, 2), // Down
-        const Point(-2, 0), // Left
-        const Point(2, 0), // Right
-      ];
+    // 2. Choose one arbitrary cell to be in the maze initially
+    // We remove it from unvisited, effectively adding it to the UST (Uniform Spanning Tree)
+    final first = unvisited.elementAt(random.nextInt(unvisited.length));
+    unvisited.remove(first);
+    _maze[first.y][first.x] = CellType.path;
 
-      for (final dir in directions) {
-        final next = Point(current.x + dir.x, current.y + dir.y);
-        // Check bounds and if unvisited (still a wall)
-        if (next.x > 0 &&
-            next.x < mazeWidth - 1 &&
-            next.y > 0 &&
-            next.y < mazeHeight - 1 &&
-            _maze[next.y][next.x] == CellType.wall) {
-          neighbors.add(next);
+    // 3. While there are unvisited cells
+    while (unvisited.isNotEmpty) {
+      // a. Pick a random unvisited cell as start of the walk
+      // We convert to list to pick random, which is O(N) but given maze size is small (17x17) it's fine.
+      // For larger mazes, we might want a better structure, but this is sufficient here.
+      var current = unvisited.elementAt(random.nextInt(unvisited.length));
+      final pathStart = current;
+
+      // Map to store the walk: current -> next
+      // This represents the "next step" taken from a cell.
+      // If we visit a cell again, we overwrite the previous direction,
+      // effectively erasing the loop.
+      final walk = <Point<int>, Point<int>>{};
+
+      // b. Perform loop-erased random walk until we hit a visited cell (cell NOT in unvisited set)
+      while (unvisited.contains(current)) {
+        // Pick random neighbor
+        final neighbors = <Point<int>>[];
+        final directions = [
+          const Point(0, -2), // Up
+          const Point(0, 2), // Down
+          const Point(-2, 0), // Left
+          const Point(2, 0), // Right
+        ];
+
+        for (final dir in directions) {
+          final next = Point(current.x + dir.x, current.y + dir.y);
+          // Check bounds (valid cell coordinates are within 1..width-2)
+          if (next.x > 0 &&
+              next.x < mazeWidth - 1 &&
+              next.y > 0 &&
+              next.y < mazeHeight - 1) {
+            neighbors.add(next);
+          }
         }
+
+        if (neighbors.isEmpty) break; // Should not happen in a grid
+
+        final next = neighbors[random.nextInt(neighbors.length)];
+        walk[current] = next;
+        current = next;
       }
 
-      if (neighbors.isNotEmpty) {
-        final next = neighbors[random.nextInt(neighbors.length)];
+      // c. Add the path to the maze
+      // Trace from pathStart using 'walk' map until we hit the UST (a cell not in unvisited)
+      current = pathStart;
+      while (unvisited.contains(current)) {
+        final next = walk[current]!;
 
-        // Remove wall between current and next
-        final wallX = current.x + (next.x - current.x) ~/ 2;
-        final wallY = current.y + (next.y - current.y) ~/ 2;
+        // Carve current cell (it becomes part of the maze)
+        _maze[current.y][current.x] = CellType.path;
 
+        // Carve wall between current and next
+        final wallX = (current.x + next.x) ~/ 2;
+        final wallY = (current.y + next.y) ~/ 2;
         _maze[wallY][wallX] = CellType.path;
-        _maze[next.y][next.x] = CellType.path;
 
-        stack.add(next);
-      } else {
-        stack.removeLast();
+        unvisited.remove(current);
+        current = next;
       }
     }
 
@@ -408,47 +440,6 @@ class _LevelPokemonMazeState extends State<LevelPokemonMaze>
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                  // Reset button
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _generateMaze();
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: NunuColors.backgroundPaper,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: NunuColors.secondaryDark.withValues(
-                            alpha: 0.5,
-                          ),
-                        ),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(
-                            Icons.refresh_rounded,
-                            color: NunuColors.secondaryLight,
-                            size: 18,
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            'new maze',
-                            style: TextStyle(
-                              color: NunuColors.textPrimary,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
                     ),
                   ),
                 ],
