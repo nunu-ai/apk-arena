@@ -244,7 +244,7 @@ final List<InventoryItem> _items = [
     description: 'insulated, -50°C rated, sizes mixed',
     quantity: 28,
     location: 'B-01-1',
-    notes: 'sizes: 8x40, 10x42, 6x44, 4x46',
+    notes: 'sizes: 8x40, 10x43, 6x44, 4x46',
     lastCounted: DateTime(2024, 11, 1),
   ),
   InventoryItem(
