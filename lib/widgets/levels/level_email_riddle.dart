@@ -17,6 +17,8 @@ class _LevelEmailRiddleState extends State<LevelEmailRiddle> {
   int _currentView = 0; // 0 = inbox, 1 = detail, 2 = compose
   String _userAnswer = '';
   bool _isProcessing = false;
+  String? _draftSubject;
+  String? _draftBody;
 
   // The riddle and answer
   final String _riddle = '''Hello test subject,
@@ -207,6 +209,27 @@ Aperture Science''',
 
   void _handleComposeNew() {
     setState(() {
+      _draftSubject = null;
+      _draftBody = null;
+      _currentView = 2;
+    });
+  }
+
+  void _handleForward() {
+    // Forward opens compose with quoted original content; user must address to Cave and include the answer
+    final emailData = _emailContents[_selectedSender] ?? _emailContents['GLaDOS']!;
+    final forwardedHeader = StringBuffer()
+      ..writeln('')
+      ..writeln('---------- Forwarded message ---------')
+      ..writeln('From: ${emailData.senderName}${emailData.senderEmail != null ? ' <${emailData.senderEmail}>' : ''}')
+      ..writeln('Subject: ${emailData.subject}')
+      ..writeln('Date: ${emailData.time}')
+      ..writeln('')
+      ..writeln(emailData.body);
+
+    setState(() {
+      _draftSubject = 'Fwd: ${emailData.subject}';
+      _draftBody = forwardedHeader.toString();
       _currentView = 2;
     });
   }
@@ -295,7 +318,7 @@ Aperture Science''',
         });
       },
       onReply: _handleReply,
-      onForward: _handleReply,
+      onForward: _handleForward,
       onArchive: () {
         // Archive email - remove from list and go back
         final currentEmail = _inboxEmails.firstWhere((e) => e.senderName == _selectedSender);
@@ -318,6 +341,8 @@ Aperture Science''',
   Widget _buildComposeView() {
     return _EmailComposeWrapper(
       suggestions: _suggestions,
+      initialSubject: _draftSubject,
+      initialBody: _draftBody,
       onBack: () {
         setState(() {
           _currentView = 1;
@@ -336,12 +361,16 @@ class _EmailComposeWrapper extends StatefulWidget {
   final List<RecipientSuggestion> suggestions;
   final VoidCallback onBack;
   final Function(String recipient, String subject, String body) onSend;
+  final String? initialSubject;
+  final String? initialBody;
 
   const _EmailComposeWrapper({
     Key? key,
     required this.suggestions,
     required this.onBack,
     required this.onSend,
+    this.initialSubject,
+    this.initialBody,
   }) : super(key: key);
 
   @override
@@ -357,8 +386,8 @@ class _EmailComposeWrapperState extends State<_EmailComposeWrapper> {
   void initState() {
     super.initState();
     _recipientController = TextEditingController();
-    _subjectController = TextEditingController();
-    _bodyController = TextEditingController();
+    _subjectController = TextEditingController(text: widget.initialSubject ?? '');
+    _bodyController = TextEditingController(text: widget.initialBody ?? '');
   }
 
   @override
