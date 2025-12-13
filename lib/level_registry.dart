@@ -39,6 +39,7 @@ import 'package:apk_arena/widgets/levels/level_inventory_reconciliation.dart';
 import 'package:apk_arena/widgets/levels/level_chess_puzzle.dart';
 import 'package:apk_arena/widgets/levels/level_spot_difference.dart';
 import 'package:apk_arena/widgets/levels/level_pokemon_maze.dart';
+import 'package:apk_arena/widgets/levels/level_reactor_stabilization.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -359,6 +360,14 @@ final List<LevelEntry> hardLevels = [
       instructions: "put the highest scoring word.",
     ),
     widgetBuilder: (onComplete) => LevelScrabbleHard(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Reactor Stabilization",
+      instructions: "Keep all readings in the green zone to stabilize.",
+    ),
+    widgetBuilder: (onComplete) =>
+        LevelReactorStabilization(onComplete: onComplete),
   ),
 ];
 
