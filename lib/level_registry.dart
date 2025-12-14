@@ -43,7 +43,6 @@ import 'package:apk_arena/widgets/levels/level_spot_difference.dart';
 import 'package:apk_arena/widgets/levels/level_pokemon_maze.dart';
 import 'package:apk_arena/widgets/levels/level_reactor_stabilization.dart';
 import 'package:apk_arena/widgets/levels/level_warp_maze.dart';
-import 'package:apk_arena/widgets/levels/level_bug_detective.dart';
 import 'package:apk_arena/widgets/levels/level_settings_qa.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
@@ -332,6 +331,13 @@ final List<LevelEntry> mediumLevels = [
     ),
     widgetBuilder: (onComplete) => LevelUpsellCheckout(onComplete: onComplete),
   ),
+  LevelEntry(
+    data: LevelData(
+      title: "QA simulation",
+      instructions: "verify 5 statements about the settings app. one is false!",
+    ),
+    widgetBuilder: (onComplete) => LevelSettingsQA(onComplete: onComplete),
+  ),
 ];
 
 final List<LevelEntry> hardLevels = [
@@ -385,21 +391,6 @@ final List<LevelEntry> hardLevels = [
       instructions: "Find the exit using the warp gates.",
     ),
     widgetBuilder: (onComplete) => LevelWarpMaze(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "bug detective",
-      instructions: "Review the code. Is there a bug or not? Get 3 in a row!",
-    ),
-    widgetBuilder: (onComplete) => LevelBugDetective(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "QA simulation",
-      instructions:
-          "Explore the settings app thoroughly. Is there a bug, or does everything work correctly?",
-    ),
-    widgetBuilder: (onComplete) => LevelSettingsQA(onComplete: onComplete),
   ),
 ];
 

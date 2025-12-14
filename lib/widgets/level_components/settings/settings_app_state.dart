@@ -217,7 +217,6 @@ class SettingsAppState {
     'Pop',
     'Swoosh',
     'Ding',
-    'Bubble',
     'Crystal',
   ];
   
