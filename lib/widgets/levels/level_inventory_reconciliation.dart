@@ -237,6 +237,7 @@ class _LevelInventoryReconciliationState extends State<LevelInventoryReconciliat
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      useRootNavigator: true,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => _ItemBottomSheet(
           item: _items.firstWhere((i) => i.id == item.id), // Get fresh item data
