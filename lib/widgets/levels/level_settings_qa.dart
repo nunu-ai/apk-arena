@@ -41,18 +41,28 @@ class _LevelSettingsQAState extends State<LevelSettingsQA> {
     ),
     VerificationItem(
       statement: 'hungarian is available as a language option',
-      isActuallyTrue: true,
+      isActuallyTrue:
+          false, // BUG: Hungarian was removed from the languages list!
     ),
     VerificationItem(
       statement: 'there are exactly 12 profile photos to choose from',
       isActuallyTrue: true,
     ),
     VerificationItem(
-      statement: 'the "bubble" notification tone is available',
-      isActuallyTrue: false, // BUG: Bubble was removed from the list!
+      statement: 'clearing cache correctly updates the storage bar',
+      isActuallyTrue:
+          false, // BUG: Storage bar shows frozen values and doesn't update!
     ),
     VerificationItem(
       statement: 'the privacy policy has a section about gdpr compliance',
+      isActuallyTrue: true,
+    ),
+    VerificationItem(
+      statement: 'the 2FA backup codes are "2954 9922 7572"',
+      isActuallyTrue: true,
+    ),
+    VerificationItem(
+      statement: '"Australian Eastern Time (AET)" is available as a timezone',
       isActuallyTrue: true,
     ),
   ];
@@ -67,6 +77,7 @@ class _LevelSettingsQAState extends State<LevelSettingsQA> {
         SettingsApp(
           initialState: SettingsAppState(),
           bottomBar: _buildBottomBar(),
+          hasCacheClearingBug: true, // Enable the bug for QA testing
         ),
         if (_showChecklist) _buildChecklistOverlay(),
       ],

@@ -9,11 +9,16 @@ import 'settings_screens.dart';
 class SettingsApp extends StatefulWidget {
   final SettingsAppState initialState;
   final Widget? bottomBar;
-  
+
+  /// When true, clearing cache will update the cache page but NOT the storage bar.
+  /// This simulates a bug where the storage display doesn't refresh after clearing cache.
+  final bool hasCacheClearingBug;
+
   const SettingsApp({
     super.key,
     required this.initialState,
     this.bottomBar,
+    this.hasCacheClearingBug = false,
   });
   
   @override
@@ -28,6 +33,10 @@ class _SettingsAppState extends State<SettingsApp> {
   void initState() {
     super.initState();
     _state = widget.initialState;
+    // If bug is enabled, freeze initial storage values so they won't update
+    if (widget.hasCacheClearingBug) {
+      _state.freezeStorageValues();
+    }
   }
   
   void _navigateTo(String screen) {
@@ -54,21 +63,29 @@ class _SettingsAppState extends State<SettingsApp> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: NunuColors.backgroundDefault,
-      child: SafeArea(
-        child: Column(
-          children: [
-            SettingsHeader(
-              title: _getScreenTitle(_currentScreen),
-              showBackButton: _currentScreen != 'main',
-              onBack: _goBack,
-            ),
-            Expanded(
-              child: _buildCurrentScreen(),
-            ),
-            if (widget.bottomBar != null) widget.bottomBar!,
-          ],
+    // Bold text applies FontWeight.bold to all text
+    final textStyle = _state.boldText 
+        ? const TextStyle(fontWeight: FontWeight.bold)
+        : const TextStyle();
+    
+    return DefaultTextStyle.merge(
+      style: textStyle,
+      child: Container(
+        color: NunuColors.backgroundDefault,
+        child: SafeArea(
+          child: Column(
+            children: [
+              SettingsHeader(
+                title: _getScreenTitle(_currentScreen),
+                showBackButton: _currentScreen != 'main',
+                onBack: _goBack,
+              ),
+              Expanded(
+                child: _buildCurrentScreen(),
+              ),
+              if (widget.bottomBar != null) widget.bottomBar!,
+            ],
+          ),
         ),
       ),
     );
@@ -128,6 +145,7 @@ class _SettingsAppState extends State<SettingsApp> {
       },
       showDialog: (dialog) => showDialog(context: context, builder: (_) => dialog),
       showTimePicker: (initial) => showTimePicker(context: context, initialTime: initial),
+      hasCacheClearingBug: widget.hasCacheClearingBug,
     );
     
     switch (_currentScreen) {

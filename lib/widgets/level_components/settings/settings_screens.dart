@@ -13,7 +13,10 @@ class SettingsScreens {
   final Future<dynamic> Function(Widget dialog) showDialog;
   final Future<TimeOfDay?> Function(TimeOfDay initial) showTimePicker;
   final BuildContext context;
-  
+
+  /// When true, storage bar shows frozen values that don't update when cache is cleared.
+  final bool hasCacheClearingBug;
+
   SettingsScreens({
     required this.state,
     required this.navigateTo,
@@ -23,6 +26,7 @@ class SettingsScreens {
     required this.showDialog,
     required this.showTimePicker,
     required this.context,
+    this.hasCacheClearingBug = false,
   });
   
   // ============================================================
@@ -93,7 +97,7 @@ class SettingsScreens {
             SettingsTile(
               icon: Icons.storage_outlined,
               title: 'data & storage',
-              subtitle: 'cache: ${state.cacheSize}',
+              subtitle: 'used: ${hasCacheClearingBug ? state.displayTotalStorageSize : state.totalStorageSize}',
               onTap: () => navigateTo('data'),
             ),
           ],
@@ -569,7 +573,7 @@ class SettingsScreens {
     final newController = TextEditingController();
     final confirmController = TextEditingController();
     
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -683,7 +687,7 @@ class SettingsScreens {
               title: 'backup codes',
               subtitle: 'view your emergency backup codes',
               onTap: () {
-                showSnackBar('backup codes: 1234-5678-9012', NunuColors.infoMain);
+                showSnackBar('backup codes: 2954 9922 7572', NunuColors.infoMain);
               },
             ),
           ),
@@ -692,11 +696,8 @@ class SettingsScreens {
   }
   
   Widget buildActiveSessions() {
-    final sessions = [
-      {'device': 'iPhone 15 Pro', 'location': 'San Francisco, CA', 'current': true},
-      {'device': 'MacBook Pro', 'location': 'San Francisco, CA', 'current': false},
-      {'device': 'Chrome on Windows', 'location': 'New York, NY', 'current': false},
-    ];
+    final sessions = state.sessionsList;
+    final otherSessions = sessions.where((s) => s['current'] != true).toList();
     
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -779,20 +780,31 @@ class SettingsScreens {
               if (session['current'] != true)
                 TextButton(
                   onPressed: () {
-                    updateState((s) => s.activeSessions--);
+                    final deviceName = session['device'] as String;
+                    updateState((s) {
+                      s.sessionsList.removeWhere((sess) => sess['device'] == deviceName);
+                      s.activeSessions = s.sessionsList.length;
+                    });
+                    showSnackBar('signed out of $deviceName', NunuColors.successMain);
                   },
                   child: const Text('sign out'),
                 ),
             ],
           ),
         )),
-        const SizedBox(height: 16),
-        OutlinedButton(
-          onPressed: () {
-            updateState((s) => s.activeSessions = 1);
-          },
-          child: const Text('sign out all other devices'),
-        ),
+        if (otherSessions.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          OutlinedButton(
+            onPressed: () {
+              updateState((s) {
+                s.sessionsList.removeWhere((sess) => sess['current'] != true);
+                s.activeSessions = s.sessionsList.length;
+              });
+              showSnackBar('signed out of all other devices', NunuColors.successMain);
+            },
+            child: const Text('sign out all other devices'),
+          ),
+        ],
       ],
     );
   }
@@ -1406,6 +1418,13 @@ class SettingsScreens {
   // ============================================================
   
   Widget buildDataSettings() {
+    const totalCapacityMB = 1024; // 1 GB
+    // When bug is enabled, use frozen display values that won't update
+    final displayCacheMB = hasCacheClearingBug ? state.displayTotalCacheMB : state.totalCacheMB;
+    final displayStorageMB = hasCacheClearingBug ? state.displayTotalStorageMB : state.totalStorageMB;
+    final appDataPercent = state.appDataMB / totalCapacityMB;
+    final cachePercent = displayCacheMB / totalCapacityMB;
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -1432,7 +1451,7 @@ class SettingsScreens {
                   ),
                   const Spacer(),
                   Text(
-                    state.cacheSize,
+                    '$displayStorageMB MB',
                     style: const TextStyle(
                       color: NunuColors.primaryLight,
                       fontSize: 15,
@@ -1442,18 +1461,70 @@ class SettingsScreens {
                 ],
               ),
               const SizedBox(height: 12),
+              // Segmented storage bar
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: 0.35,
-                  backgroundColor: NunuColors.primaryDark.withOpacity(0.3),
-                  valueColor: const AlwaysStoppedAnimation(NunuColors.primaryMain),
-                  minHeight: 8,
+                child: Container(
+                  height: 8,
+                  color: NunuColors.primaryDark.withOpacity(0.3),
+                  child: Row(
+                    children: [
+                      // App data portion (blue)
+                      Container(
+                        width: (MediaQuery.of(context).size.width - 64) * appDataPercent,
+                        color: NunuColors.primaryMain,
+                      ),
+                      // Cache portion (orange)
+                      Container(
+                        width: (MediaQuery.of(context).size.width - 64) * cachePercent,
+                        color: NunuColors.warningMain,
+                      ),
+                    ],
+                  ),
                 ),
+              ),
+              const SizedBox(height: 12),
+              // Legend
+              Row(
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: NunuColors.primaryMain,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'app data: ${state.appDataMB} MB',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: NunuColors.warningMain,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'cache: $displayCacheMB MB',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
               Text(
-                '234 MB of 1 GB used',
+                '$displayStorageMB MB of 1 GB used',
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.5),
                   fontSize: 12,
@@ -1529,6 +1600,41 @@ class SettingsScreens {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        // Summary header
+        Container(
+          padding: const EdgeInsets.all(16),
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: NunuColors.warningMain.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: NunuColors.warningMain.withOpacity(0.3)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.cached, color: NunuColors.warningMain, size: 28),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'total cache',
+                      style: TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                    Text(
+                      '${state.totalCacheMB} MB',
+                      style: const TextStyle(
+                        color: NunuColors.warningMain,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
         Container(
           decoration: BoxDecoration(
             color: NunuColors.backgroundPaper,
@@ -1539,11 +1645,12 @@ class SettingsScreens {
               ListTile(
                 leading: const Icon(Icons.image, color: NunuColors.primaryLight),
                 title: const Text('image cache', style: TextStyle(color: Colors.white)),
-                subtitle: Text('128 MB', style: TextStyle(color: Colors.white.withOpacity(0.5))),
+                subtitle: Text('${state.imageCacheMB} MB', style: TextStyle(color: Colors.white.withOpacity(0.5))),
                 trailing: TextButton(
-                  onPressed: () {
+                  onPressed: state.imageCacheMB > 0 ? () {
+                    updateState((s) => s.imageCacheMB = 0);
                     showSnackBar('image cache cleared', NunuColors.successMain);
-                  },
+                  } : null,
                   child: const Text('clear'),
                 ),
               ),
@@ -1551,11 +1658,12 @@ class SettingsScreens {
               ListTile(
                 leading: const Icon(Icons.video_library, color: NunuColors.primaryLight),
                 title: const Text('video cache', style: TextStyle(color: Colors.white)),
-                subtitle: Text('82 MB', style: TextStyle(color: Colors.white.withOpacity(0.5))),
+                subtitle: Text('${state.videoCacheMB} MB', style: TextStyle(color: Colors.white.withOpacity(0.5))),
                 trailing: TextButton(
-                  onPressed: () {
+                  onPressed: state.videoCacheMB > 0 ? () {
+                    updateState((s) => s.videoCacheMB = 0);
                     showSnackBar('video cache cleared', NunuColors.successMain);
-                  },
+                  } : null,
                   child: const Text('clear'),
                 ),
               ),
@@ -1563,11 +1671,12 @@ class SettingsScreens {
               ListTile(
                 leading: const Icon(Icons.file_copy, color: NunuColors.primaryLight),
                 title: const Text('other files', style: TextStyle(color: Colors.white)),
-                subtitle: Text('24 MB', style: TextStyle(color: Colors.white.withOpacity(0.5))),
+                subtitle: Text('${state.otherCacheMB} MB', style: TextStyle(color: Colors.white.withOpacity(0.5))),
                 trailing: TextButton(
-                  onPressed: () {
+                  onPressed: state.otherCacheMB > 0 ? () {
+                    updateState((s) => s.otherCacheMB = 0);
                     showSnackBar('other cache cleared', NunuColors.successMain);
-                  },
+                  } : null,
                   child: const Text('clear'),
                 ),
               ),
@@ -1576,10 +1685,14 @@ class SettingsScreens {
         ),
         const SizedBox(height: 24),
         ElevatedButton.icon(
-          onPressed: () {
-            updateState((s) => s.cacheSize = '0 MB');
+          onPressed: state.totalCacheMB > 0 ? () {
+            updateState((s) {
+              s.imageCacheMB = 0;
+              s.videoCacheMB = 0;
+              s.otherCacheMB = 0;
+            });
             showSnackBar('all cache cleared', NunuColors.successMain);
-          },
+          } : null,
           icon: const Icon(Icons.delete_sweep),
           label: const Text('clear all cache'),
           style: ElevatedButton.styleFrom(
@@ -1794,7 +1907,7 @@ class SettingsScreens {
         ),
         const SizedBox(height: 24),
         Text(
-          '© 2024 nunu.ai — all rights reserved',
+          '© 2025 nunu.ai — all rights reserved',
           style: TextStyle(
             color: Colors.white.withOpacity(0.4),
             fontSize: 12,
@@ -2160,6 +2273,9 @@ THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.'''
   }
   
   Widget buildRateApp() {
+    final hasRated = state.userRating != null;
+    final currentRating = state.userRating ?? 0;
+    
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -2175,9 +2291,9 @@ THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.'''
               children: [
                 const Text('⭐', style: TextStyle(fontSize: 48)),
                 const SizedBox(height: 16),
-                const Text(
-                  'enjoying the app?',
-                  style: TextStyle(
+                Text(
+                  hasRated ? 'thanks for your rating!' : 'enjoying the app?',
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -2185,7 +2301,9 @@ THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.'''
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'we\'d love to hear your feedback! tap a star to rate us.',
+                  hasRated 
+                      ? 'you rated us $currentRating ${currentRating == 1 ? 'star' : 'stars'}. tap to change your rating.'
+                      : 'we\'d love to hear your feedback! tap a star to rate us.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.white.withOpacity(0.7)),
                 ),
@@ -2195,13 +2313,19 @@ THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.'''
                   children: List.generate(5, (index) => 
                     GestureDetector(
                       onTap: () {
-                        showSnackBar('thanks for rating ${index + 1} stars!', NunuColors.successMain);
-                        goBack();
+                        final newRating = index + 1;
+                        final isChange = hasRated;
+                        updateState((s) => s.userRating = newRating);
+                        if (isChange) {
+                          showSnackBar('rating updated to $newRating stars!', NunuColors.successMain);
+                        } else {
+                          showSnackBar('thanks for rating $newRating stars!', NunuColors.successMain);
+                        }
                       },
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 4),
                         child: Icon(
-                          Icons.star_outline,
+                          index < currentRating ? Icons.star : Icons.star_outline,
                           color: NunuColors.warningMain,
                           size: 40,
                         ),
@@ -2212,7 +2336,7 @@ THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.'''
                 const SizedBox(height: 24),
                 TextButton(
                   onPressed: goBack,
-                  child: const Text('maybe later'),
+                  child: Text(hasRated ? 'done' : 'maybe later'),
                 ),
               ],
             ),

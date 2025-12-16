@@ -8,11 +8,12 @@ class SettingsAppState {
   String userPhone;
   String userBio;
   int profilePhotoIndex;
-  
+
   // Account settings
   bool twoFactorEnabled;
   int activeSessions;
-  
+  List<Map<String, dynamic>> sessionsList;
+
   // Notification settings
   bool pushNotifications;
   bool emailNotifications;
@@ -22,57 +23,68 @@ class SettingsAppState {
   TimeOfDay quietHoursStart;
   TimeOfDay quietHoursEnd;
   bool quietHoursEnabled;
-  
+
   // Privacy settings
   bool locationSharing;
   bool analyticsEnabled;
   bool personalizedAds;
   String profileVisibility;
-  
+
   // Display settings
   bool darkMode;
   double fontSize;
   bool animationsEnabled;
   bool compactMode;
   bool reducedMotion;
-  
+
   // Sound settings
   double masterVolume;
   String notificationTone;
   bool hapticFeedback;
   bool keyboardSounds;
   bool inAppSounds;
-  
+
   // Language & Region
   String language;
   String region;
   String dateFormat;
   bool use24HourTime;
   String timezone;
-  
+
   // Data & Storage
   bool autoDownload;
   String downloadQuality;
   String cacheSize;
   bool saveToGallery;
   bool wifiOnlyDownload;
-  
+  int imageCacheMB;
+  int videoCacheMB;
+  int otherCacheMB;
+  int appDataMB; // Non-cache app data storage
+
   // Linked accounts
   bool googleLinked;
   bool appleLinked;
   bool facebookLinked;
   bool twitterLinked;
-  
+
   // Accessibility
   bool screenReaderOptimized;
   bool highContrast;
   bool largeText;
   bool boldText;
-  
+
   // App info
   final String appVersion;
   final String buildNumber;
-  
+
+  // User rating
+  int? userRating; // null if not rated, 1-5 if rated
+
+  // Bug simulation: frozen storage values that don't update when cache is cleared
+  int? frozenTotalCacheMB;
+  int? frozenTotalStorageMB;
+
   SettingsAppState({
     this.userName = 'William Bernard',
     this.userEmail = 'william.bernard@email.com',
@@ -81,6 +93,7 @@ class SettingsAppState {
     this.profilePhotoIndex = 0,
     this.twoFactorEnabled = false,
     this.activeSessions = 3,
+    List<Map<String, dynamic>>? sessionsList,
     this.pushNotifications = true,
     this.emailNotifications = true,
     this.marketingEmails = false,
@@ -113,6 +126,10 @@ class SettingsAppState {
     this.cacheSize = '234 MB',
     this.saveToGallery = true,
     this.wifiOnlyDownload = true,
+    this.imageCacheMB = 128,
+    this.videoCacheMB = 82,
+    this.otherCacheMB = 24,
+    this.appDataMB = 156,
     this.googleLinked = true,
     this.appleLinked = false,
     this.facebookLinked = false,
@@ -123,8 +140,56 @@ class SettingsAppState {
     this.boldText = false,
     this.appVersion = '2.4.1',
     this.buildNumber = '2024120801',
-  });
-  
+    this.userRating,
+    this.frozenTotalCacheMB,
+    this.frozenTotalStorageMB,
+  }) : sessionsList =
+           sessionsList ??
+           [
+             {
+               'device': 'iPhone 15 Pro',
+               'location': 'San Francisco, CA',
+               'current': true,
+             },
+             {
+               'device': 'MacBook Pro',
+               'location': 'San Francisco, CA',
+               'current': false,
+             },
+             {
+               'device': 'Chrome on Windows',
+               'location': 'New York, NY',
+               'current': false,
+             },
+           ];
+
+  /// Computed total cache size in MB
+  int get totalCacheMB => imageCacheMB + videoCacheMB + otherCacheMB;
+
+  /// Computed total cache size as string
+  String get totalCacheSize => '$totalCacheMB MB';
+
+  /// Computed total storage (app data + cache) in MB
+  int get totalStorageMB => appDataMB + totalCacheMB;
+
+  /// Computed total storage as string
+  String get totalStorageSize => '$totalStorageMB MB';
+
+  /// Freeze current storage values (for bug simulation)
+  void freezeStorageValues() {
+    frozenTotalCacheMB = totalCacheMB;
+    frozenTotalStorageMB = totalStorageMB;
+  }
+
+  /// Get cache MB for display (uses frozen value if set)
+  int get displayTotalCacheMB => frozenTotalCacheMB ?? totalCacheMB;
+
+  /// Get storage MB for display (uses frozen value if set)
+  int get displayTotalStorageMB => frozenTotalStorageMB ?? totalStorageMB;
+
+  /// Get storage size string for display (uses frozen value if set)
+  String get displayTotalStorageSize => '$displayTotalStorageMB MB';
+
   /// Profile photo options (emoji-based for simplicity)
   static const List<String> profilePhotos = [
     '👤', // default
@@ -140,9 +205,9 @@ class SettingsAppState {
     '🦸', // superhero
     '🥷', // ninja
   ];
-  
+
   String get currentProfilePhoto => profilePhotos[profilePhotoIndex];
-  
+
   /// Available languages
   static const List<String> availableLanguages = [
     'English',
@@ -172,11 +237,10 @@ class SettingsAppState {
     'Malay',
     'Filipino',
     'Czech',
-    'Hungarian',
     'Romanian',
     'Ukrainian',
   ];
-  
+
   /// Available regions
   static const List<String> availableRegions = [
     'United States',
@@ -193,7 +257,7 @@ class SettingsAppState {
     'Brazil',
     'Mexico',
   ];
-  
+
   /// Available timezones
   static const List<String> availableTimezones = [
     'Pacific Time (PT)',
@@ -208,7 +272,7 @@ class SettingsAppState {
     'India Standard Time (IST)',
     'Australian Eastern Time (AET)',
   ];
-  
+
   /// Notification tones
   static const List<String> notificationTones = [
     'Chime',
@@ -219,7 +283,7 @@ class SettingsAppState {
     'Ding',
     'Crystal',
   ];
-  
+
   /// Date formats
   static const List<String> dateFormats = [
     'MM/DD/YYYY',
@@ -227,7 +291,7 @@ class SettingsAppState {
     'YYYY-MM-DD',
     'DD.MM.YYYY',
   ];
-  
+
   /// Download qualities
   static const List<String> downloadQualities = [
     'Low',
@@ -235,7 +299,7 @@ class SettingsAppState {
     'High',
     'Original',
   ];
-  
+
   /// Profile visibility options
   static const List<String> visibilityOptions = [
     'Public',
@@ -243,4 +307,3 @@ class SettingsAppState {
     'Private',
   ];
 }
-
