@@ -337,8 +337,6 @@ class _LevelBingoBlitzState extends State<LevelBingoBlitz>
         child: Column(
           children: [
             const SizedBox(height: 16),
-            _buildHeader(),
-            const SizedBox(height: 16),
             _buildCurrentCall(),
             const SizedBox(height: 8),
             _buildTimerBar(),
@@ -348,39 +346,6 @@ class _LevelBingoBlitzState extends State<LevelBingoBlitz>
             const SizedBox(height: 16),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(5, (i) {
-          final letter = 'BINGO'[i];
-          return Container(
-            margin: const EdgeInsets.symmetric(horizontal: 4),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: _getColumnColor(i).withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: _getColumnColor(i).withValues(alpha: 0.5),
-                width: 2,
-              ),
-            ),
-            child: Text(
-              letter,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: _getColumnColor(i),
-                letterSpacing: 2,
-              ),
-            ),
-          );
-        }),
       ),
     );
   }
@@ -521,45 +486,86 @@ class _LevelBingoBlitzState extends State<LevelBingoBlitz>
 
   Widget _buildBingoCard() {
     return Center(
-      child: AspectRatio(
-        aspectRatio: 1,
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16),
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: NunuColors.backgroundPaper.withValues(alpha: 0.8),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: _isComplete
-                  ? (_hasWon
-                      ? NunuColors.successMain
-                      : NunuColors.errorMain)
-                  : NunuColors.primaryDark,
-              width: 3,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: _isComplete
-                    ? (_hasWon
-                        ? NunuColors.successMain.withValues(alpha: 0.3)
-                        : NunuColors.errorMain.withValues(alpha: 0.3))
-                    : NunuColors.primaryDarker.withValues(alpha: 0.5),
-                blurRadius: 20,
-                spreadRadius: 4,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Column headers B-I-N-G-O
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                children: List.generate(_gridSize, (col) {
+                  return Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.all(3),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: _getColumnColor(col).withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: _getColumnColor(col).withValues(alpha: 0.5),
+                          width: 2,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'BINGO'[col],
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: _getColumnColor(col),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
               ),
-            ],
-          ),
-          child: Column(
-            children: List.generate(_gridSize, (row) {
-              return Expanded(
-                child: Row(
-                  children: List.generate(_gridSize, (col) {
-                    return Expanded(child: _buildCell(row, col));
+            ),
+            const SizedBox(height: 4),
+            // Bingo grid
+            AspectRatio(
+              aspectRatio: 1,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: NunuColors.backgroundPaper.withValues(alpha: 0.8),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: _isComplete
+                        ? (_hasWon
+                            ? NunuColors.successMain
+                            : NunuColors.errorMain)
+                        : NunuColors.primaryDark,
+                    width: 3,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _isComplete
+                          ? (_hasWon
+                              ? NunuColors.successMain.withValues(alpha: 0.3)
+                              : NunuColors.errorMain.withValues(alpha: 0.3))
+                          : NunuColors.primaryDarker.withValues(alpha: 0.5),
+                      blurRadius: 20,
+                      spreadRadius: 4,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: List.generate(_gridSize, (row) {
+                    return Expanded(
+                      child: Row(
+                        children: List.generate(_gridSize, (col) {
+                          return Expanded(child: _buildCell(row, col));
+                        }),
+                      ),
+                    );
                   }),
                 ),
-              );
-            }),
-          ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -569,7 +575,6 @@ class _LevelBingoBlitzState extends State<LevelBingoBlitz>
     final number = _card[row][col];
     final isMarked = _marked[row][col];
     final isFreeSpace = number == 0;
-    final isCurrentCall = number == _currentCall;
     final isJustMarked = row == _justMarkedRow && col == _justMarkedCol;
     final isWrongTap = row == _wrongTapRow && col == _wrongTapCol;
     final color = _getColumnColor(col);
@@ -594,21 +599,17 @@ class _LevelBingoBlitzState extends State<LevelBingoBlitz>
               ? null
               : (isWrongTap
                   ? NunuColors.errorMain.withValues(alpha: 0.4)
-                  : (isCurrentCall
-                      ? color.withValues(alpha: 0.15)
-                      : NunuColors.backgroundDefault.withValues(alpha: 0.6))),
+                  : NunuColors.backgroundDefault.withValues(alpha: 0.6)),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isJustMarked
                 ? NunuColors.successLight
                 : (isWrongTap
                     ? NunuColors.errorMain
-                    : (isCurrentCall && !isMarked
-                        ? color
-                        : (isMarked
-                            ? color.withValues(alpha: 0.8)
-                            : NunuColors.primaryDark.withValues(alpha: 0.4)))),
-            width: isCurrentCall && !isMarked ? 2.5 : 1.5,
+                    : (isMarked
+                        ? color.withValues(alpha: 0.8)
+                        : NunuColors.primaryDark.withValues(alpha: 0.4))),
+            width: 1.5,
           ),
           boxShadow: isJustMarked
               ? [
@@ -618,15 +619,7 @@ class _LevelBingoBlitzState extends State<LevelBingoBlitz>
                     spreadRadius: 2,
                   ),
                 ]
-              : (isCurrentCall && !isMarked
-                  ? [
-                      BoxShadow(
-                        color: color.withValues(alpha: 0.4),
-                        blurRadius: 8,
-                        spreadRadius: 1,
-                      ),
-                    ]
-                  : null),
+              : null,
         ),
         child: Center(
           child: isFreeSpace
@@ -656,11 +649,7 @@ class _LevelBingoBlitzState extends State<LevelBingoBlitz>
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: isMarked
-                            ? Colors.white
-                            : (isCurrentCall
-                                ? color
-                                : NunuColors.textSecondary),
+                        color: isMarked ? Colors.white : NunuColors.textSecondary,
                       ),
                     ),
                     if (isMarked)
