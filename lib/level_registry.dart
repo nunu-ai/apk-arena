@@ -45,6 +45,7 @@ import 'package:apk_arena/widgets/levels/level_reactor_stabilization.dart';
 import 'package:apk_arena/widgets/levels/level_warp_maze.dart';
 import 'package:apk_arena/widgets/levels/level_settings_qa.dart';
 import 'package:apk_arena/widgets/levels/level_sequence_memory.dart';
+import 'package:apk_arena/widgets/levels/level_bingo_blitz.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -399,6 +400,13 @@ final List<LevelEntry> hardLevels = [
       instructions: "Memorize and repeat the sequence!",
     ),
     widgetBuilder: (onComplete) => LevelSequenceMemory(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Bingo",
+      instructions: "Mark the called numbers quickly to get a BINGO!",
+    ),
+    widgetBuilder: (onComplete) => LevelBingoBlitz(onComplete: onComplete),
   ),
 ];
 
