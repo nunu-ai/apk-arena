@@ -4,19 +4,19 @@ import 'package:flutter/material.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 
-class LevelBingoBlitz extends LevelWidget {
-  const LevelBingoBlitz({super.key, required super.onComplete});
+class LevelBingo extends LevelWidget {
+  const LevelBingo({super.key, required super.onComplete});
 
   @override
-  State<LevelBingoBlitz> createState() => _LevelBingoBlitzState();
+  State<LevelBingo> createState() => _LevelBingoState();
 }
 
-class _LevelBingoBlitzState extends State<LevelBingoBlitz>
+class _LevelBingoState extends State<LevelBingo>
     with TickerProviderStateMixin {
   static const int _gridSize = 5;
   static const int _maxMistakes = 3;
-  static const Duration _callInterval = Duration(milliseconds: 2800);
-  static const Duration _markWindow = Duration(milliseconds: 2500);
+  static const Duration _callInterval = Duration(milliseconds: 5500);
+  static const Duration _markWindow = Duration(milliseconds: 5000);
 
   final Random _random = Random();
 
