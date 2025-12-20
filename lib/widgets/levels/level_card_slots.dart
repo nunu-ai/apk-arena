@@ -281,15 +281,11 @@ class _LevelCardSlotsState extends State<LevelCardSlots> {
           onWillAccept: (data) {
             if (data == null || data.cards.isEmpty) return false;
 
-            // Only allow dropping single cards or stacks that match
-            // For simplicity in foundation, usually we accept one by one or matching sequence
-            // Here we check if the FIRST card matches logic.
             final firstCard = data.cards.first;
-            // Also need to check if ALL cards in dragged stack match the target category?
-            // Yes, a stack must be uniform to be dragged.
 
             if (foundation.isEmpty) {
-              return firstCard.isCategoryCard && data.cards.length == 1;
+              // Allow drop if incoming stack starts with a Category Card
+              return firstCard.isCategoryCard;
             } else {
               // Can only add if not a category card (already have one) and matches category
               return data.cards.every(
@@ -400,6 +396,12 @@ class _LevelCardSlotsState extends State<LevelCardSlots> {
         DragTarget<_DragData>(
           onWillAccept: (data) {
             if (data == null || data.cards.isEmpty) return false;
+
+            // Cannot drop if incoming stack's bottom card is a Category Card on an existing stack
+            if (data.cards.first.isCategoryCard && stack.isNotEmpty) {
+              return false;
+            }
+
             // Can drop if stack is empty OR if matches top card category
             if (stack.isEmpty) return true;
             return data.cards.first.category == stack.last.category;
@@ -470,7 +472,6 @@ class _LevelCardSlotsState extends State<LevelCardSlots> {
                       width: _cardWidth,
                       height: _cardHeight + (matchingCards.length - 1) * 30.0,
                     ), // Placeholder size? Or invisible?
-
                     // Actually, if we drag the whole top stack, we just want to see the base cards below.
                     // The 'childWhenDragging' replaces the 'child' in the tree.
                     // So it should be empty here because the base cards are rendered in the parent Stack above this Draggable.
