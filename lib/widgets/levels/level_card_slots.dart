@@ -45,8 +45,18 @@ class _LevelCardSlotsState extends State<LevelCardSlots> {
   // 3 Foundation piles
   final List<List<CardData>> _foundations = [[], [], []];
 
-  // 3 Source stacks
+  // 3 Source stacks (Bottom row)
   late List<List<CardData>> _stacks;
+
+  // Deck (Face down) and Waste (Face up) piles (Top right)
+  List<CardData> _deck = [];
+  List<CardData> _waste = [];
+
+  int _completedCategories = 0;
+
+  // Card dimensions
+  static const double _cardWidth = 85.0;
+  static const double _cardHeight = 130.0;
 
   // Category Colors
   final Map<CardCategory, Color> _categoryColors = {
@@ -64,7 +74,8 @@ class _LevelCardSlotsState extends State<LevelCardSlots> {
   }
 
   void _initializeCards() {
-    // Define all cards
+    // Define all cards (15 total: 5 categories * 3 cards)
+
     // Flowers
     final flowerCat = const CardData(
       label: 'Flowers',
@@ -131,61 +142,93 @@ class _LevelCardSlotsState extends State<LevelCardSlots> {
 
     // 2. Middle Stack (Stack 1) shows "Pets" category card as top card.
 
-    // Distribute remaining 14 cards
-    // Stack 0: 5 cards
-    // Stack 1: 5 cards (Top is Pets Cat)
-    // Stack 2: 4 cards
-
     _stacks = [
-      [furnCat, rose, sofa, pizza, chair], // Stack 0
-      [vacCat, dog, burger, beach, petsCat], // Stack 1 (Pets Cat is top/last)
-      [plane, foodCat, cat, tulip], // Stack 2
+      [rose, sofa, pizza], // Stack 0
+      [dog, burger, petsCat], // Stack 1 (Pets Cat is top/last)
+      [cat, chair, tulip], // Stack 2
+    ];
+
+    _deck = [
+      plane,
+      foodCat, // Category card in deck
+      vacCat, // Category card in deck
+      furnCat, // Category card in deck
+      beach,
     ];
   }
 
   void _checkCompletion() {
-    // Complete if all source stacks are empty AND all foundations are cleared
-    if (_stacks.every((stack) => stack.isEmpty) &&
-        _foundations.every((f) => f.isEmpty)) {
+    if (_completedCategories >= 5) {
       widget.onComplete(true);
     }
+  }
+
+  void _onDeckTap() {
+    setState(() {
+      if (_deck.isNotEmpty) {
+        final card = _deck.removeLast();
+        _waste.add(card);
+      } else if (_waste.isNotEmpty) {
+        _deck.addAll(_waste.reversed);
+        _waste.clear();
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       color: NunuColors.backgroundDefault,
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      padding: const EdgeInsets.all(16),
+      child: Stack(
         children: [
-          const Text(
-            'Place the cards',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+          // Top Right: Deck & Waste
+          Positioned(
+            top: 0,
+            right: 0,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildWastePile(),
+                const SizedBox(width: 8),
+                _buildDeckPile(),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
-          const Text(
-            'Sort by category. Category cards first!',
-            style: TextStyle(fontSize: 16, color: Colors.white70),
-          ),
-          const SizedBox(height: 60),
 
-          // Top Row: Foundations
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: List.generate(3, (index) => _buildFoundation(index)),
-          ),
+          // Main Game Area
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Middle: 3 Category Slots
+                SizedBox(
+                  width: double.infinity,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: List.generate(
+                      3,
+                      (index) => _buildFoundation(index),
+                    ),
+                  ),
+                ),
 
-          const SizedBox(height: 80),
+                const SizedBox(height: 40),
 
-          // Bottom Row: Source Stacks
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: List.generate(3, (index) => _buildSourceStack(index)),
+                // Below: 3 Source Stacks
+                SizedBox(
+                  width: double.infinity,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: List.generate(
+                      3,
+                      (index) => _buildSourceStack(index),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -202,57 +245,75 @@ class _LevelCardSlotsState extends State<LevelCardSlots> {
     return Column(
       children: [
         // Category Label
-        if (foundationCategory != null)
-          Container(
-            margin: const EdgeInsets.only(bottom: 4),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFD54F), // Gold tab
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 2,
-                  offset: const Offset(0, 1),
-                ),
-              ],
-            ),
-            child: Text(
-              foundationCategory.displayName,
-              style: const TextStyle(
-                color: Colors.black87,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          )
-        else
-          const SizedBox(height: 24), // Spacer to maintain alignment
+        Container(
+          height: 24, // Fixed height to prevent layout shifts
+          child: foundationCategory != null
+              ? Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFD54F), // Gold tab
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        blurRadius: 2,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    foundationCategory.displayName,
+                    style: const TextStyle(
+                      color: Colors.black87,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                )
+              : null,
+        ),
+        const SizedBox(height: 4),
 
         DragTarget<_DragData>(
           onWillAccept: (data) {
-            if (data == null) return false;
+            if (data == null || data.cards.isEmpty) return false;
+
+            // Only allow dropping single cards or stacks that match
+            // For simplicity in foundation, usually we accept one by one or matching sequence
+            // Here we check if the FIRST card matches logic.
+            final firstCard = data.cards.first;
+            // Also need to check if ALL cards in dragged stack match the target category?
+            // Yes, a stack must be uniform to be dragged.
 
             if (foundation.isEmpty) {
-              // Empty slot: Can only accept a Category Card
-              return data.card.isCategoryCard;
+              return firstCard.isCategoryCard && data.cards.length == 1;
             } else {
-              // Filled slot: Can only accept items of same category
-              // And strictly NOT another category card (though implied by logic)
-              return !data.card.isCategoryCard &&
-                  data.card.category == foundationCategory;
+              // Can only add if not a category card (already have one) and matches category
+              return data.cards.every(
+                (c) => !c.isCategoryCard && c.category == foundationCategory,
+              );
             }
           },
           onAccept: (data) {
             setState(() {
-              _foundations[slotIndex].add(data.card);
-              _stacks[data.stackIndex].removeLast();
+              _foundations[slotIndex].addAll(data.cards);
 
-              // Check if category is complete (1 category card + 2 items = 3)
+              if (data.fromDeck) {
+                _waste.removeLast();
+              } else {
+                final sourceStack = _stacks[data.stackIndex!];
+                sourceStack.removeRange(
+                  sourceStack.length - data.cards.length,
+                  sourceStack.length,
+                );
+              }
+
               if (_foundations[slotIndex].length == 3) {
-                // Clear the slot to allow new category
-                // In a real game we might want an animation, but clearing works for now
                 _foundations[slotIndex].clear();
+                _completedCategories++;
               }
             });
             _checkCompletion();
@@ -264,8 +325,8 @@ class _LevelCardSlotsState extends State<LevelCardSlots> {
                 : (topCard != null ? Colors.transparent : Colors.white24);
 
             return Container(
-              width: 80,
-              height: 120,
+              width: _cardWidth,
+              height: _cardHeight,
               child: Stack(
                 children: [
                   // Base placeholder
@@ -273,7 +334,7 @@ class _LevelCardSlotsState extends State<LevelCardSlots> {
                     child: Container(
                       decoration: BoxDecoration(
                         color: NunuColors.backgroundPaper,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: borderColor,
                           width: 2,
@@ -296,26 +357,14 @@ class _LevelCardSlotsState extends State<LevelCardSlots> {
 
                   // Stacked cards
                   if (foundation.isNotEmpty)
-                    ...List.generate(
-                      foundation.length > 3 ? 3 : foundation.length,
-                      (i) {
-                        final reverseI =
-                            (foundation.length > 3 ? 3 : foundation.length) -
-                            1 -
-                            i;
-                        final offset = reverseI * 4.0;
-
-                        // Actual index in the foundation list
-                        final cardIndex = foundation.length - 1 - reverseI;
-                        final card = foundation[cardIndex];
-
-                        return Positioned(
-                          top: offset,
-                          left: 0,
-                          child: _buildCardWidget(card),
-                        );
-                      },
-                    ).reversed,
+                    ...List.generate(foundation.length, (i) {
+                      final offset = i * 4.0;
+                      return Positioned(
+                        top: offset,
+                        left: 0,
+                        child: _buildCardWidget(foundation[i]),
+                      );
+                    }),
                 ],
               ),
             );
@@ -327,101 +376,106 @@ class _LevelCardSlotsState extends State<LevelCardSlots> {
 
   Widget _buildSourceStack(int stackIndex) {
     final stack = _stacks[stackIndex];
-    // For alignment, source stacks should also account for the label space above foundations
-    // So that Top Row and Bottom Row are spaced consistently relative to their containers?
-    // No, Row alignment `crossAxisAlignment: CrossAxisAlignment.center` (default) is fine.
-    // But `_buildFoundation` returns a Column (Label + Stack). `_buildSourceStack` returns just Stack.
-    // If I put them in a Row, `_buildFoundation` will be taller.
-    // The Row will center them vertically.
-    // It might look slightly misaligned if not careful.
-    // I should probably wrap Source Stack in a Column with a SizedBox spacer to match.
 
-    final topCard = stack.isNotEmpty ? stack.last : null;
+    // Calculate how many cards from the top match the same category
+    int matchingCount = 0;
+    if (stack.isNotEmpty) {
+      matchingCount = 1;
+      final topCategory = stack.last.category;
+      for (int i = stack.length - 2; i >= 0; i--) {
+        if (stack[i].category == topCategory) {
+          matchingCount++;
+        } else {
+          break;
+        }
+      }
+    }
+
+    final baseCards = stack.take(stack.length - matchingCount).toList();
+    final matchingCards = stack.skip(stack.length - matchingCount).toList();
 
     return Column(
+      mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        const SizedBox(height: 24), // Match the label height spacer
         DragTarget<_DragData>(
           onWillAccept: (data) {
-            if (data == null) return false;
-            if (data.stackIndex == stackIndex)
-              return false; // Don't drop on self
-
-            if (stack.isEmpty) {
-              // Allow placing any card on empty stack to reorganize
-              return true;
-            } else {
-              // Allow stacking if categories match
-              return topCard!.category == data.card.category;
-            }
+            if (data == null || data.cards.isEmpty) return false;
+            // Can drop if stack is empty OR if matches top card category
+            if (stack.isEmpty) return true;
+            return data.cards.first.category == stack.last.category;
           },
           onAccept: (data) {
             setState(() {
-              _stacks[stackIndex].add(data.card);
-              _stacks[data.stackIndex].removeLast();
+              _stacks[stackIndex].addAll(data.cards);
+              if (data.fromDeck) {
+                _waste.removeLast();
+              } else {
+                final sourceStack = _stacks[data.stackIndex!];
+                sourceStack.removeRange(
+                  sourceStack.length - data.cards.length,
+                  sourceStack.length,
+                );
+              }
             });
-            _checkCompletion();
           },
           builder: (context, candidateData, rejectedData) {
-            final isCandidate = candidateData.isNotEmpty;
-
-            // Base empty slot visual if stack is empty
             if (stack.isEmpty) {
               return Container(
-                width: 80,
-                height: 120,
+                width: _cardWidth,
+                height: _cardHeight,
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: isCandidate
-                      ? Border.all(color: Colors.white, width: 2)
-                      : null,
+                  borderRadius: BorderRadius.circular(8),
                 ),
               );
             }
 
-            // The draggable widget (top card)
-            final cardWidget = _buildCardWidget(topCard!);
+            // The draggable part is the matching sequence
+            // The feedback needs to show the whole sequence cascaded
+            // The childWhenDragging shows the baseCards
 
-            // Stack visual (cards underneath)
+            // Note: If matchingCards is empty (shouldn't happen if stack not empty), handle it
+            if (matchingCards.isEmpty) return SizedBox();
+
+            final draggableWidget = _buildCascadingStack(matchingCards);
+
             return Stack(
               clipBehavior: Clip.none,
               children: [
-                // Highlight border if candidate
-                if (isCandidate)
-                  Positioned(
-                    top: -4,
-                    left: -4,
-                    right: -4,
-                    bottom: -4,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                    ),
+                // Base cards (collapsed/hidden mostly)
+                if (baseCards.isNotEmpty) ...[
+                  Positioned(top: 0, left: 0, child: _buildCardBack()),
+                  if (baseCards.length > 1)
+                    Positioned(top: 4, left: 4, child: _buildCardBack()),
+                ],
+
+                // The interactive part
+                // If base cards exist, offset the top stack slightly so we see there are cards below
+                Padding(
+                  padding: EdgeInsets.only(
+                    top: baseCards.isEmpty ? 0 : 8.0,
+                    left: baseCards.isEmpty ? 0 : 8.0,
                   ),
+                  child: Draggable<_DragData>(
+                    data: _DragData(
+                      stackIndex: stackIndex,
+                      cards: matchingCards,
+                      fromDeck: false,
+                    ),
+                    feedback: _buildCascadingStack(
+                      matchingCards,
+                      isFeedback: true,
+                    ),
+                    childWhenDragging: SizedBox(
+                      width: _cardWidth,
+                      height: _cardHeight + (matchingCards.length - 1) * 30.0,
+                    ), // Placeholder size? Or invisible?
 
-                // Cards underneath (up to 2 visible)
-                if (stack.length > 1)
-                  Positioned(top: 4, left: 4, child: _buildCardBack()),
-                if (stack.length > 2)
-                  Positioned(top: 8, left: 8, child: _buildCardBack()),
-
-                Draggable<_DragData>(
-                  data: _DragData(stackIndex, topCard),
-                  feedback: Transform.scale(scale: 1.1, child: cardWidget),
-                  childWhenDragging: stack.length > 1
-                      ? _buildCardBack()
-                      : Container(
-                          width: 80,
-                          height: 120,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.05),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                  child: cardWidget,
+                    // Actually, if we drag the whole top stack, we just want to see the base cards below.
+                    // The 'childWhenDragging' replaces the 'child' in the tree.
+                    // So it should be empty here because the base cards are rendered in the parent Stack above this Draggable.
+                    child: draggableWidget,
+                  ),
                 ),
               ],
             );
@@ -431,15 +485,102 @@ class _LevelCardSlotsState extends State<LevelCardSlots> {
     );
   }
 
+  Widget _buildCascadingStack(List<CardData> cards, {bool isFeedback = false}) {
+    if (cards.isEmpty) return SizedBox();
+
+    // Height needs to accommodate the cascade
+    final totalHeight = _cardHeight + (cards.length - 1) * 30.0;
+
+    Widget content = Container(
+      width: _cardWidth,
+      height: totalHeight,
+      child: Stack(
+        children: List.generate(cards.length, (index) {
+          return Positioned(
+            top: index * 30.0,
+            left: 0,
+            child: _buildCardWidget(cards[index]),
+          );
+        }),
+      ),
+    );
+
+    if (isFeedback) {
+      // Remove material/scaffold dependencies for feedback if needed,
+      // but Card/Container is usually fine.
+      return Material(color: Colors.transparent, child: content);
+    }
+    return content;
+  }
+
+  Widget _buildDeckPile() {
+    return GestureDetector(
+      onTap: _onDeckTap,
+      child: Stack(
+        children: [
+          if (_deck.isEmpty)
+            Container(
+              width: _cardWidth,
+              height: _cardHeight,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.white24, width: 2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Center(
+                child: Icon(Icons.refresh, color: Colors.white54),
+              ),
+            )
+          else
+            _buildCardBack(),
+
+          if (_deck.length > 1)
+            Positioned(top: 2, left: 2, child: _buildCardBack()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWastePile() {
+    if (_waste.isEmpty) {
+      return Container(
+        width: _cardWidth,
+        height: _cardHeight,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(8),
+        ),
+      );
+    }
+
+    final topCard = _waste.last;
+    final cardWidget = _buildCardWidget(topCard);
+
+    return Draggable<_DragData>(
+      data: _DragData(cards: [topCard], fromDeck: true),
+      feedback: Transform.scale(scale: 1.1, child: cardWidget),
+      childWhenDragging: _waste.length > 1
+          ? _buildCardWidget(_waste[_waste.length - 2])
+          : Container(
+              width: _cardWidth,
+              height: _cardHeight,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+      child: cardWidget,
+    );
+  }
+
   Widget _buildCardWidget(CardData card) {
     final color = _categoryColors[card.category]!;
 
     return Container(
-      width: 80,
-      height: 120,
+      width: _cardWidth,
+      height: _cardHeight,
       decoration: BoxDecoration(
-        color: NunuColors.backgroundPaper, // Card face is white/paper
-        borderRadius: BorderRadius.circular(12),
+        color: NunuColors.backgroundPaper,
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: card.isCategoryCard ? const Color(0xFFFFD54F) : color,
           width: card.isCategoryCard ? 3 : 2,
@@ -453,31 +594,36 @@ class _LevelCardSlotsState extends State<LevelCardSlots> {
         ],
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
+          const SizedBox(height: 8),
           if (card.isCategoryCard)
             const Padding(
               padding: EdgeInsets.only(bottom: 4),
               child: Icon(
                 Icons.emoji_events,
                 color: Color(0xFFFFD54F),
-                size: 20,
+                size: 24,
               ),
             ),
-          Text(
-            card.label,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: card.isCategoryCard
-                  ? FontWeight.bold
-                  : FontWeight.normal,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: Text(
+              card.label,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: card.isCategoryCard
+                    ? FontWeight.bold
+                    : FontWeight.normal,
+              ),
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
             ),
-            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 4),
           Container(
-            width: 40,
+            width: 50,
             height: 4,
             decoration: BoxDecoration(
               color: color,
@@ -491,24 +637,26 @@ class _LevelCardSlotsState extends State<LevelCardSlots> {
 
   Widget _buildCardBack() {
     return Container(
-      width: 80,
-      height: 120,
+      width: _cardWidth,
+      height: _cardHeight,
       decoration: BoxDecoration(
-        color: const Color(0xFF3B7DD8), // Blue card back
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFF3B7DD8),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.white24, width: 1),
       ),
       child: Center(
-        child: Icon(Icons.grid_view, color: Colors.white24, size: 24),
+        child: Icon(Icons.grid_view, color: Colors.white24, size: 32),
       ),
     );
   }
 }
 
 class _DragData {
-  final int stackIndex;
-  final CardData card;
-  _DragData(this.stackIndex, this.card);
+  final int? stackIndex;
+  final List<CardData> cards;
+  final bool fromDeck;
+
+  _DragData({this.stackIndex, required this.cards, this.fromDeck = false});
 }
 
 class _DashedBorderPainter extends CustomPainter {
@@ -533,11 +681,11 @@ class _DashedBorderPainter extends CustomPainter {
       ..addRRect(
         RRect.fromRectAndRadius(
           Rect.fromLTWH(0, 0, size.width, size.height),
-          const Radius.circular(12),
+          const Radius.circular(8),
         ),
       );
 
-    final Path dashedPath = _dashPath(path, width: 10, space: gap);
+    final Path dashedPath = _dashPath(path, width: 8, space: gap);
     canvas.drawPath(dashedPath, paint);
   }
 
