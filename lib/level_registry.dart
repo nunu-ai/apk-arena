@@ -46,6 +46,7 @@ import 'package:apk_arena/widgets/levels/level_warp_maze.dart';
 import 'package:apk_arena/widgets/levels/level_settings_qa.dart';
 import 'package:apk_arena/widgets/levels/level_sequence_memory.dart';
 import 'package:apk_arena/widgets/levels/level_bingo.dart';
+import 'package:apk_arena/widgets/levels/level_card_slots.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -205,6 +206,13 @@ final List<LevelEntry> easyLevels = [
           "how long did it take nunu.ai to beat the first 3 gyms in pokemon emerald?",
     ),
     widgetBuilder: (onComplete) => LevelEmeraldRuntime(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Place the Cards",
+      instructions: "Drag each card into an empty slot.",
+    ),
+    widgetBuilder: (onComplete) => LevelCardSlots(onComplete: onComplete),
   ),
 ];
 
