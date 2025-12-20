@@ -48,6 +48,7 @@ import 'package:apk_arena/widgets/levels/level_sequence_memory.dart';
 import 'package:apk_arena/widgets/levels/level_bingo.dart';
 import 'package:apk_arena/widgets/levels/level_card_slots.dart';
 import 'package:apk_arena/widgets/levels/level_tutorial_cards.dart';
+import 'package:apk_arena/widgets/levels/level_hardware_merge.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -348,6 +349,14 @@ final List<LevelEntry> mediumLevels = [
       instructions: "Follow the tutorial steps exactly.",
     ),
     widgetBuilder: (onComplete) => LevelTutorialCards(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Hardware Merge",
+      instructions:
+          "Merge parts to build the required components. Tap the box to get screws.",
+    ),
+    widgetBuilder: (onComplete) => LevelHardwareMerge(onComplete: onComplete),
   ),
 ];
 
