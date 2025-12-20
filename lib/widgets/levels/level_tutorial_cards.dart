@@ -194,7 +194,7 @@ class _LevelTutorialCardsState extends State<LevelTutorialCards>
   }
 
   void _updateGhostAnimation() {
-    if (_currentStep > 11) {
+    if (_currentStep > 20) {
       setState(() {
         _ghostCards = null;
         _showTouchFeedback = false;
@@ -278,6 +278,58 @@ class _LevelTutorialCardsState extends State<LevelTutorialCards>
       } else if (_stacks[2].isNotEmpty) {
         cards = [_stacks[2].last];
       }
+    } else if (_currentStep == 12) {
+      // Step 12: Move "Cat" (Stack 2) to Foundation 1 (Pets)
+      startKey = _stackKeys[2];
+      endKey = _foundationKeys[1];
+      if (_stacks[2].isNotEmpty) cards = [_stacks[2].last];
+    } else if (_currentStep == 13) {
+      // Step 13: Click Deck (Reveals vacCat)
+      startKey = _deckKey;
+      endKey = _deckKey;
+      cards = null;
+      showTouch = true;
+    } else if (_currentStep == 14) {
+      // Step 14: Move "Vacation" (Waste) to Foundation 0
+      startKey = _wasteKey;
+      endKey = _foundationKeys[0];
+      if (_waste.isNotEmpty) cards = [_waste.last];
+    } else if (_currentStep == 15) {
+      // Step 15: Move "Beach" (Stack 0) to Foundation 0
+      startKey = _stackKeys[0];
+      endKey = _foundationKeys[0];
+      if (_stacks[0].isNotEmpty) cards = [_stacks[0].last];
+    } else if (_currentStep == 16) {
+      // Step 16: Click Deck (Reveals foodCat)
+      startKey = _deckKey;
+      endKey = _deckKey;
+      cards = null;
+      showTouch = true;
+    } else if (_currentStep == 17) {
+      // Step 17: Move "Food" (Waste) to Foundation 1
+      startKey = _wasteKey;
+      endKey = _foundationKeys[1];
+      if (_waste.isNotEmpty) cards = [_waste.last];
+    } else if (_currentStep == 18) {
+      // Step 18: Move "Pizza/Burger" (Stack 1) to Foundation 1
+      startKey = _stackKeys[1];
+      endKey = _foundationKeys[1];
+      if (_stacks[1].length >= 2) {
+        cards = _stacks[1].sublist(_stacks[1].length - 2);
+      } else if (_stacks[1].isNotEmpty) {
+        cards = [_stacks[1].last];
+      }
+    } else if (_currentStep == 19) {
+      // Step 19: Click Deck (Reveals Plane)
+      startKey = _deckKey;
+      endKey = _deckKey;
+      cards = null;
+      showTouch = true;
+    } else if (_currentStep == 20) {
+      // Step 20: Move "Plane" (Waste) to Foundation 0
+      startKey = _wasteKey;
+      endKey = _foundationKeys[0];
+      if (_waste.isNotEmpty) cards = [_waste.last];
     }
 
     if (showTouch && startKey != null) {
@@ -325,7 +377,7 @@ class _LevelTutorialCardsState extends State<LevelTutorialCards>
   }
 
   void _checkCompletion() {
-    if (_currentStep > 11) {
+    if (_currentStep > 20) {
       widget.onComplete(true);
     } else {
       // Schedule animation update for next step
@@ -339,7 +391,12 @@ class _LevelTutorialCardsState extends State<LevelTutorialCards>
     // Game Rule: Can tap deck if not empty or waste not empty (to reset)
     // If user taps when they shouldn't (per tutorial), fail.
 
-    bool isCorrectStep = (_currentStep == 4 || _currentStep == 9);
+    bool isCorrectStep =
+        (_currentStep == 4 ||
+        _currentStep == 9 ||
+        _currentStep == 13 ||
+        _currentStep == 16 ||
+        _currentStep == 19);
 
     if (!isCorrectStep) {
       widget.onComplete(false);
@@ -360,6 +417,55 @@ class _LevelTutorialCardsState extends State<LevelTutorialCards>
     });
   }
 
+  String _getInstructionText() {
+    switch (_currentStep) {
+      case 0:
+        return "Move 'Pets' to the middle slot";
+      case 1:
+        return "Move 'Tulip' to 'Flowers'";
+      case 2:
+        return "Move 'Burger' onto 'Pizza'";
+      case 3:
+        return "Move 'Dog' to 'Pets'";
+      case 4:
+        return "Tap the deck to draw cards";
+      case 5:
+        return "Move 'Pizza' stack to empty middle stack";
+      case 6:
+        return "Move 'Sofa' to 'Chair'";
+      case 7:
+        return "Move 'Rose' to 'Flowers' (clears slot)";
+      case 8:
+        return "Move 'Beach' to empty left stack";
+      case 9:
+        return "Tap the deck";
+      case 10:
+        return "Move 'Furniture' to right slot";
+      case 11:
+        return "Move 'Chair' stack to 'Furniture'";
+      case 12:
+        return "Move 'Cat' to 'Pets' (clears slot)";
+      case 13:
+        return "Tap the deck";
+      case 14:
+        return "Move 'Vacation' to left slot";
+      case 15:
+        return "Move 'Beach' to 'Vacation'";
+      case 16:
+        return "Tap the deck";
+      case 17:
+        return "Move 'Food' to middle slot";
+      case 18:
+        return "Move 'Pizza' stack to 'Food'";
+      case 19:
+        return "Tap the deck";
+      case 20:
+        return "Move 'Plane' to 'Vacation'";
+      default:
+        return "";
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -367,6 +473,35 @@ class _LevelTutorialCardsState extends State<LevelTutorialCards>
       padding: const EdgeInsets.all(16),
       child: Stack(
         children: [
+          // Instruction Text
+          Positioned(
+            bottom: 40,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: NunuColors.backgroundPaper,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: NunuColors.primaryMain, width: 1),
+                ),
+                child: Text(
+                  _getInstructionText(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ),
+
           // Top Right: Deck & Waste (Visual only)
           Positioned(
             top: 0,
@@ -576,6 +711,34 @@ class _LevelTutorialCardsState extends State<LevelTutorialCards>
                 if (slotIndex == 2 &&
                     data.cards.first.category == CardCategory.furniture)
                   isCorrectMove = true;
+              } else if (_currentStep == 12) {
+                // Step 12: Cat (Stack 2) -> Foundation 1 (Pets)
+                if (slotIndex == 1 && data.cards.first.label == 'Cat')
+                  isCorrectMove = true;
+              } else if (_currentStep == 14) {
+                // Step 14: Vacation Category -> Foundation 0 (Was empty after Flowers cleared)
+                if (slotIndex == 0 &&
+                    data.cards.first.isCategoryCard &&
+                    data.cards.first.category == CardCategory.vacation)
+                  isCorrectMove = true;
+              } else if (_currentStep == 15) {
+                // Step 15: Beach -> Foundation 0 (Vacation)
+                if (slotIndex == 0 && data.cards.first.label == 'Beach')
+                  isCorrectMove = true;
+              } else if (_currentStep == 17) {
+                // Step 17: Food Category -> Foundation 1 (Was empty after Pets cleared)
+                if (slotIndex == 1 &&
+                    data.cards.first.isCategoryCard &&
+                    data.cards.first.category == CardCategory.food)
+                  isCorrectMove = true;
+              } else if (_currentStep == 18) {
+                // Step 18: Pizza/Burger -> Foundation 1 (Food)
+                if (slotIndex == 1 && data.cards.first.label == 'Pizza')
+                  isCorrectMove = true;
+              } else if (_currentStep == 20) {
+                // Step 20: Plane -> Foundation 0 (Vacation)
+                if (slotIndex == 0 && data.cards.first.label == 'Plane')
+                  isCorrectMove = true;
               }
 
               if (!isCorrectMove) {
@@ -595,6 +758,11 @@ class _LevelTutorialCardsState extends State<LevelTutorialCards>
                     sourceStack.length - data.cards.length,
                     sourceStack.length,
                   );
+                }
+
+                // Clear foundation if full (3 cards)
+                if (_foundations[slotIndex].length >= 3) {
+                  _foundations[slotIndex].clear();
                 }
               });
 
@@ -768,7 +936,46 @@ class _LevelTutorialCardsState extends State<LevelTutorialCards>
 
               // Allow drag if there are matching cards
               // Any top card or top consecutive stack is "Valid" in game terms.
-              bool isDraggable = matchingCards.isNotEmpty;
+              // We restrict this for tutorial purpose
+              bool isDraggable = false;
+              if (_currentStep == 0) {
+                isDraggable =
+                    (stackIndex == 1) && matchingCards.last.isCategoryCard;
+              } else if (_currentStep == 1) {
+                isDraggable =
+                    (stackIndex == 2) && matchingCards.last.label == 'Tulip';
+              } else if (_currentStep == 2) {
+                isDraggable =
+                    (stackIndex == 1) && matchingCards.last.label == 'Burger';
+              } else if (_currentStep == 3) {
+                isDraggable =
+                    (stackIndex == 1) && matchingCards.last.label == 'Dog';
+              } else if (_currentStep == 5) {
+                // Drag Pizza+Burger from Stack 0
+                isDraggable = (stackIndex == 0) && matchingCards.length == 2;
+              } else if (_currentStep == 6) {
+                // Drag Sofa from Stack 0
+                isDraggable =
+                    (stackIndex == 0) && matchingCards.last.label == 'Sofa';
+              } else if (_currentStep == 7) {
+                // Drag Rose from Stack 0
+                isDraggable =
+                    (stackIndex == 0) && matchingCards.last.label == 'Rose';
+              } else if (_currentStep == 11) {
+                // Drag Chair/Sofa from Stack 2
+                isDraggable = (stackIndex == 2) && matchingCards.length == 2;
+              } else if (_currentStep == 12) {
+                // Drag Cat from Stack 2
+                isDraggable =
+                    (stackIndex == 2) && matchingCards.last.label == 'Cat';
+              } else if (_currentStep == 15) {
+                // Drag Beach from Stack 0
+                isDraggable =
+                    (stackIndex == 0) && matchingCards.last.label == 'Beach';
+              } else if (_currentStep == 18) {
+                // Drag Pizza/Burger from Stack 1
+                isDraggable = (stackIndex == 1) && matchingCards.length == 2;
+              }
 
               return Stack(
                 clipBehavior: Clip.none,
@@ -869,7 +1076,24 @@ class _LevelTutorialCardsState extends State<LevelTutorialCards>
 
   Widget _buildWastePile() {
     // Always enable dragging from Waste if present
-    bool isDraggable = _waste.isNotEmpty;
+    bool isDraggable = false;
+    if (_waste.isNotEmpty) {
+      final topCard = _waste.last;
+      if (_currentStep == 8 && topCard.label == 'Beach') isDraggable = true;
+      if (_currentStep == 10 &&
+          topCard.isCategoryCard &&
+          topCard.category == CardCategory.furniture)
+        isDraggable = true;
+      if (_currentStep == 14 &&
+          topCard.isCategoryCard &&
+          topCard.category == CardCategory.vacation)
+        isDraggable = true;
+      if (_currentStep == 17 &&
+          topCard.isCategoryCard &&
+          topCard.category == CardCategory.food)
+        isDraggable = true;
+      if (_currentStep == 20 && topCard.label == 'Plane') isDraggable = true;
+    }
 
     Widget content = Container(
       width: _cardWidth,
