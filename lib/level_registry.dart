@@ -47,6 +47,7 @@ import 'package:apk_arena/widgets/levels/level_settings_qa.dart';
 import 'package:apk_arena/widgets/levels/level_sequence_memory.dart';
 import 'package:apk_arena/widgets/levels/level_bingo.dart';
 import 'package:apk_arena/widgets/levels/level_card_slots.dart';
+import 'package:apk_arena/widgets/levels/level_tutorial_cards.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -340,6 +341,13 @@ final List<LevelEntry> mediumLevels = [
       instructions: "verify 5 statements about the settings app. one is false!",
     ),
     widgetBuilder: (onComplete) => LevelSettingsQA(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Cards Tutorial",
+      instructions: "Follow the tutorial steps exactly.",
+    ),
+    widgetBuilder: (onComplete) => LevelTutorialCards(onComplete: onComplete),
   ),
 ];
 
