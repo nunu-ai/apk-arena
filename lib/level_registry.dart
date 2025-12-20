@@ -207,13 +207,6 @@ final List<LevelEntry> easyLevels = [
     ),
     widgetBuilder: (onComplete) => LevelEmeraldRuntime(onComplete: onComplete),
   ),
-  LevelEntry(
-    data: LevelData(
-      title: "Place the Cards",
-      instructions: "Drag each card into an empty slot.",
-    ),
-    widgetBuilder: (onComplete) => LevelCardSlots(onComplete: onComplete),
-  ),
 ];
 
 final List<LevelEntry> mediumLevels = [
@@ -415,6 +408,13 @@ final List<LevelEntry> hardLevels = [
       instructions: "Mark the called numbers quickly to get a BINGO!",
     ),
     widgetBuilder: (onComplete) => LevelBingo(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Place the Cards",
+      instructions: "Solve this card puzzle",
+    ),
+    widgetBuilder: (onComplete) => LevelCardSlots(onComplete: onComplete),
   ),
 ];
 

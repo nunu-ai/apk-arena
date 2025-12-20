@@ -324,6 +324,7 @@ class _LevelCardSlotsState extends State<LevelCardSlots> {
               width: _cardWidth,
               height: _cardHeight,
               child: Stack(
+                clipBehavior: Clip.none,
                 children: [
                   // Base placeholder
                   Positioned.fill(
