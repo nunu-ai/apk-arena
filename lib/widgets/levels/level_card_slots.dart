@@ -10,7 +10,7 @@ class LevelCardSlots extends LevelWidget {
   State<LevelCardSlots> createState() => _LevelCardSlotsState();
 }
 
-enum CardCategory { flowers, pets, food }
+enum CardCategory { flowers, pets, food, furniture, vacation }
 
 extension CardCategoryExt on CardCategory {
   String get displayName {
@@ -21,6 +21,10 @@ extension CardCategoryExt on CardCategory {
         return 'Pets';
       case CardCategory.food:
         return 'Food';
+      case CardCategory.furniture:
+        return 'Furniture';
+      case CardCategory.vacation:
+        return 'Vacation';
     }
   }
 }
@@ -49,6 +53,8 @@ class _LevelCardSlotsState extends State<LevelCardSlots> {
     CardCategory.flowers: NunuColors.primaryMain, // Pink
     CardCategory.pets: NunuColors.secondaryMain, // Purple
     CardCategory.food: NunuColors.successMain, // Green
+    CardCategory.furniture: NunuColors.infoMain, // Blue
+    CardCategory.vacation: NunuColors.warningMain, // Orange
   };
 
   @override
@@ -59,59 +65,88 @@ class _LevelCardSlotsState extends State<LevelCardSlots> {
 
   void _initializeCards() {
     // Define all cards
+    // Flowers
     final flowerCat = const CardData(
       label: 'Flowers',
       category: CardCategory.flowers,
       isCategoryCard: true,
     );
-    final petsCat = const CardData(
-      label: 'Pets',
-      category: CardCategory.pets,
-      isCategoryCard: true,
-    );
-    final foodCat = const CardData(
-      label: 'Food',
-      category: CardCategory.food,
-      isCategoryCard: true,
-    );
-
     final rose = const CardData(label: 'Rose', category: CardCategory.flowers);
     final tulip = const CardData(
       label: 'Tulip',
       category: CardCategory.flowers,
     );
 
+    // Pets
+    final petsCat = const CardData(
+      label: 'Pets',
+      category: CardCategory.pets,
+      isCategoryCard: true,
+    );
     final cat = const CardData(label: 'Cat', category: CardCategory.pets);
     final dog = const CardData(label: 'Dog', category: CardCategory.pets);
 
+    // Food
+    final foodCat = const CardData(
+      label: 'Food',
+      category: CardCategory.food,
+      isCategoryCard: true,
+    );
     final pizza = const CardData(label: 'Pizza', category: CardCategory.food);
     final burger = const CardData(label: 'Burger', category: CardCategory.food);
+
+    // Furniture
+    final furnCat = const CardData(
+      label: 'Furniture',
+      category: CardCategory.furniture,
+      isCategoryCard: true,
+    );
+    final sofa = const CardData(
+      label: 'Sofa',
+      category: CardCategory.furniture,
+    );
+    final chair = const CardData(
+      label: 'Chair',
+      category: CardCategory.furniture,
+    );
+
+    // Vacation
+    final vacCat = const CardData(
+      label: 'Vacation',
+      category: CardCategory.vacation,
+      isCategoryCard: true,
+    );
+    final beach = const CardData(
+      label: 'Beach',
+      category: CardCategory.vacation,
+    );
+    final plane = const CardData(
+      label: 'Plane',
+      category: CardCategory.vacation,
+    );
 
     // Initial State Requirements:
     // 1. "Flowers" category card already in Left Spot (Slot 0)
     _foundations[0] = [flowerCat];
 
     // 2. Middle Stack (Stack 1) shows "Pets" category card as top card.
-    // 3. Other cards mixed.
 
-    // Remaining cards to distribute:
-    // Food Cat, Rose, Tulip, Cat, Dog, Pizza, Burger (7 cards)
-
-    // Stacks:
-    // Stack 0: 2 cards
-    // Stack 1: 3 cards (Top is Pets Cat)
-    // Stack 2: 2 cards
+    // Distribute remaining 14 cards
+    // Stack 0: 5 cards
+    // Stack 1: 5 cards (Top is Pets Cat)
+    // Stack 2: 4 cards
 
     _stacks = [
-      [rose, pizza], // Stack 0
-      [dog, burger, petsCat], // Stack 1 (Pets Cat is top/last)
-      [cat, foodCat, tulip], // Stack 2 (Food Cat is buried)
+      [furnCat, rose, sofa, pizza, chair], // Stack 0
+      [vacCat, dog, burger, beach, petsCat], // Stack 1 (Pets Cat is top/last)
+      [plane, foodCat, cat, tulip], // Stack 2
     ];
   }
 
   void _checkCompletion() {
-    // Complete if all source stacks are empty
-    if (_stacks.every((stack) => stack.isEmpty)) {
+    // Complete if all source stacks are empty AND all foundations are cleared
+    if (_stacks.every((stack) => stack.isEmpty) &&
+        _foundations.every((f) => f.isEmpty)) {
       widget.onComplete(true);
     }
   }
@@ -212,6 +247,13 @@ class _LevelCardSlotsState extends State<LevelCardSlots> {
             setState(() {
               _foundations[slotIndex].add(data.card);
               _stacks[data.stackIndex].removeLast();
+
+              // Check if category is complete (1 category card + 2 items = 3)
+              if (_foundations[slotIndex].length == 3) {
+                // Clear the slot to allow new category
+                // In a real game we might want an animation, but clearing works for now
+                _foundations[slotIndex].clear();
+              }
             });
             _checkCompletion();
           },
