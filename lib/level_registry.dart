@@ -49,6 +49,7 @@ import 'package:apk_arena/widgets/levels/level_bingo.dart';
 import 'package:apk_arena/widgets/levels/level_card_slots.dart';
 import 'package:apk_arena/widgets/levels/level_tutorial_cards.dart';
 import 'package:apk_arena/widgets/levels/level_hardware_merge.dart';
+import 'package:apk_arena/widgets/levels/level_mega_merge.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -432,6 +433,14 @@ final List<LevelEntry> hardLevels = [
       instructions: "Solve this card puzzle",
     ),
     widgetBuilder: (onComplete) => LevelCardSlots(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Mega Merge",
+      instructions:
+          "Master the factory! Follow the tutorial, then deliver the parts.",
+    ),
+    widgetBuilder: (onComplete) => LevelMegaMerge(onComplete: onComplete),
   ),
 ];
 
