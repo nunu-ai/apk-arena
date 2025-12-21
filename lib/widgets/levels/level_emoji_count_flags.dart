@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 
@@ -29,6 +30,21 @@ class _LevelEmojiCountFlagsState extends State<LevelEmojiCountFlags> {
     '🇨🇦','🇦🇺','🇮🇳','🇲🇽','🇿🇦','🇸🇪','🇳🇴','🇩🇰','🇫🇮','🇵🇱',
     '🇵🇹','🇳🇱','🇨🇭','🇦🇷','🇹🇷','🇺🇦','🇸🇬','🇳🇿','🇮🇩','🇸🇦',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Ensure any lingering keyboard from previous levels is closed
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      FocusManager.instance.primaryFocus?.unfocus();
+      try {
+        await SystemChannels.textInput.invokeMethod('TextInput.hide');
+      } catch (_) {
+        // no-op: best-effort hide
+      }
+      if (mounted && !_generated) setState(() {});
+    });
+  }
 
   @override
   void dispose() {
@@ -106,7 +122,12 @@ class _LevelEmojiCountFlagsState extends State<LevelEmojiCountFlags> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        _generate(Size(constraints.maxWidth, constraints.maxHeight));
+        // Use a stable height that ignores current keyboard insets
+        // so first spawn isn't compressed into the top half if a keyboard
+        // is still open from a previous level.
+        final media = MediaQuery.of(context);
+        final effectiveHeight = constraints.maxHeight + media.viewInsets.bottom;
+        _generate(Size(constraints.maxWidth, effectiveHeight));
         return Container(
           color: NunuColors.backgroundDefault,
           child: Stack(
