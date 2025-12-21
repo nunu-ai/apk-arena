@@ -125,6 +125,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
   // Tutorial State
   int _tutorialStep = 0;
   int _tutorialTapCount = 0;
+  int _tutorialChipIndex = -1;
   bool _tutorialComplete = false;
 
   // Keys for tutorial targeting
@@ -372,12 +373,19 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
     if (fromIndex == toIndex) return;
 
     // Strict tutorial enforcement for drag step
-    if (!_tutorialComplete && _tutorialStep == 1) {
-      final int sourceIndex = _index(3, 4);
-      final int destIndex = _index(3, 3);
-
-      // Only allow the specific drag: source -> dest
-      if (fromIndex != sourceIndex || toIndex != destIndex) {
+    if (!_tutorialComplete) {
+      if (_tutorialStep == 1) {
+        final int sourceIndex = _index(3, 4);
+        final int destIndex = _index(3, 3);
+        // Only allow the specific drag: source -> dest
+        if (fromIndex != sourceIndex || toIndex != destIndex) return;
+      } else if (_tutorialStep == 2) {
+        final int sourceIndex = _index(3, 3);
+        final int destIndex = _index(4, 2); // Frozen gear location
+        // Only allow the specific drag: source -> dest
+        if (fromIndex != sourceIndex || toIndex != destIndex) return;
+      } else if (_tutorialStep == 5) {
+        // Step 5: Delivery only. No grid-to-grid moves allowed.
         return;
       }
     }
@@ -416,6 +424,10 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
             _gridItems[fromIndex] = null;
             _manuallyUnlockedIndices.add(toIndex);
 
+            if (!_tutorialComplete && _tutorialStep == 2) {
+              _advanceTutorial();
+            }
+
             if (_settings.vibrationEnabled) {
               HapticFeedback.heavyImpact();
             }
@@ -430,6 +442,14 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
 
             if (!_tutorialComplete && _tutorialStep == 1) {
               _advanceTutorial();
+            }
+
+            // Check for Chip (Tier 4) creation during tutorial
+            if (!_tutorialComplete &&
+                _tutorialStep == 4 && // Waiting state
+                newTier == 4) {
+              _tutorialChipIndex = toIndex;
+              _advanceTutorial(); // Go to step 5 (deliver chip)
             }
 
             _totalMerges++;
@@ -484,6 +504,11 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
         if (_tutorialComplete && _orders.every((o) => o.isCompleted)) {
           widget.onComplete(true);
         }
+
+        if (!_tutorialComplete && _tutorialStep == 5 && orderIndex == 2) {
+          // Chip delivered
+          _advanceTutorial();
+        }
       });
     }
   }
@@ -533,6 +558,31 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
         sourceKey: _getCellKey(_index(3, 4)),
         destinationKey: _getCellKey(_index(3, 3)),
         targetKey: _getCellKey(_index(3, 3)),
+        requiresDrag: true,
+      ),
+      TutorialStep(
+        instruction: 'drag the item to the frozen item to unlock the cell!',
+        sourceKey: _getCellKey(_index(3, 3)),
+        destinationKey: _getCellKey(_index(4, 2)),
+        targetKey: _getCellKey(_index(4, 2)),
+        requiresDrag: true,
+      ),
+      const TutorialStep(
+        instruction:
+            'keep producing, merging, and upgrading items to get higher tier ones!',
+        targetKey: null,
+      ),
+      const TutorialStep(
+        instruction: 'waiting for chip...', // Placeholder, not shown
+        targetKey: null,
+      ),
+      TutorialStep(
+        instruction: 'drag the chip to the order panel to complete the order!',
+        sourceKey: _tutorialChipIndex != -1
+            ? _getCellKey(_tutorialChipIndex)
+            : null,
+        destinationKey: _orderKeys[2], // Chip order
+        targetKey: _orderKeys[2],
         requiresDrag: true,
       ),
     ];
@@ -652,6 +702,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
                   _ordersCompleted = 0;
                   _tutorialStep = 0;
                   _tutorialTapCount = 0;
+                  _tutorialChipIndex = -1;
                   _tutorialComplete = false;
                   _manuallyUnlockedIndices.clear();
                   _ownedCosmetics.clear();
@@ -748,7 +799,10 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
 
   @override
   Widget build(BuildContext context) {
-    final step = !_tutorialComplete && _tutorialStep < _tutorialSteps.length
+    final step =
+        !_tutorialComplete &&
+            _tutorialStep < _tutorialSteps.length &&
+            _tutorialStep != 4
         ? _tutorialSteps[_tutorialStep]
         : null;
 

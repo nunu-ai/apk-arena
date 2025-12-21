@@ -119,11 +119,99 @@ class _TutorialOverlayState extends State<TutorialOverlay>
 
   @override
   Widget build(BuildContext context) {
+    // If no target key, treat as a modal message
+    final bool isModal = widget.step.targetKey == null;
+
     return Stack(
       children: [
         widget.child,
-        // Dark overlay with spotlight cutout
-        if (_targetRect != null)
+        // Dark overlay
+        if (isModal)
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: widget.onStepComplete,
+              child: Container(
+                color: Colors.black.withOpacity(0.85),
+                child: Center(
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 32),
+                    padding: const EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      color: NunuColors.backgroundPaper,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: NunuColors.primaryMain,
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: NunuColors.primaryMain.withOpacity(0.4),
+                          blurRadius: 24,
+                          spreadRadius: 4,
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: NunuColors.primaryMain.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.lightbulb_outline,
+                            color: NunuColors.primaryMain,
+                            size: 40,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          widget.step.instruction,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            height: 1.4,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 32),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 32,
+                            vertical: 16,
+                          ),
+                          decoration: BoxDecoration(
+                            color: NunuColors.primaryMain,
+                            borderRadius: BorderRadius.circular(30),
+                            boxShadow: [
+                              BoxShadow(
+                                color: NunuColors.primaryMain.withOpacity(0.4),
+                                blurRadius: 12,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: const Text(
+                            'GOT IT',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          )
+        else if (_targetRect != null)
           Positioned.fill(
             child: IgnorePointer(
               child: CustomPaint(
@@ -138,7 +226,7 @@ class _TutorialOverlayState extends State<TutorialOverlay>
             ),
           ),
         // Animated hand/pulse indicator
-        if (_targetRect != null)
+        if (!isModal && _targetRect != null)
           AnimatedBuilder(
             animation: _animController,
             builder: (context, child) {
@@ -236,58 +324,62 @@ class _TutorialOverlayState extends State<TutorialOverlay>
               return const SizedBox.shrink();
             },
           ),
-        // Instruction text box
-        Positioned(
-          bottom: 100,
-          left: 20,
-          right: 20,
-          child: Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                color: NunuColors.backgroundPaper,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: NunuColors.primaryMain, width: 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: NunuColors.primaryMain.withOpacity(0.3),
-                    blurRadius: 12,
-                    spreadRadius: 2,
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Flexible(
-                    child: Text(
-                      widget.step.instruction,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
+        // Instruction text box (only if not modal)
+        if (!isModal)
+          Positioned(
+            bottom: 100,
+            left: 20,
+            right: 20,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: NunuColors.backgroundPaper,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: NunuColors.primaryMain, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: NunuColors.primaryMain.withOpacity(0.3),
+                      blurRadius: 12,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        widget.step.instruction,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: NunuColors.primaryMain.withOpacity(0.2),
-                      shape: BoxShape.circle,
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: NunuColors.primaryMain.withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.arrow_forward,
+                        color: NunuColors.primaryMain,
+                        size: 18,
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.arrow_forward,
-                      color: NunuColors.primaryMain,
-                      size: 18,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-        ),
       ],
     );
   }
