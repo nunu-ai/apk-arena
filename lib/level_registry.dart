@@ -291,6 +291,9 @@ final List<LevelEntry> mediumLevels = [
       instructions: "Match all pairs to win!",
     ),
     widgetBuilder: (onComplete) => LevelMemoryMatch(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
       title: "word builder",
       instructions: "make the word \"paper\"",
     ),
