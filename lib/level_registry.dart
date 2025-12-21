@@ -52,6 +52,7 @@ import 'package:apk_arena/widgets/levels/level_hardware_merge.dart';
 import 'package:apk_arena/widgets/levels/level_mega_merge.dart';
 import 'package:apk_arena/widgets/levels/level_coin_map.dart';
 import 'package:apk_arena/widgets/levels/level_coin_collector.dart';
+import 'package:apk_arena/widgets/levels/level_phone_simulator.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -457,6 +458,14 @@ final List<LevelEntry> hardLevels = [
       instructions: "Explore the galaxy and count all the gold coins!",
     ),
     widgetBuilder: (onComplete) => LevelCoinMap(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "App Inspector",
+      instructions:
+          "Explore the phone, install apps, and answer the checklist correctly!",
+    ),
+    widgetBuilder: (onComplete) => LevelPhoneSimulator(onComplete: onComplete),
   ),
 ];
 
