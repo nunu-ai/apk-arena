@@ -50,6 +50,7 @@ import 'package:apk_arena/widgets/levels/level_card_slots.dart';
 import 'package:apk_arena/widgets/levels/level_tutorial_cards.dart';
 import 'package:apk_arena/widgets/levels/level_hardware_merge.dart';
 import 'package:apk_arena/widgets/levels/level_mega_merge.dart';
+import 'package:apk_arena/widgets/levels/level_coin_map.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -441,6 +442,13 @@ final List<LevelEntry> hardLevels = [
           "Master the factory! Follow the tutorial, then deliver the parts.",
     ),
     widgetBuilder: (onComplete) => LevelMegaMerge(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Space Coins",
+      instructions: "Explore the galaxy and count all the gold coins!",
+    ),
+    widgetBuilder: (onComplete) => LevelCoinMap(onComplete: onComplete),
   ),
 ];
 
