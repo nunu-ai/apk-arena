@@ -51,6 +51,7 @@ import 'package:apk_arena/widgets/levels/level_tutorial_cards.dart';
 import 'package:apk_arena/widgets/levels/level_hardware_merge.dart';
 import 'package:apk_arena/widgets/levels/level_mega_merge.dart';
 import 'package:apk_arena/widgets/levels/level_coin_map.dart';
+import 'package:apk_arena/widgets/levels/level_coin_collector.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -359,6 +360,13 @@ final List<LevelEntry> mediumLevels = [
           "Merge parts to build the required components. Tap the box to get screws.",
     ),
     widgetBuilder: (onComplete) => LevelHardwareMerge(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Space Collector",
+      instructions: "Collect all coins and enter the total count!",
+    ),
+    widgetBuilder: (onComplete) => LevelCoinCollector(onComplete: onComplete),
   ),
 ];
 
