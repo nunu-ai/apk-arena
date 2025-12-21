@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
 
@@ -74,26 +75,44 @@ class _TutorialOverlayState extends State<TutorialOverlay>
     final sourceKey = widget.step.sourceKey;
     final destKey = widget.step.destinationKey;
 
+    // Get overlay's render box to convert global coordinates to local
+    final RenderBox? overlayBox = context.findRenderObject() as RenderBox?;
+    if (overlayBox == null) return;
+
     setState(() {
       if (targetKey?.currentContext != null) {
         final RenderBox box =
             targetKey!.currentContext!.findRenderObject() as RenderBox;
-        final pos = box.localToGlobal(Offset.zero);
-        _targetRect = Rect.fromLTWH(pos.dx, pos.dy, box.size.width, box.size.height);
+        final globalPos = box.localToGlobal(Offset.zero);
+        final localPos = overlayBox.globalToLocal(globalPos);
+        _targetRect = Rect.fromLTWH(
+          localPos.dx,
+          localPos.dy,
+          box.size.width,
+          box.size.height,
+        );
       }
 
       if (sourceKey?.currentContext != null) {
         final RenderBox box =
             sourceKey!.currentContext!.findRenderObject() as RenderBox;
-        final pos = box.localToGlobal(Offset.zero);
-        _sourcePos = Offset(pos.dx + box.size.width / 2, pos.dy + box.size.height / 2);
+        final globalPos = box.localToGlobal(Offset.zero);
+        final localPos = overlayBox.globalToLocal(globalPos);
+        _sourcePos = Offset(
+          localPos.dx + box.size.width / 2,
+          localPos.dy + box.size.height / 2,
+        );
       }
 
       if (destKey?.currentContext != null) {
         final RenderBox box =
             destKey!.currentContext!.findRenderObject() as RenderBox;
-        final pos = box.localToGlobal(Offset.zero);
-        _destPos = Offset(pos.dx + box.size.width / 2, pos.dy + box.size.height / 2);
+        final globalPos = box.localToGlobal(Offset.zero);
+        final localPos = overlayBox.globalToLocal(globalPos);
+        _destPos = Offset(
+          localPos.dx + box.size.width / 2,
+          localPos.dy + box.size.height / 2,
+        );
       }
     });
   }
@@ -110,6 +129,9 @@ class _TutorialOverlayState extends State<TutorialOverlay>
               child: CustomPaint(
                 painter: _SpotlightPainter(
                   targetRect: _targetRect!,
+                  widget: widget,
+                  sourcePos: _sourcePos,
+                  destPos: _destPos,
                   padding: 8.0,
                 ),
               ),
@@ -120,42 +142,72 @@ class _TutorialOverlayState extends State<TutorialOverlay>
           AnimatedBuilder(
             animation: _animController,
             builder: (context, child) {
-              final progress = Curves.easeInOut.transform(_animController.value);
-              
-              // For tap: pulse at target
+              final progress = Curves.easeInOut.transform(
+                _animController.value,
+              );
+
+              // For tap: Show hand and "tap" text
               if (widget.step.requiresTap && _sourcePos == null) {
-                final scale = 1.0 + progress * 0.3;
-                final opacity = 1.0 - progress * 0.5;
-                
+                // Bobbing animation for the hand
+                final offset = sin(progress * pi * 2) * 5;
+
                 return Positioned(
-                  left: _targetRect!.center.dx - 25,
-                  top: _targetRect!.center.dy - 25,
+                  left: _targetRect!.center.dx - 20, // Center horizontally
+                  top:
+                      _targetRect!.center.dy +
+                      (_targetRect!.height / 2) +
+                      10 +
+                      offset,
                   child: IgnorePointer(
-                    child: Opacity(
-                      opacity: opacity,
-                      child: Transform.scale(
-                        scale: scale,
-                        child: Container(
-                          width: 50,
-                          height: 50,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.touch_app,
+                          color: Colors.white,
+                          size: 48,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black54,
+                              blurRadius: 8,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: NunuColors.primaryMain,
-                              width: 3,
+                            color: NunuColors.primaryMain,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            'TAP',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
                 );
               }
-              
+
               // For drag: animate from source to dest
-              if (widget.step.requiresDrag && _sourcePos != null && _destPos != null) {
-                final currentPos = Offset.lerp(_sourcePos!, _destPos!, progress)!;
-                
+              if (widget.step.requiresDrag &&
+                  _sourcePos != null &&
+                  _destPos != null) {
+                final currentPos = Offset.lerp(
+                  _sourcePos!,
+                  _destPos!,
+                  progress,
+                )!;
+
                 return Positioned(
                   left: currentPos.dx - 20,
                   top: currentPos.dy - 20,
@@ -180,7 +232,7 @@ class _TutorialOverlayState extends State<TutorialOverlay>
                   ),
                 );
               }
-              
+
               return const SizedBox.shrink();
             },
           ),
@@ -244,40 +296,94 @@ class _TutorialOverlayState extends State<TutorialOverlay>
 /// Custom painter for spotlight effect
 class _SpotlightPainter extends CustomPainter {
   final Rect targetRect;
+  final TutorialOverlay widget;
+  final Offset? _sourcePos;
+  final Offset? _destPos;
   final double padding;
 
   _SpotlightPainter({
     required this.targetRect,
+    required this.widget,
+    Offset? sourcePos,
+    Offset? destPos,
     this.padding = 8.0,
-  });
+  }) : _sourcePos = sourcePos,
+       _destPos = destPos;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.black.withOpacity(0.7);
-    
+    // Save layer to allow clearing pixels (creating a cutout)
+    canvas.saveLayer(Offset.zero & size, Paint());
+
+    final paint = Paint()..color = Colors.black.withOpacity(0.45);
+
     // Draw full dark overlay
     canvas.drawRect(Offset.zero & size, paint);
-    
+
     // Cut out the spotlight area
-    final spotlightRect = targetRect.inflate(padding);
-    final clearPaint = Paint()
-      ..blendMode = BlendMode.clear;
-    
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(spotlightRect, const Radius.circular(12)),
-      clearPaint,
-    );
-    
-    // Draw glow border around spotlight
-    final glowPaint = Paint()
-      ..color = NunuColors.primaryMain
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3;
-    
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(spotlightRect, const Radius.circular(12)),
-      glowPaint,
-    );
+    final center = targetRect.center;
+    final isOval = widget.step.requiresDrag && widget.step.sourceKey != null;
+
+    final clearPaint = Paint()..blendMode = BlendMode.clear;
+
+    if (isOval && _sourcePos != null && _destPos != null) {
+      // Calculate oval containing both source and dest
+      final sourceRect = Rect.fromCenter(
+        center: _sourcePos!,
+        width: targetRect.width,
+        height: targetRect.height,
+      );
+      final destRect = Rect.fromCenter(
+        center: _destPos!,
+        width: targetRect.width,
+        height: targetRect.height,
+      );
+
+      final boundingBox = sourceRect.expandToInclude(destRect).inflate(padding);
+
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          boundingBox,
+          Radius.circular(boundingBox.shortestSide / 2),
+        ),
+        clearPaint,
+      );
+
+      // Draw glow border
+      final glowPaint = Paint()
+        ..color = NunuColors.primaryMain
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3;
+
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          boundingBox,
+          Radius.circular(boundingBox.shortestSide / 2),
+        ),
+        glowPaint,
+      );
+    } else {
+      // Use diagonal for radius to ensure corners are visible, plus padding
+      final radius =
+          (sqrt(
+                targetRect.width * targetRect.width +
+                    targetRect.height * targetRect.height,
+              ) /
+              2) +
+          padding;
+
+      canvas.drawCircle(center, radius, clearPaint);
+
+      // Draw glow border around spotlight
+      final glowPaint = Paint()
+        ..color = NunuColors.primaryMain
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3;
+
+      canvas.drawCircle(center, radius, glowPaint);
+    }
+
+    canvas.restore();
   }
 
   @override
@@ -285,4 +391,3 @@ class _SpotlightPainter extends CustomPainter {
     return oldDelegate.targetRect != targetRect;
   }
 }
-

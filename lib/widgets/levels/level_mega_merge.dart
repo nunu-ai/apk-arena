@@ -124,7 +124,8 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
 
   // Tutorial State
   int _tutorialStep = 0;
-  bool _tutorialComplete = true;
+  int _tutorialTapCount = 0;
+  bool _tutorialComplete = false;
 
   // Keys for tutorial targeting
   final GlobalKey _generatorKey = GlobalKey();
@@ -286,6 +287,15 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
   }
 
   void _spawnItem() {
+    if (!_tutorialComplete &&
+        _tutorialSteps.isNotEmpty &&
+        _tutorialSteps[_tutorialStep].targetKey == _generatorKey) {
+      _tutorialTapCount++;
+      if (_tutorialTapCount >= 2) {
+        _advanceTutorial();
+      }
+    }
+
     _tickEnergyRegen();
 
     // Check energy
@@ -325,7 +335,25 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
     });
 
     // Pick random spot
-    int targetIndex = emptyIndices[Random().nextInt(emptyIndices.length)];
+    int targetIndex = -1;
+
+    if (!_tutorialComplete && _tutorialStep == 0) {
+      if (_tutorialTapCount == 1) {
+        targetIndex = _index(3, 3);
+      } else if (_tutorialTapCount == 2) {
+        targetIndex = _index(3, 4);
+      }
+    }
+
+    if (targetIndex != -1) {
+      if (_gridItems[targetIndex] != null) {
+        targetIndex = -1; // Fallback to random if occupied
+      }
+    }
+
+    if (targetIndex == -1) {
+      targetIndex = emptyIndices[Random().nextInt(emptyIndices.length)];
+    }
 
     setState(() {
       _gridItems[targetIndex] = HardwareItem(
@@ -342,6 +370,17 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
 
   void _onItemMove(int fromIndex, int toIndex) {
     if (fromIndex == toIndex) return;
+
+    // Strict tutorial enforcement for drag step
+    if (!_tutorialComplete && _tutorialStep == 1) {
+      final int sourceIndex = _index(3, 4);
+      final int destIndex = _index(3, 3);
+
+      // Only allow the specific drag: source -> dest
+      if (fromIndex != sourceIndex || toIndex != destIndex) {
+        return;
+      }
+    }
 
     final source = _gridItems[fromIndex];
     if (source == null) return;
@@ -388,6 +427,10 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
             final newTier = target.tier + 1;
             _gridItems[toIndex] = target.copyWith(tier: newTier);
             _gridItems[fromIndex] = null;
+
+            if (!_tutorialComplete && _tutorialStep == 1) {
+              _advanceTutorial();
+            }
 
             _totalMerges++;
             if (newTier > _highestTier) {
@@ -469,12 +512,30 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
 
   void _advanceTutorial() {
     setState(() {
-      _tutorialComplete = true;
+      _tutorialTapCount = 0; // Reset tap count for next step
+      if (_tutorialStep < _tutorialSteps.length - 1) {
+        _tutorialStep++;
+      } else {
+        _tutorialComplete = true;
+      }
     });
   }
 
   List<TutorialStep> get _tutorialSteps {
-    return const [];
+    return [
+      TutorialStep(
+        instruction: 'keep tapping the generator to produce more items!',
+        targetKey: _generatorKey,
+        requiresTap: true,
+      ),
+      TutorialStep(
+        instruction: 'drag matching items together to merge them!',
+        sourceKey: _getCellKey(_index(3, 4)),
+        destinationKey: _getCellKey(_index(3, 3)),
+        targetKey: _getCellKey(_index(3, 3)),
+        requiresDrag: true,
+      ),
+    ];
   }
 
   GlobalKey _getCellKey(int index) {
@@ -590,6 +651,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
                   _highestTier = 1;
                   _ordersCompleted = 0;
                   _tutorialStep = 0;
+                  _tutorialTapCount = 0;
                   _tutorialComplete = false;
                   _manuallyUnlockedIndices.clear();
                   _ownedCosmetics.clear();
