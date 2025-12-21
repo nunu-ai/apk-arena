@@ -162,23 +162,23 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
     // 0: Unlocked, N: Locked until Lvl N, -1: Blocked, -2: rock (blocked alt)
     const List<int> mapDesign = [
       // Row 0
-      -2, -1, 3, 4, -1, -1, -2,
+      -1, -1, 3, 4, -1, -1, -2,
       // Row 1
-      -1, 5, 5, 7, 4, -1, -1,
+      -2, 5, 5, 7, 4, -1, -2,
       // Row 2
       -1, 3, 5, 5, 6, 7, -1,
       // Row 3
-      -1, 5, 0, 0, 0, 6, -1,
+      5, 3, 0, 0, 0, 6, -1,
       // Row 4
       -1, 3, 6, 4, 6, -1, -1,
       // Row 5
-      -1, -1, 8, -1, -1, -1, -1,
+      -1, 3, 8, -1, -1, -1, -1,
       // Row 6
-      -1, -1, -1, -1, -1, -1, -1,
+      -1, 4, 4, 3, -2, -2, -1,
       // Row 7
-      -1, -1, -1, -1, -1, -1, -1,
+      -1, -2, -2, 4, 4, -1, -1,
       // Row 8
-      -2, -1, -1, -1, -1, -1, -2,
+      -1, -2, -1, 5, -1, -2, -2,
     ];
 
     _gridUnlockLevels = List.from(mapDesign);
@@ -212,7 +212,8 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
     int index = r * _cols + c;
     if (index >= 0 && index < _totalCells) {
       final cellLevel = _gridUnlockLevels[index];
-      if (cellLevel > 0) { // Only on locked cells
+      if (cellLevel > 0) {
+        // Only on locked cells
         _gridItems[index] = HardwareItem(
           id: 'frozen_${r}_$c',
           type: ItemType.part,
@@ -239,8 +240,9 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
     final elapsedSeconds = now.difference(_lastEnergyRegen).inSeconds;
     if (elapsedSeconds >= _energyRegenInterval.inSeconds) {
       final gained = elapsedSeconds ~/ _energyRegenInterval.inSeconds;
-      _lastEnergyRegen =
-          _lastEnergyRegen.add(Duration(seconds: gained * _energyRegenInterval.inSeconds));
+      _lastEnergyRegen = _lastEnergyRegen.add(
+        Duration(seconds: gained * _energyRegenInterval.inSeconds),
+      );
       setState(() {
         _energy = min(_maxEnergy, _energy + gained);
       });
@@ -381,7 +383,6 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
 
             // Show unlock popup
             _maybeShowUnlock(target.tier);
-
           } else {
             // Normal merge: upgrade to next tier
             final newTier = target.tier + 1;
@@ -398,7 +399,6 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
             if (_settings.vibrationEnabled) {
               HapticFeedback.lightImpact();
             }
-
           }
 
           // Grant XP and coins
@@ -790,15 +790,17 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
                                   ? NunuColors.successMain
                                   : (isCandidateValid
                                         ? NunuColors.primaryMain
-                                        : NunuColors.textSecondary
-                                              .withOpacity(0.3)),
+                                        : NunuColors.textSecondary.withOpacity(
+                                            0.3,
+                                          )),
                               width: isCandidateValid ? 3 : 2,
                             ),
                             boxShadow: isCandidateValid
                                 ? [
                                     BoxShadow(
-                                      color: NunuColors.primaryMain
-                                          .withOpacity(0.5),
+                                      color: NunuColors.primaryMain.withOpacity(
+                                        0.5,
+                                      ),
                                       blurRadius: 8,
                                       spreadRadius: 2,
                                     ),
@@ -909,11 +911,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
           content = const Icon(Icons.block, color: Colors.white10, size: 16);
         } else if (isRock) {
           bgColor = Colors.brown.shade900.withOpacity(0.5);
-          content = Icon(
-            Icons.terrain,
-            color: Colors.brown.shade400,
-            size: 20,
-          );
+          content = Icon(Icons.terrain, color: Colors.brown.shade400, size: 20);
         } else if (item != null) {
           content = _buildDraggableItem(index, item);
           if (!isUnlocked) {
@@ -1018,8 +1016,9 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
         ),
       );
     } else {
-      final Color itemColor =
-          item.isFrozen ? Colors.grey : _getColorForTier(item.tier);
+      final Color itemColor = item.isFrozen
+          ? Colors.grey
+          : _getColorForTier(item.tier);
 
       child = Container(
         margin: const EdgeInsets.all(4),
@@ -1061,5 +1060,4 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
       ),
     );
   }
-
 }
