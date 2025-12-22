@@ -47,22 +47,51 @@ You agree not to:
 - Harass other players
 - Engage in fraudulent activity
 
-7. INTELLECTUAL PROPERTY
+7. TEXT-BASED COMMUNICATION FEATURES
+The Game may include text-based communication features including but not limited to:
+- In-game chat systems
+- Guild/clan messaging
+- Private messaging between users
+- Community forums and discussion boards
+- Comments on user-generated content
+
+7.1 User Conduct in Communications
+When using any text-based communication features, you agree to:
+- Not post content that is offensive, abusive, harassing, or discriminatory
+- Not share personal information of yourself or others
+- Not engage in spam, advertising, or solicitation
+- Not impersonate other users or MergeCorp staff
+- Not discuss or encourage illegal activities
+- Report violations to our moderation team
+
+7.2 Content Moderation
+- We reserve the right to monitor and moderate all communications
+- Content may be reviewed by automated systems and human moderators
+- Violations may result in content removal, warnings, or account termination
+- We may retain communication data for moderation and legal purposes
+
+7.3 User Reporting
+Users can report inappropriate content or behavior through in-app reporting tools. We investigate all reports and take appropriate action.
+
+7.4 Parental Notice
+Parents and guardians should be aware that text-based communication features allow interaction with other users. We recommend supervising minors' use of these features.
+
+8. INTELLECTUAL PROPERTY
 All game content, including graphics, audio, and code, is owned by MergeCorp Studios.
 
-8. PRIVACY
+9. PRIVACY
 Your use of the Game is subject to our Privacy Policy.
 
-9. TERMINATION
+10. TERMINATION
 We may terminate your access for violation of these Terms.
 
-10. DISCLAIMER
+11. DISCLAIMER
 THE GAME IS PROVIDED "AS IS" WITHOUT WARRANTIES.
 
-11. LIMITATION OF LIABILITY
+12. LIMITATION OF LIABILITY
 MergeCorp Studios shall not be liable for any damages arising from use of the Game.
 
-12. CONTACT
+13. CONTACT
 support@mergecorp.com
 ''';
 
@@ -79,6 +108,8 @@ MergeCorp Studios ("we", "our", "us") is committed to protecting your privacy.
 - Account registration data (email, username)
 - Age verification confirmation
 - Customer support communications
+- Text-based communications (chat messages, forum posts)
+- User-generated content and comments
 
 1.2 Automatically Collected Information
 - Device identifiers and specifications
@@ -98,6 +129,16 @@ We use your information to:
 - Send important service updates
 - Respond to support requests
 - Analyze usage patterns
+- Moderate text-based communications and enforce community guidelines
+- Investigate reports of abuse or violations
+- Improve safety features and content filtering
+
+2.1 Communication Data
+Text-based communications may be:
+- Monitored by automated content filtering systems
+- Reviewed by human moderators when flagged
+- Retained for moderation and legal compliance purposes
+- Used to train and improve content moderation systems
 
 3. DATA SHARING
 
@@ -193,6 +234,7 @@ class EmbeddedMegaMergeApp extends StatefulWidget {
 /// Menu sub-screen options
 enum MenuSubScreen {
   main,
+  store,
   mergePlus,
   followUs,
   settings,
@@ -204,10 +246,14 @@ enum MenuSubScreen {
   support,
 }
 
+/// Store tab options
+enum StoreTab { featured, currencies, boosters, lootBoxes, cosmetics }
+
 class _EmbeddedMegaMergeAppState extends State<EmbeddedMegaMergeApp> {
   late MegaMergeState _state;
   bool _showMenu = false;
   MenuSubScreen _menuSubScreen = MenuSubScreen.main;
+  StoreTab _storeTab = StoreTab.featured;
 
   static const Color _appColor = Color(0xFF9C27B0);
 
@@ -290,6 +336,8 @@ class _EmbeddedMegaMergeAppState extends State<EmbeddedMegaMergeApp> {
     switch (_menuSubScreen) {
       case MenuSubScreen.main:
         return _buildMainMenu();
+      case MenuSubScreen.store:
+        return _buildStoreScreen();
       case MenuSubScreen.mergePlus:
         return _buildMergePlusScreen();
       case MenuSubScreen.followUs:
@@ -334,6 +382,12 @@ class _EmbeddedMegaMergeAppState extends State<EmbeddedMegaMergeApp> {
                   _appColor,
                   () =>
                       setState(() => _menuSubScreen = MenuSubScreen.mergePlus),
+                ),
+                _buildMenuItem(
+                  Icons.store,
+                  'store',
+                  Colors.amber,
+                  () => setState(() => _menuSubScreen = MenuSubScreen.store),
                 ),
                 _buildMenuItem(
                   Icons.people,
@@ -524,6 +578,979 @@ class _EmbeddedMegaMergeAppState extends State<EmbeddedMegaMergeApp> {
           Icon(icon, color: _appColor, size: 24),
           const SizedBox(width: 16),
           Text(text, style: const TextStyle(color: Colors.white, fontSize: 16)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStoreScreen() {
+    return Container(
+      color: NunuColors.backgroundDefault,
+      child: Column(
+        children: [
+          PhoneAppBar(
+            title: 'store',
+            onBack: _goBackToMainMenu,
+            backgroundColor: Colors.amber.withOpacity(0.3),
+          ),
+          // Store tabs
+          Container(
+            color: NunuColors.backgroundPaper,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              child: Row(
+                children: StoreTab.values.map((tab) {
+                  final isSelected = _storeTab == tab;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: GestureDetector(
+                      onTap: () => setState(() => _storeTab = tab),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected ? Colors.amber : Colors.transparent,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: isSelected
+                                ? Colors.amber
+                                : NunuColors.textSecondary,
+                          ),
+                        ),
+                        child: Text(
+                          _getStoreTabName(tab),
+                          style: TextStyle(
+                            color: isSelected
+                                ? Colors.black
+                                : NunuColors.textSecondary,
+                            fontSize: 13,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+          // Currency display
+          Container(
+            padding: const EdgeInsets.all(12),
+            color: NunuColors.backgroundPaper.withOpacity(0.5),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildCurrencyChip(
+                  Icons.monetization_on,
+                  '2,450',
+                  Colors.amber,
+                ),
+                const SizedBox(width: 16),
+                _buildCurrencyChip(Icons.diamond, '125', Colors.cyan),
+              ],
+            ),
+          ),
+          // Store content
+          Expanded(child: _buildStoreContent()),
+        ],
+      ),
+    );
+  }
+
+  String _getStoreTabName(StoreTab tab) {
+    switch (tab) {
+      case StoreTab.featured:
+        return 'featured';
+      case StoreTab.currencies:
+        return 'currencies';
+      case StoreTab.boosters:
+        return 'boosters';
+      case StoreTab.lootBoxes:
+        return 'loot boxes';
+      case StoreTab.cosmetics:
+        return 'cosmetics';
+    }
+  }
+
+  Widget _buildCurrencyChip(IconData icon, String amount, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: NunuColors.backgroundPaper,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(width: 6),
+          Text(
+            amount,
+            style: TextStyle(
+              color: color,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStoreContent() {
+    switch (_storeTab) {
+      case StoreTab.featured:
+        return _buildFeaturedTab();
+      case StoreTab.currencies:
+        return _buildCurrenciesTab();
+      case StoreTab.boosters:
+        return _buildBoostersTab();
+      case StoreTab.lootBoxes:
+        return _buildLootBoxesTab();
+      case StoreTab.cosmetics:
+        return _buildCosmeticsTab();
+    }
+  }
+
+  Widget _buildFeaturedTab() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // Featured banner
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [_appColor, Colors.amber],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'weekend special!',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                '50% bonus gems on all purchases',
+                style: TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  'ends in 23:45:12',
+                  style: TextStyle(
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        const Text(
+          'popular items',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildStoreItem(
+          'Starter Pack',
+          '500 coins + 50 gems',
+          '\$4.99',
+          Icons.card_giftcard,
+          Colors.green,
+          isBestValue: true,
+        ),
+        _buildStoreItem(
+          'Merge Booster',
+          '2x merge speed for 1 hour',
+          '100 gems',
+          Icons.speed,
+          Colors.orange,
+        ),
+        _buildStoreItem(
+          'Mystery Crate',
+          'random rewards!',
+          'FREE (earned in-game)',
+          Icons.inventory_2,
+          Colors.purple,
+          isFree: true,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCurrenciesTab() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        const Text(
+          'coins',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'earn coins by playing or purchase them',
+          style: TextStyle(color: NunuColors.textSecondary, fontSize: 12),
+        ),
+        const SizedBox(height: 12),
+        _buildCurrencyPack(
+          '500 Coins',
+          '\$0.99',
+          Icons.monetization_on,
+          Colors.amber,
+        ),
+        _buildCurrencyPack(
+          '1,200 Coins',
+          '\$1.99',
+          Icons.monetization_on,
+          Colors.amber,
+          bonus: '+200',
+        ),
+        _buildCurrencyPack(
+          '3,000 Coins',
+          '\$4.99',
+          Icons.monetization_on,
+          Colors.amber,
+          bonus: '+600',
+        ),
+        _buildCurrencyPack(
+          '8,000 Coins',
+          '\$9.99',
+          Icons.monetization_on,
+          Colors.amber,
+          bonus: '+2,000',
+          isBestValue: true,
+        ),
+        const SizedBox(height: 24),
+        const Text(
+          'gems',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'premium currency for exclusive items',
+          style: TextStyle(color: NunuColors.textSecondary, fontSize: 12),
+        ),
+        const SizedBox(height: 12),
+        _buildCurrencyPack('50 Gems', '\$1.99', Icons.diamond, Colors.cyan),
+        _buildCurrencyPack(
+          '150 Gems',
+          '\$4.99',
+          Icons.diamond,
+          Colors.cyan,
+          bonus: '+25',
+        ),
+        _buildCurrencyPack(
+          '400 Gems',
+          '\$9.99',
+          Icons.diamond,
+          Colors.cyan,
+          bonus: '+80',
+          isBestValue: true,
+        ),
+        _buildCurrencyPack(
+          '1,000 Gems',
+          '\$19.99',
+          Icons.diamond,
+          Colors.cyan,
+          bonus: '+250',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCurrencyPack(
+    String name,
+    String price,
+    IconData icon,
+    Color color, {
+    String? bonus,
+    bool isBestValue = false,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: NunuColors.backgroundPaper,
+        borderRadius: BorderRadius.circular(12),
+        border: isBestValue ? Border.all(color: Colors.amber, width: 2) : null,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (bonus != null) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          bonus,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                if (isBestValue)
+                  const Text(
+                    'best value!',
+                    style: TextStyle(color: Colors.amber, fontSize: 11),
+                  ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {},
+            style: ElevatedButton.styleFrom(
+              backgroundColor: color,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: Text(
+              price,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBoostersTab() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        const Text(
+          'time boosters',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildStoreItem(
+          '2x Merge Speed',
+          'doubles merge speed for 1 hour',
+          '50 gems',
+          Icons.speed,
+          Colors.orange,
+        ),
+        _buildStoreItem(
+          'Instant Generator',
+          'no cooldown on generator for 30 min',
+          '75 gems',
+          Icons.flash_on,
+          Colors.yellow,
+        ),
+        _buildStoreItem(
+          'Auto-Merge',
+          'automatically merges matching items',
+          '100 gems',
+          Icons.auto_mode,
+          Colors.blue,
+        ),
+        const SizedBox(height: 24),
+        const Text(
+          'power-ups',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildStoreItem(
+          'Tier Skip',
+          'instantly upgrade any item by 1 tier',
+          '150 gems',
+          Icons.upgrade,
+          Colors.purple,
+        ),
+        _buildStoreItem(
+          'Board Clear',
+          'remove all items and start fresh',
+          '25 gems',
+          Icons.cleaning_services,
+          Colors.red,
+        ),
+        _buildStoreItem(
+          'Extra Slot',
+          'permanently add 1 grid slot',
+          '500 gems',
+          Icons.add_box,
+          Colors.green,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLootBoxesTab() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // Tier 0 - Free loot box
+        Container(
+          padding: const EdgeInsets.all(16),
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: NunuColors.backgroundPaper,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.purple.withOpacity(0.5)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.purple, Colors.purple.shade300],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.inventory_2,
+                      color: Colors.white,
+                      size: 32,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'mystery crate',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'FREE - EARNED IN-GAME',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'found randomly while playing! cannot be purchased.',
+                style: TextStyle(color: NunuColors.textSecondary, fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'possible rewards:',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildRewardChip('50-200 coins', Colors.amber),
+                  _buildRewardChip('5-20 gems', Colors.cyan),
+                  _buildRewardChip('booster (1h)', Colors.orange),
+                  _buildRewardChip('cosmetic item', Colors.pink),
+                ],
+              ),
+            ],
+          ),
+        ),
+        // Tier 4 - Premium loot box with cash out
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.amber.shade800, Colors.amber.shade600],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.amber.withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.diamond,
+                      color: Colors.white,
+                      size: 32,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'premium treasure vault',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'REAL MONEY PURCHASE',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'contains MergeCoins redeemable for cash through our partner program!',
+                style: TextStyle(color: Colors.white70, fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text(
+                      'drop rates:',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      '• 50 MergeCoins (\$0.50): 40%\n'
+                      '• 100 MergeCoins (\$1.00): 30%\n'
+                      '• 250 MergeCoins (\$2.50): 20%\n'
+                      '• 1000 MergeCoins (\$10.00): 8%\n'
+                      '• 5000 MergeCoins (\$50.00): 2%',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {},
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text(
+                        '\$9.99',
+                        style: TextStyle(
+                          color: Colors.amber,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {},
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text(
+                        '5 for \$39.99',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Center(
+                child: Text(
+                  'MergeCoins can be cashed out via PayPal or gift cards',
+                  style: TextStyle(color: Colors.white60, fontSize: 11),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        // Info box about loot boxes
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: NunuColors.backgroundPaper,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: NunuColors.textSecondary.withOpacity(0.3),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: const [
+                  Icon(
+                    Icons.info_outline,
+                    color: NunuColors.textSecondary,
+                    size: 18,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'about loot boxes',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Mystery Crates are free rewards found during gameplay. '
+                'Premium Treasure Vaults can be purchased with real money and contain '
+                'MergeCoins that can be redeemed for real value through our partner cashout program.',
+                style: TextStyle(
+                  color: NunuColors.textSecondary,
+                  fontSize: 12,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRewardChip(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.5)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCosmeticsTab() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        const Text(
+          'themes',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildStoreItem(
+          'Neon Dreams',
+          'cyberpunk-style board theme',
+          '200 gems',
+          Icons.nightlight,
+          Colors.pink,
+        ),
+        _buildStoreItem(
+          'Forest Zen',
+          'peaceful nature theme',
+          '150 gems',
+          Icons.forest,
+          Colors.green,
+        ),
+        _buildStoreItem(
+          'Galaxy Explorer',
+          'space-themed visuals',
+          '250 gems',
+          Icons.rocket,
+          Colors.indigo,
+        ),
+        const SizedBox(height: 24),
+        const Text(
+          'item skins',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildStoreItem(
+          'Golden Items',
+          'all items have golden glow',
+          '300 gems',
+          Icons.auto_awesome,
+          Colors.amber,
+        ),
+        _buildStoreItem(
+          'Rainbow Set',
+          'colorful item animations',
+          '175 gems',
+          Icons.palette,
+          Colors.purple,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStoreItem(
+    String name,
+    String description,
+    String price,
+    IconData icon,
+    Color color, {
+    bool isBestValue = false,
+    bool isFree = false,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: NunuColors.backgroundPaper,
+        borderRadius: BorderRadius.circular(12),
+        border: isBestValue ? Border.all(color: Colors.amber, width: 2) : null,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 28),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (isBestValue) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.amber,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'BEST VALUE',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: const TextStyle(
+                    color: NunuColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (isFree)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green),
+              ),
+              child: const Text(
+                'FREE',
+                style: TextStyle(
+                  color: Colors.green,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            )
+          else
+            ElevatedButton(
+              onPressed: () {},
+              style: ElevatedButton.styleFrom(
+                backgroundColor: color,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+              ),
+              child: Text(
+                price,
+                style: const TextStyle(color: Colors.white, fontSize: 12),
+              ),
+            ),
         ],
       ),
     );

@@ -120,6 +120,122 @@ class FitnessTrackerData {
   }
 }
 
+/// A single browser tab
+class BrowserTab {
+  final String id;
+  final String url;
+  final String title;
+
+  const BrowserTab({required this.id, required this.url, required this.title});
+
+  BrowserTab copyWith({String? id, String? url, String? title}) {
+    return BrowserTab(
+      id: id ?? this.id,
+      url: url ?? this.url,
+      title: title ?? this.title,
+    );
+  }
+
+  /// Get title from URL if not explicitly set
+  static String getTitleFromUrl(String url) {
+    if (url.isEmpty) return 'New Tab';
+    if (url.contains('fittrack-pro.com/terms')) return 'Terms of Service';
+    if (url.contains('fittrack-pro.com/privacy')) return 'Privacy Policy';
+    // Extract domain as fallback
+    final uri = Uri.tryParse('https://$url');
+    return uri?.host ?? url;
+  }
+}
+
+/// Browser state with tab management
+class BrowserState {
+  final List<BrowserTab> tabs;
+  final int activeTabIndex;
+
+  const BrowserState({this.tabs = const [], this.activeTabIndex = 0});
+
+  BrowserTab? get activeTab => tabs.isNotEmpty && activeTabIndex < tabs.length
+      ? tabs[activeTabIndex]
+      : null;
+
+  BrowserState copyWith({List<BrowserTab>? tabs, int? activeTabIndex}) {
+    return BrowserState(
+      tabs: tabs ?? this.tabs,
+      activeTabIndex: activeTabIndex ?? this.activeTabIndex,
+    );
+  }
+
+  /// Add a new tab and make it active
+  BrowserState addTab(String url) {
+    final newTab = BrowserTab(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      url: url,
+      title: BrowserTab.getTitleFromUrl(url),
+    );
+    final newTabs = [...tabs, newTab];
+    return BrowserState(tabs: newTabs, activeTabIndex: newTabs.length - 1);
+  }
+
+  /// Add a new tab or switch to existing tab with same URL
+  BrowserState openUrl(String url) {
+    // Check if a tab with this URL already exists
+    final existingIndex = tabs.indexWhere((tab) => tab.url == url);
+    if (existingIndex >= 0) {
+      return copyWith(activeTabIndex: existingIndex);
+    }
+    return addTab(url);
+  }
+
+  /// Close a tab by index
+  BrowserState closeTab(int index) {
+    if (tabs.length <= 1) {
+      // Keep at least one tab (new tab)
+      return const BrowserState(
+        tabs: [BrowserTab(id: 'default', url: '', title: 'New Tab')],
+        activeTabIndex: 0,
+      );
+    }
+    final newTabs = [...tabs]..removeAt(index);
+    int newActiveIndex = activeTabIndex;
+    if (index <= activeTabIndex && activeTabIndex > 0) {
+      newActiveIndex--;
+    }
+    if (newActiveIndex >= newTabs.length) {
+      newActiveIndex = newTabs.length - 1;
+    }
+    return BrowserState(tabs: newTabs, activeTabIndex: newActiveIndex);
+  }
+
+  /// Switch to a tab by index
+  BrowserState switchToTab(int index) {
+    if (index >= 0 && index < tabs.length) {
+      return copyWith(activeTabIndex: index);
+    }
+    return this;
+  }
+
+  /// Update the URL of the active tab
+  BrowserState navigateTo(String url) {
+    if (tabs.isEmpty) {
+      return addTab(url);
+    }
+    final newTabs = [...tabs];
+    newTabs[activeTabIndex] = tabs[activeTabIndex].copyWith(
+      url: url,
+      title: BrowserTab.getTitleFromUrl(url),
+    );
+    return copyWith(tabs: newTabs);
+  }
+
+  /// Create default state with one empty tab
+  static BrowserState initial() {
+    return const BrowserState(
+      tabs: [BrowserTab(id: 'default', url: '', title: 'New Tab')],
+      activeTabIndex: 0,
+    );
+  }
+}
+
 /// Main Phone Simulator Level
 ///
 /// This level presents a fake phone homescreen with multiple apps.
@@ -143,6 +259,9 @@ class _LevelPhoneSimulatorState extends State<LevelPhoneSimulator> {
 
   // Play Store deep-link support - navigate directly to a specific app
   String? _playStoreInitialAppId;
+
+  // Browser state with tabs
+  BrowserState _browserState = BrowserState.initial();
 
   // Installed apps (by ID)
   final Set<String> _installedApps = {};
@@ -359,6 +478,15 @@ class _LevelPhoneSimulatorState extends State<LevelPhoneSimulator> {
     });
   }
 
+  /// Open browser with a specific URL
+  /// Adds a new tab or switches to existing tab with same URL
+  void _openBrowserWithUrl(String url) {
+    setState(() {
+      _browserState = _browserState.openUrl(url);
+      _currentScreen = ActiveScreen.browser;
+    });
+  }
+
   void _installApp(StoreApp app) {
     setState(() {
       _installedApps.add(app.id);
@@ -530,7 +658,13 @@ class _LevelPhoneSimulatorState extends State<LevelPhoneSimulator> {
         return MessagesStubApp(onBack: _goHome);
 
       case ActiveScreen.browser:
-        return BrowserStubApp(onBack: _goHome);
+        return BrowserStubApp(
+          onBack: _goHome,
+          browserState: _browserState,
+          onBrowserStateChanged: (state) {
+            setState(() => _browserState = state);
+          },
+        );
 
       case ActiveScreen.placeTheCards:
         return EmbeddedPlaceCardsApp(
@@ -577,6 +711,7 @@ class _LevelPhoneSimulatorState extends State<LevelPhoneSimulator> {
           onDataChanged: (data) {
             setState(() => _fitnessTrackerData = data);
           },
+          onOpenBrowser: _openBrowserWithUrl,
         );
 
       case ActiveScreen.checklist:

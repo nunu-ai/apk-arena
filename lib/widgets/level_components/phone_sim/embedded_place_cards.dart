@@ -26,23 +26,69 @@ You agree not to:
 4. AGE REQUIREMENTS
 This Game is intended for users aged 13 and older. By using this Game, you represent that you are at least 13 years of age. Users under 13 should not use this application.
 
-5. VIRTUAL ITEMS
+5. COMMUNITY CHAT FEATURE
+
+5.1 Chat Access
+The Game includes a community chat feature that is unlocked after completing Level 1. By using the chat feature, you agree to these additional terms.
+
+5.2 User Conduct in Chat
+When using the community chat, you agree to:
+- Treat all users with respect and courtesy
+- Not post content that is offensive, abusive, threatening, or harassing
+- Not use hate speech, discriminatory language, or slurs
+- Not share personal information (yours or others')
+- Not spam, advertise, or promote external products/services
+- Not share links to malicious or inappropriate websites
+- Not impersonate CardMaster Games staff or other users
+- Not discuss or encourage illegal activities
+- Not engage in bullying or targeted harassment
+- Not post sexually explicit or suggestive content
+
+5.3 Content Moderation
+We reserve the right to:
+- Monitor all chat communications for safety and compliance
+- Remove any content that violates these terms without notice
+- Temporarily or permanently ban users who violate chat guidelines
+- Report serious violations to appropriate authorities
+- Use automated filtering to block prohibited content
+
+5.4 Reporting and Blocking
+Users can report inappropriate content or behavior through:
+- The flag icon in the chat interface
+- Emailing safety@cardmastergames.com
+We investigate all reports and take appropriate action within 48 hours.
+
+5.5 User Safety
+For your safety:
+- Never share personal contact information in chat
+- Be cautious when interacting with strangers
+- Report any suspicious or uncomfortable interactions
+- Users under 18 should inform a parent/guardian about chat use
+
+5.6 Parental Notice
+Parents and guardians should be aware that this Game contains a chat feature that allows interaction with other users. We recommend:
+- Discussing safe online communication with your child
+- Monitoring your child's use of the chat feature
+- Familiarizing yourself with the reporting tools available
+
+6. VIRTUAL ITEMS
 Any virtual items, currency, or rewards earned in the Game have no real-world value and cannot be exchanged for money.
 
-6. UPDATES
+7. UPDATES
 We may update the Game from time to time. Continued use after updates constitutes acceptance of any changes.
 
-7. DISCLAIMER
+8. DISCLAIMER
 THE GAME IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
 
-8. LIMITATION OF LIABILITY
+9. LIMITATION OF LIABILITY
 CardMaster Games shall not be liable for any indirect, incidental, or consequential damages.
 
-9. GOVERNING LAW
+10. GOVERNING LAW
 These Terms shall be governed by applicable law.
 
-10. CONTACT
+11. CONTACT
 For questions about these Terms, contact: support@cardmastergames.com
+For safety concerns: safety@cardmastergames.com
 ''';
 
 const String placeCardsPrivacy = '''
@@ -68,6 +114,11 @@ c) Analytics Data
 - Crash reports and performance data
 - Feature usage statistics
 
+d) Chat and Communication Data
+- Messages sent through the community chat feature
+- User reports and moderation actions
+- Chat activity metadata (timestamps, message counts)
+
 2. HOW WE USE YOUR INFORMATION
 
 We use collected data to:
@@ -75,6 +126,18 @@ We use collected data to:
 - Improve game features and user experience
 - Send important updates and notifications
 - Analyze usage patterns and trends
+- Moderate community chat and enforce guidelines
+- Investigate reports of abuse or violations
+- Protect user safety and prevent harmful content
+- Comply with legal obligations
+
+2.1 Chat Data Specifically
+Chat messages may be:
+- Monitored by automated content filtering systems
+- Reviewed by human moderators when flagged or reported
+- Retained for moderation, safety, and legal compliance
+- Used to train and improve content moderation systems
+- Analyzed to identify and prevent harmful behavior patterns
 
 3. DATA SHARING
 
@@ -83,9 +146,19 @@ We may share anonymized, aggregated data with:
 - Advertising partners
 - Business partners
 
+We may share chat data with:
+- Third-party safety and moderation tools
+- Law enforcement when required by law
+- Child safety organizations when necessary
+
 4. DATA RETENTION
 
 We retain your data for as long as you use the Game, plus a reasonable period thereafter.
+
+Chat messages are retained for:
+- Active moderation: 90 days
+- Reported content: Up to 2 years
+- Legal compliance: As required by law
 
 5. YOUR RIGHTS
 
@@ -94,13 +167,22 @@ You may request:
 - Deletion of your data
 - Correction of inaccurate data
 
+Note: Some chat data may be retained even after deletion requests for safety and legal compliance purposes.
+
 6. CHILDREN'S PRIVACY
 
 We do not knowingly collect personal information from children under 13. If you believe we have collected such information, please contact us.
 
+6.1 Chat Feature for Minors
+Users aged 13-17 should use the chat feature with parental awareness. We recommend parents discuss safe online communication practices with their children.
+
 7. SECURITY
 
-We implement reasonable security measures to protect your data.
+We implement reasonable security measures to protect your data, including:
+- Encryption of data in transit
+- Secure storage of chat logs
+- Access controls for moderation staff
+- Regular security audits
 
 8. CHANGES TO THIS POLICY
 
@@ -109,6 +191,7 @@ We may update this Privacy Policy periodically. Continued use constitutes accept
 9. CONTACT US
 
 For privacy inquiries: privacy@cardmastergames.com
+For safety concerns: safety@cardmastergames.com
 ''';
 
 /// Onboarding state for Place the Cards
@@ -377,6 +460,13 @@ class _EmbeddedPlaceCardsAppState extends State<EmbeddedPlaceCardsApp> {
   late PlaceCardsState _state;
   bool _showProfile = false;
   bool _showLevelSelect = false;
+  bool _showStore = false;
+  bool _showChat = false;
+
+  // Chat message state
+  final TextEditingController _chatController = TextEditingController();
+  final List<Map<String, dynamic>> _chatMessages = [];
+  bool _chatInitialized = false;
 
   static const Color _appColor = Color(0xFF3B7DD8);
 
@@ -386,6 +476,49 @@ class _EmbeddedPlaceCardsAppState extends State<EmbeddedPlaceCardsApp> {
     _state = widget.tosAccepted
         ? PlaceCardsState.playing
         : PlaceCardsState.loading;
+  }
+
+  @override
+  void dispose() {
+    _chatController.dispose();
+    super.dispose();
+  }
+
+  void _initChatMessages() {
+    if (_chatInitialized) return;
+    _chatInitialized = true;
+    _chatMessages.addAll([
+      {
+        'sender': 'CardMaster_99',
+        'message': 'hey everyone! just beat level 5 🎉',
+        'time': '2m ago',
+        'isMe': false,
+      },
+      {
+        'sender': 'PuzzlePro',
+        'message': 'nice! that one took me forever',
+        'time': '1m ago',
+        'isMe': false,
+      },
+      {
+        'sender': 'CardMaster_99',
+        'message': 'the shapes category is tricky',
+        'time': '1m ago',
+        'isMe': false,
+      },
+      {
+        'sender': 'NewPlayer42',
+        'message': 'any tips for beginners?',
+        'time': '30s ago',
+        'isMe': false,
+      },
+      {
+        'sender': 'PuzzlePro',
+        'message': 'focus on one category at a time!',
+        'time': 'just now',
+        'isMe': false,
+      },
+    ]);
   }
 
   @override
@@ -418,6 +551,13 @@ class _EmbeddedPlaceCardsAppState extends State<EmbeddedPlaceCardsApp> {
         if (_showLevelSelect) {
           return _buildLevelSelectScreen();
         }
+        if (_showStore) {
+          return _buildStoreScreen();
+        }
+        if (_showChat) {
+          _initChatMessages();
+          return _buildChatScreen();
+        }
         return _PlaceCardsGame(
           currentLevel: widget.gameState.currentLevel,
           onBack: widget.onBack,
@@ -441,8 +581,596 @@ class _EmbeddedPlaceCardsAppState extends State<EmbeddedPlaceCardsApp> {
           },
           onOpenProfile: () => setState(() => _showProfile = true),
           onOpenLevelSelect: () => setState(() => _showLevelSelect = true),
+          onOpenStore: () => setState(() => _showStore = true),
+          onOpenChat: () => setState(() => _showChat = true),
+          completedLevels: widget.gameState.completedLevels,
         );
     }
+  }
+
+  Widget _buildStoreScreen() {
+    return Container(
+      color: NunuColors.backgroundDefault,
+      child: Column(
+        children: [
+          PhoneAppBar(
+            title: 'store',
+            onBack: () => setState(() => _showStore = false),
+            backgroundColor: Colors.amber.withOpacity(0.3),
+          ),
+          // Coins display
+          Container(
+            padding: const EdgeInsets.all(12),
+            color: NunuColors.backgroundPaper.withOpacity(0.5),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: NunuColors.backgroundPaper,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(
+                        Icons.monetization_on,
+                        color: Colors.amber,
+                        size: 18,
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        '850',
+                        style: TextStyle(
+                          color: Colors.amber,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                const Text(
+                  'themes',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'customize your game board',
+                  style: TextStyle(
+                    color: NunuColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildStoreItem(
+                  'Ocean Breeze',
+                  'relaxing blue theme',
+                  '200 coins',
+                  Icons.waves,
+                  Colors.blue,
+                ),
+                _buildStoreItem(
+                  'Forest Glade',
+                  'nature-inspired greens',
+                  '200 coins',
+                  Icons.forest,
+                  Colors.green,
+                ),
+                _buildStoreItem(
+                  'Sunset Glow',
+                  'warm orange tones',
+                  '250 coins',
+                  Icons.wb_twilight,
+                  Colors.orange,
+                ),
+                _buildStoreItem(
+                  'Midnight',
+                  'sleek dark purple',
+                  '300 coins',
+                  Icons.nightlight,
+                  Colors.purple,
+                  isPremium: true,
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'card backs',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'style your cards',
+                  style: TextStyle(
+                    color: NunuColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildStoreItem(
+                  'Classic Pattern',
+                  'traditional card back',
+                  '100 coins',
+                  Icons.pattern,
+                  Colors.grey,
+                ),
+                _buildStoreItem(
+                  'Starry Night',
+                  'twinkling stars design',
+                  '150 coins',
+                  Icons.star,
+                  Colors.indigo,
+                ),
+                _buildStoreItem(
+                  'Geometric',
+                  'modern shapes',
+                  '150 coins',
+                  Icons.hexagon,
+                  Colors.teal,
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'power-ups',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'helpful items for tough levels',
+                  style: TextStyle(
+                    color: NunuColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildStoreItem(
+                  'Hint x3',
+                  'reveals a matching pair',
+                  '50 coins',
+                  Icons.lightbulb,
+                  Colors.yellow,
+                ),
+                _buildStoreItem(
+                  'Time Freeze x2',
+                  'pauses timer for 30 seconds',
+                  '75 coins',
+                  Icons.timer_off,
+                  Colors.cyan,
+                ),
+                _buildStoreItem(
+                  'Shuffle x3',
+                  'rearranges all cards',
+                  '40 coins',
+                  Icons.shuffle,
+                  Colors.pink,
+                ),
+                const SizedBox(height: 24),
+                // Info about earning coins
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: NunuColors.backgroundPaper,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: const [
+                          Icon(
+                            Icons.info_outline,
+                            color: Colors.amber,
+                            size: 18,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'how to earn coins',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        '• Complete levels to earn coins\n'
+                        '• Daily login bonus: 25 coins\n'
+                        '• Beat your high score: bonus coins\n'
+                        '• Complete all levels: 500 coin reward',
+                        style: TextStyle(
+                          color: NunuColors.textSecondary,
+                          fontSize: 12,
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStoreItem(
+    String name,
+    String description,
+    String price,
+    IconData icon,
+    Color color, {
+    bool isPremium = false,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: NunuColors.backgroundPaper,
+        borderRadius: BorderRadius.circular(12),
+        border: isPremium ? Border.all(color: Colors.amber, width: 2) : null,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (isPremium) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.amber,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'NEW',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                Text(
+                  description,
+                  style: const TextStyle(
+                    color: NunuColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {},
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.amber,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+            child: Text(
+              price,
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChatScreen() {
+    final chatUnlocked = widget.gameState.completedLevels >= 1;
+
+    return Container(
+      color: NunuColors.backgroundDefault,
+      child: Column(
+        children: [
+          PhoneAppBar(
+            title: 'community chat',
+            onBack: () => setState(() => _showChat = false),
+            backgroundColor: _appColor.withOpacity(0.3),
+          ),
+          if (!chatUnlocked) ...[
+            Expanded(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: NunuColors.backgroundPaper,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.lock_outline,
+                          color: NunuColors.textSecondary,
+                          size: 40,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        'chat locked',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'complete level 1 to unlock the community chat and connect with other players!',
+                        style: TextStyle(
+                          color: NunuColors.textSecondary,
+                          fontSize: 14,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 32),
+                      ElevatedButton.icon(
+                        onPressed: () => setState(() => _showChat = false),
+                        icon: const Icon(Icons.play_arrow),
+                        label: const Text('play now'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _appColor,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ] else ...[
+            // Online users indicator
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: NunuColors.backgroundPaper,
+              child: Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: Colors.green,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    '247 players online',
+                    style: TextStyle(
+                      color: NunuColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () {},
+                    child: const Icon(
+                      Icons.flag_outlined,
+                      color: NunuColors.textSecondary,
+                      size: 18,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Chat messages
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _chatMessages.length,
+                itemBuilder: (context, index) {
+                  final msg = _chatMessages[index];
+                  final isMe = msg['isMe'] == true;
+                  return _buildChatMessage(
+                    msg['sender'] as String,
+                    msg['message'] as String,
+                    msg['time'] as String,
+                    isMe,
+                  );
+                },
+              ),
+            ),
+            // Message input
+            Container(
+              padding: const EdgeInsets.all(12),
+              color: NunuColors.backgroundPaper,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _chatController,
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: 'type a message...',
+                        hintStyle: const TextStyle(
+                          color: NunuColors.textSecondary,
+                        ),
+                        filled: true,
+                        fillColor: NunuColors.backgroundDefault,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () {
+                      if (_chatController.text.trim().isNotEmpty) {
+                        setState(() {
+                          _chatMessages.add({
+                            'sender': 'You',
+                            'message': _chatController.text.trim(),
+                            'time': 'just now',
+                            'isMe': true,
+                          });
+                          _chatController.clear();
+                        });
+                      }
+                    },
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: _appColor,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.send,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChatMessage(
+    String sender,
+    String message,
+    String time,
+    bool isMe,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: isMe
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
+        children: [
+          if (!isMe) ...[
+            CircleAvatar(
+              radius: 16,
+              backgroundColor: _appColor.withOpacity(0.3),
+              child: Text(
+                sender[0].toUpperCase(),
+                style: TextStyle(
+                  color: _appColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isMe ? _appColor : NunuColors.backgroundPaper,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (!isMe)
+                    Text(
+                      sender,
+                      style: TextStyle(
+                        color: _appColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  Text(
+                    message,
+                    style: TextStyle(
+                      color: isMe ? Colors.white : Colors.white,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    time,
+                    style: TextStyle(
+                      color: isMe ? Colors.white70 : NunuColors.textSecondary,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (isMe) const SizedBox(width: 8),
+        ],
+      ),
+    );
   }
 
   Widget _buildLevelSelectScreen() {
@@ -801,6 +1529,9 @@ class _PlaceCardsGame extends StatefulWidget {
   final Function(int levelNum) onComplete;
   final VoidCallback? onOpenProfile;
   final VoidCallback? onOpenLevelSelect;
+  final VoidCallback? onOpenStore;
+  final VoidCallback? onOpenChat;
+  final int completedLevels;
 
   const _PlaceCardsGame({
     Key? key,
@@ -809,6 +1540,9 @@ class _PlaceCardsGame extends StatefulWidget {
     required this.onComplete,
     this.onOpenProfile,
     this.onOpenLevelSelect,
+    this.onOpenStore,
+    this.onOpenChat,
+    this.completedLevels = 0,
   }) : super(key: key);
 
   @override
@@ -905,15 +1639,60 @@ class _PlaceCardsGameState extends State<_PlaceCardsGame> {
             onBack: widget.onBack,
             backgroundColor: _appColor.withOpacity(0.3),
             actions: [
+              if (widget.onOpenStore != null)
+                IconButton(
+                  icon: const Icon(Icons.store, color: Colors.amber),
+                  onPressed: widget.onOpenStore,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 36),
+                ),
+              if (widget.onOpenChat != null)
+                Stack(
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        Icons.chat_bubble_outline,
+                        color: widget.completedLevels >= 1
+                            ? Colors.white
+                            : Colors.white.withOpacity(0.4),
+                      ),
+                      onPressed: widget.onOpenChat,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 36),
+                    ),
+                    if (widget.completedLevels < 1)
+                      Positioned(
+                        right: 6,
+                        top: 6,
+                        child: Container(
+                          width: 12,
+                          height: 12,
+                          decoration: const BoxDecoration(
+                            color: NunuColors.backgroundPaper,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.lock,
+                            size: 8,
+                            color: NunuColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               if (widget.onOpenLevelSelect != null)
                 IconButton(
                   icon: const Icon(Icons.grid_view, color: Colors.white),
                   onPressed: widget.onOpenLevelSelect,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 36),
                 ),
               if (widget.onOpenProfile != null)
                 IconButton(
                   icon: const Icon(Icons.person, color: Colors.white),
                   onPressed: widget.onOpenProfile,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 36),
                 ),
             ],
           ),

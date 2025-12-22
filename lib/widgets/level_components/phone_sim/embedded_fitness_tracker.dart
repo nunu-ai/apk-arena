@@ -154,6 +154,9 @@ class EmbeddedFitnessTrackerApp extends StatefulWidget {
   final FitnessTrackerData data;
   final Function(FitnessTrackerData) onDataChanged;
 
+  /// Callback to open URLs in browser
+  final Function(String url)? onOpenBrowser;
+
   const EmbeddedFitnessTrackerApp({
     Key? key,
     required this.onBack,
@@ -161,6 +164,7 @@ class EmbeddedFitnessTrackerApp extends StatefulWidget {
     required this.onTosAccepted,
     required this.data,
     required this.onDataChanged,
+    this.onOpenBrowser,
   }) : super(key: key);
 
   @override
@@ -430,25 +434,138 @@ class _EmbeddedFitnessTrackerAppState extends State<EmbeddedFitnessTrackerApp> {
                 ],
               ),
             ),
-            const SizedBox(height: 8),
-            // ToS content
+            const SizedBox(height: 16),
+            // Legal document info
             Expanded(
-              child: Container(
-                margin: const EdgeInsets.all(16),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: NunuColors.backgroundPaper,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: SingleChildScrollView(
-                  child: Text(
-                    fitnessTrackerTos,
-                    style: const TextStyle(
-                      color: NunuColors.textSecondary,
-                      fontSize: 12,
-                      height: 1.5,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 24),
+                    // Icon
+                    Center(
+                      child: Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: _appColor.withOpacity(0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.description_outlined,
+                          color: _appColor,
+                          size: 40,
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 24),
+                    const Center(
+                      child: Text(
+                        'terms of service',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Center(
+                      child: Text(
+                        'please review and accept our terms of service to continue using FitTrack Pro.',
+                        style: TextStyle(
+                          color: NunuColors.textSecondary,
+                          fontSize: 14,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    // Link to full ToS
+                    GestureDetector(
+                      onTap: () {
+                        widget.onOpenBrowser?.call('fittrack-pro.com/terms-of-service');
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: NunuColors.backgroundPaper,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _appColor.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.open_in_new, color: _appColor, size: 20),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'read full terms of service',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  Text(
+                                    'fittrack-pro.com/terms-of-service',
+                                    style: TextStyle(
+                                      color: NunuColors.textSecondary,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(
+                              Icons.chevron_right,
+                              color: NunuColors.textSecondary,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Summary box
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: NunuColors.backgroundPaper,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'key points:',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(height: 12),
+                          Text(
+                            '• You must be at least 16 years old\n'
+                            '• One account per person\n'
+                            '• Keep your credentials secure\n'
+                            '• This is not medical advice\n'
+                            '• We may update these terms',
+                            style: TextStyle(
+                              color: NunuColors.textSecondary,
+                              fontSize: 13,
+                              height: 1.6,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -560,25 +677,138 @@ class _EmbeddedFitnessTrackerAppState extends State<EmbeddedFitnessTrackerApp> {
                 ],
               ),
             ),
-            const SizedBox(height: 8),
-            // Privacy content
+            const SizedBox(height: 16),
+            // Legal document info
             Expanded(
-              child: Container(
-                margin: const EdgeInsets.all(16),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: NunuColors.backgroundPaper,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: SingleChildScrollView(
-                  child: Text(
-                    fitnessTrackerPrivacy,
-                    style: const TextStyle(
-                      color: NunuColors.textSecondary,
-                      fontSize: 12,
-                      height: 1.5,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 24),
+                    // Icon
+                    Center(
+                      child: Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: _appColor.withOpacity(0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.privacy_tip_outlined,
+                          color: _appColor,
+                          size: 40,
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 24),
+                    const Center(
+                      child: Text(
+                        'privacy policy',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Center(
+                      child: Text(
+                        'please review how we collect, use, and protect your personal information.',
+                        style: TextStyle(
+                          color: NunuColors.textSecondary,
+                          fontSize: 14,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    // Link to full Privacy Policy
+                    GestureDetector(
+                      onTap: () {
+                        widget.onOpenBrowser?.call('fittrack-pro.com/privacy-policy');
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: NunuColors.backgroundPaper,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _appColor.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.open_in_new, color: _appColor, size: 20),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'read full privacy policy',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  Text(
+                                    'fittrack-pro.com/privacy-policy',
+                                    style: TextStyle(
+                                      color: NunuColors.textSecondary,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(
+                              Icons.chevron_right,
+                              color: NunuColors.textSecondary,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Summary box
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: NunuColors.backgroundPaper,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'what we collect:',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(height: 12),
+                          Text(
+                            '• Personal info (name, email)\n'
+                            '• Fitness & health data\n'
+                            '• Device information\n'
+                            '• Usage analytics\n'
+                            '• Third-party integrations',
+                            style: TextStyle(
+                              color: NunuColors.textSecondary,
+                              fontSize: 13,
+                              height: 1.6,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
