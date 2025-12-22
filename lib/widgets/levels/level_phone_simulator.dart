@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
+import '../../theme/app_theme.dart';
 import '../level_components/phone_sim/phone_homescreen.dart';
 import '../level_components/phone_sim/play_store.dart';
 import '../level_components/phone_sim/play_store_data.dart';
 import '../level_components/phone_sim/stub_apps.dart';
 import '../level_components/phone_sim/embedded_place_cards.dart';
 import '../level_components/phone_sim/embedded_mega_merge.dart';
+import '../level_components/phone_sim/embedded_fitness_tracker.dart';
 import '../level_components/phone_sim/checklist_app.dart';
 
 /// The active app/screen being displayed
@@ -22,12 +24,104 @@ enum ActiveScreen {
   browser,
   placeTheCards,
   megaMerge,
+  fitnessTracker,
   checklist,
   genericApp,
 }
 
+/// Game state for Mega Merge (persists across uninstall/reinstall)
+class MegaMergeGameState {
+  final int currentLevel;
+  final int highestTier;
+  final int totalMerges;
+
+  const MegaMergeGameState({
+    this.currentLevel = 2, // Start at level 2 (requires tier 3)
+    this.highestTier = 0,
+    this.totalMerges = 0,
+  });
+
+  MegaMergeGameState copyWith({
+    int? currentLevel,
+    int? highestTier,
+    int? totalMerges,
+  }) {
+    return MegaMergeGameState(
+      currentLevel: currentLevel ?? this.currentLevel,
+      highestTier: highestTier ?? this.highestTier,
+      totalMerges: totalMerges ?? this.totalMerges,
+    );
+  }
+}
+
+/// Game state for Place the Cards (clears on uninstall)
+class PlaceCardsGameState {
+  final int currentLevel;
+  final int completedLevels;
+  final int highScore;
+
+  const PlaceCardsGameState({
+    this.currentLevel = 1,
+    this.completedLevels = 0,
+    this.highScore = 0,
+  });
+
+  PlaceCardsGameState copyWith({
+    int? currentLevel,
+    int? completedLevels,
+    int? highScore,
+  }) {
+    return PlaceCardsGameState(
+      currentLevel: currentLevel ?? this.currentLevel,
+      completedLevels: completedLevels ?? this.completedLevels,
+      highScore: highScore ?? this.highScore,
+    );
+  }
+}
+
+/// Fitness Tracker data (persists ALWAYS - tied to device ID, no delete option)
+class FitnessTrackerData {
+  final String? userName;
+  final String? userEmail;
+  final int totalSteps;
+  final int totalWorkouts;
+  final int streakDays;
+  final List<String> achievements;
+  final bool onboardingComplete;
+
+  const FitnessTrackerData({
+    this.userName,
+    this.userEmail,
+    this.totalSteps = 0,
+    this.totalWorkouts = 0,
+    this.streakDays = 0,
+    this.achievements = const [],
+    this.onboardingComplete = false,
+  });
+
+  FitnessTrackerData copyWith({
+    String? userName,
+    String? userEmail,
+    int? totalSteps,
+    int? totalWorkouts,
+    int? streakDays,
+    List<String>? achievements,
+    bool? onboardingComplete,
+  }) {
+    return FitnessTrackerData(
+      userName: userName ?? this.userName,
+      userEmail: userEmail ?? this.userEmail,
+      totalSteps: totalSteps ?? this.totalSteps,
+      totalWorkouts: totalWorkouts ?? this.totalWorkouts,
+      streakDays: streakDays ?? this.streakDays,
+      achievements: achievements ?? this.achievements,
+      onboardingComplete: onboardingComplete ?? this.onboardingComplete,
+    );
+  }
+}
+
 /// Main Phone Simulator Level
-/// 
+///
 /// This level presents a fake phone homescreen with multiple apps.
 /// The player must:
 /// 1. Explore the Play Store and install apps
@@ -36,7 +130,7 @@ enum ActiveScreen {
 /// 4. Answer checklist questions about what they discovered
 class LevelPhoneSimulator extends LevelWidget {
   const LevelPhoneSimulator({Key? key, required super.onComplete})
-      : super(key: key);
+    : super(key: key);
 
   @override
   State<LevelPhoneSimulator> createState() => _LevelPhoneSimulatorState();
@@ -47,19 +141,28 @@ class _LevelPhoneSimulatorState extends State<LevelPhoneSimulator> {
   ActiveScreen _currentScreen = ActiveScreen.homescreen;
   String? _genericAppId;
 
+  // Play Store deep-link support - navigate directly to a specific app
+  String? _playStoreInitialAppId;
+
   // Installed apps (by ID)
   final Set<String> _installedApps = {};
 
   // Special app states
   bool _megaMergeUpdated = false;
   bool _placeCardsTosAccepted = false;
-  bool _megaMergeTosAccepted = false;
+  bool _megaMergeTosAccepted = true; // Pre-accepted for this level
   bool _megaMergeAgeVerified = false;
+  bool _fitnessTrackerTosAccepted = false;
+
+  // Game-specific data (persists based on app behavior)
+  MegaMergeGameState _megaMergeGameState = const MegaMergeGameState();
+  PlaceCardsGameState _placeCardsGameState = const PlaceCardsGameState();
+  FitnessTrackerData _fitnessTrackerData = const FitnessTrackerData();
 
   // Checklist answers
   final Map<String, bool?> _checklistAnswers = {};
 
-  // System apps always present on homescreen
+  // System apps always present on homescreen (cannot be uninstalled)
   static const List<PhoneApp> _systemApps = [
     PhoneApp(
       id: 'settings',
@@ -117,15 +220,6 @@ class _LevelPhoneSimulatorState extends State<LevelPhoneSimulator> {
       color: Color(0xFFFF9800),
       isSystemApp: true,
     ),
-    // Mega Merge is pre-installed but needs update
-    PhoneApp(
-      id: 'mega_merge',
-      name: 'Mega Merge',
-      icon: Icons.merge_type,
-      color: Color(0xFF9C27B0),
-      isSystemApp: false,
-      requiresUpdate: true,
-    ),
   ];
 
   // Dock apps
@@ -181,12 +275,18 @@ class _LevelPhoneSimulatorState extends State<LevelPhoneSimulator> {
       // Find the app in store data
       final storeApp = allStoreApps.where((a) => a.id == appId).firstOrNull;
       if (storeApp != null) {
-        apps.add(PhoneApp(
-          id: storeApp.id,
-          name: storeApp.name,
-          icon: storeApp.icon,
-          color: storeApp.color,
-        ));
+        // Special handling for Mega Merge - show update required badge if not updated
+        final requiresUpdate = appId == 'mega_merge' && !_megaMergeUpdated;
+        apps.add(
+          PhoneApp(
+            id: storeApp.id,
+            name: storeApp.name,
+            icon: storeApp.icon,
+            color: storeApp.color,
+            isSystemApp: false,
+            requiresUpdate: requiresUpdate,
+          ),
+        );
       }
     }
 
@@ -232,6 +332,9 @@ class _LevelPhoneSimulatorState extends State<LevelPhoneSimulator> {
         case 'mega_merge':
           _currentScreen = ActiveScreen.megaMerge;
           break;
+        case 'fitness_tracker':
+          _currentScreen = ActiveScreen.fitnessTracker;
+          break;
         default:
           _genericAppId = app.id;
           _currentScreen = ActiveScreen.genericApp;
@@ -243,6 +346,16 @@ class _LevelPhoneSimulatorState extends State<LevelPhoneSimulator> {
     setState(() {
       _currentScreen = ActiveScreen.homescreen;
       _genericAppId = null;
+      _playStoreInitialAppId = null;
+    });
+  }
+
+  /// Navigate to Play Store and open directly to a specific app's page
+  /// This is a reusable feature for any embedded app that needs to link to the store
+  void _openPlayStoreForApp(String appId) {
+    setState(() {
+      _playStoreInitialAppId = appId;
+      _currentScreen = ActiveScreen.playStore;
     });
   }
 
@@ -276,6 +389,92 @@ class _LevelPhoneSimulatorState extends State<LevelPhoneSimulator> {
     }
   }
 
+  void _uninstallApp(String appId) {
+    setState(() {
+      _installedApps.remove(appId);
+
+      // Handle data persistence based on app type
+      if (appId == 'place_the_cards') {
+        // Place the Cards: clear all data on uninstall
+        _placeCardsTosAccepted = false;
+        _placeCardsGameState = const PlaceCardsGameState();
+      }
+      // Mega Merge and Fitness Tracker: data persists across uninstall
+      // (no data clearing here)
+    });
+
+    final appInfo = allStoreApps.where((a) => a.id == appId).firstOrNull;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${appInfo?.name ?? 'App'} uninstalled'),
+        backgroundColor: NunuColors.textSecondary,
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
+  void _showUninstallDialog(PhoneApp app) {
+    if (app.isSystemApp) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('System apps cannot be uninstalled'),
+          backgroundColor: NunuColors.errorMain,
+          duration: Duration(seconds: 1),
+        ),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: NunuColors.backgroundPaper,
+        title: Text(
+          'Uninstall ${app.name}?',
+          style: const TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          'Do you want to uninstall this app?',
+          style: TextStyle(color: NunuColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: NunuColors.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _uninstallApp(app.id);
+            },
+            child: const Text(
+              'Uninstall',
+              style: TextStyle(color: NunuColors.errorMain),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _clearMegaMergeData() {
+    setState(() {
+      _megaMergeGameState = const MegaMergeGameState();
+      _megaMergeTosAccepted = true; // Keep ToS accepted but clear game progress
+      _megaMergeAgeVerified = false;
+    });
+  }
+
+  void _clearPlaceCardsData() {
+    setState(() {
+      _placeCardsGameState = const PlaceCardsGameState();
+      _placeCardsTosAccepted = false;
+    });
+  }
+
   void _onChecklistSubmit(bool allCorrect) {
     if (allCorrect) {
       // Level complete!
@@ -295,6 +494,7 @@ class _LevelPhoneSimulatorState extends State<LevelPhoneSimulator> {
           installedApps: _homescreenApps,
           dockApps: _dockApps,
           onAppTap: _openApp,
+          onAppLongPress: _showUninstallDialog,
         );
 
       case ActiveScreen.playStore:
@@ -303,7 +503,9 @@ class _LevelPhoneSimulatorState extends State<LevelPhoneSimulator> {
           megaMergeUpdated: _megaMergeUpdated,
           onInstallApp: _installApp,
           onUpdateApp: _updateApp,
+          onUninstallApp: _uninstallApp,
           onBack: _goHome,
+          initialAppId: _playStoreInitialAppId,
         );
 
       case ActiveScreen.settings:
@@ -337,6 +539,11 @@ class _LevelPhoneSimulatorState extends State<LevelPhoneSimulator> {
           onTosAccepted: (accepted) {
             setState(() => _placeCardsTosAccepted = accepted);
           },
+          gameState: _placeCardsGameState,
+          onGameStateChanged: (state) {
+            setState(() => _placeCardsGameState = state);
+          },
+          onClearData: _clearPlaceCardsData,
         );
 
       case ActiveScreen.megaMerge:
@@ -350,6 +557,25 @@ class _LevelPhoneSimulatorState extends State<LevelPhoneSimulator> {
           },
           onAgeVerified: (verified) {
             setState(() => _megaMergeAgeVerified = verified);
+          },
+          gameState: _megaMergeGameState,
+          onGameStateChanged: (state) {
+            setState(() => _megaMergeGameState = state);
+          },
+          onClearData: _clearMegaMergeData,
+          onNavigateToPlayStore: _openPlayStoreForApp,
+        );
+
+      case ActiveScreen.fitnessTracker:
+        return EmbeddedFitnessTrackerApp(
+          onBack: _goHome,
+          tosAccepted: _fitnessTrackerTosAccepted,
+          onTosAccepted: (accepted) {
+            setState(() => _fitnessTrackerTosAccepted = accepted);
+          },
+          data: _fitnessTrackerData,
+          onDataChanged: (data) {
+            setState(() => _fitnessTrackerData = data);
           },
         );
 
@@ -367,7 +593,9 @@ class _LevelPhoneSimulatorState extends State<LevelPhoneSimulator> {
 
       case ActiveScreen.genericApp:
         // Find the app info
-        final appInfo = allStoreApps.where((a) => a.id == _genericAppId).firstOrNull;
+        final appInfo = allStoreApps
+            .where((a) => a.id == _genericAppId)
+            .firstOrNull;
         return StubApp(
           title: appInfo?.name ?? 'App',
           icon: appInfo?.icon ?? Icons.apps,
@@ -377,4 +605,3 @@ class _LevelPhoneSimulatorState extends State<LevelPhoneSimulator> {
     }
   }
 }
-

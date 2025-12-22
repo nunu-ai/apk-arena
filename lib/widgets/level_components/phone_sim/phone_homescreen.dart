@@ -25,6 +25,7 @@ class PhoneHomescreen extends StatelessWidget {
   final List<PhoneApp> installedApps;
   final List<PhoneApp> dockApps;
   final Function(PhoneApp) onAppTap;
+  final Function(PhoneApp)? onAppLongPress;
   final VoidCallback? onBackgroundTap;
 
   const PhoneHomescreen({
@@ -32,6 +33,7 @@ class PhoneHomescreen extends StatelessWidget {
     required this.installedApps,
     required this.dockApps,
     required this.onAppTap,
+    this.onAppLongPress,
     this.onBackgroundTap,
   }) : super(key: key);
 
@@ -42,11 +44,7 @@ class PhoneHomescreen extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF1a1a2e),
-            Color(0xFF16213e),
-            Color(0xFF0f3460),
-          ],
+          colors: [Color(0xFF1a1a2e), Color(0xFF16213e), Color(0xFF0f3460)],
         ),
       ),
       child: SafeArea(
@@ -87,7 +85,11 @@ class PhoneHomescreen extends StatelessWidget {
           ),
           Row(
             children: [
-              const Icon(Icons.signal_cellular_4_bar, color: Colors.white, size: 16),
+              const Icon(
+                Icons.signal_cellular_4_bar,
+                color: Colors.white,
+                size: 16,
+              ),
               const SizedBox(width: 4),
               const Icon(Icons.wifi, color: Colors.white, size: 16),
               const SizedBox(width: 4),
@@ -126,6 +128,7 @@ class PhoneHomescreen extends StatelessWidget {
   Widget _buildAppIcon(PhoneApp app) {
     return GestureDetector(
       onTap: () => onAppTap(app),
+      onLongPress: onAppLongPress != null ? () => onAppLongPress!(app) : null,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -143,11 +146,7 @@ class PhoneHomescreen extends StatelessWidget {
                 ),
               ],
             ),
-            child: Icon(
-              app.icon,
-              color: Colors.white,
-              size: 28,
-            ),
+            child: Icon(app.icon, color: Colors.white, size: 28),
           ),
           const SizedBox(height: 6),
           Text(
@@ -173,16 +172,16 @@ class PhoneHomescreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.15),
         borderRadius: BorderRadius.circular(32),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.2),
-          width: 1,
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: dockApps.map((app) {
           return GestureDetector(
             onTap: () => onAppTap(app),
+            onLongPress: onAppLongPress != null
+                ? () => onAppLongPress!(app)
+                : null,
             child: Container(
               width: 52,
               height: 52,
@@ -190,11 +189,7 @@ class PhoneHomescreen extends StatelessWidget {
                 color: app.color,
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(
-                app.icon,
-                color: Colors.white,
-                size: 26,
-              ),
+              child: Icon(app.icon, color: Colors.white, size: 26),
             ),
           );
         }).toList(),
@@ -248,4 +243,3 @@ class PhoneAppBar extends StatelessWidget {
     );
   }
 }
-

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../theme/app_theme.dart';
 import 'game_onboarding.dart';
 import 'phone_homescreen.dart';
+import '../../levels/level_phone_simulator.dart';
 
 /// Terms of Service content for Place the Cards
-/// Note: Contains hidden clause about age 13+ but NO age gate popup
 const String placeCardsTos = '''
 PLACE THE CARDS - TERMS OF SERVICE
 
@@ -111,18 +112,251 @@ For privacy inquiries: privacy@cardmastergames.com
 ''';
 
 /// Onboarding state for Place the Cards
-enum PlaceCardsState {
-  loading,
-  tos,
-  playing,
+enum PlaceCardsState { loading, tos, playing }
+
+/// Card category for matching
+enum CardCategory { animals, fruits, colors, shapes, sports }
+
+/// A card in the matching game
+class MatchCard {
+  final String id;
+  final String label;
+  final CardCategory category;
+  final IconData icon;
+
+  const MatchCard({
+    required this.id,
+    required this.label,
+    required this.category,
+    required this.icon,
+  });
 }
 
-/// Embedded Place the Cards game with full onboarding
+/// Level definition
+class LevelConfig {
+  final int levelNumber;
+  final List<CardCategory> categories;
+  final int cardsPerCategory;
+  final String description;
+
+  const LevelConfig({
+    required this.levelNumber,
+    required this.categories,
+    required this.cardsPerCategory,
+    required this.description,
+  });
+
+  int get totalCards => categories.length * cardsPerCategory;
+}
+
+/// All available cards by category
+const Map<CardCategory, List<MatchCard>> allCards = {
+  CardCategory.animals: [
+    MatchCard(
+      id: 'cat',
+      label: 'Cat',
+      category: CardCategory.animals,
+      icon: Icons.pets,
+    ),
+    MatchCard(
+      id: 'dog',
+      label: 'Dog',
+      category: CardCategory.animals,
+      icon: Icons.cruelty_free,
+    ),
+    MatchCard(
+      id: 'bird',
+      label: 'Bird',
+      category: CardCategory.animals,
+      icon: Icons.flutter_dash,
+    ),
+    MatchCard(
+      id: 'fish',
+      label: 'Fish',
+      category: CardCategory.animals,
+      icon: Icons.water,
+    ),
+  ],
+  CardCategory.fruits: [
+    MatchCard(
+      id: 'apple',
+      label: 'Apple',
+      category: CardCategory.fruits,
+      icon: Icons.apple,
+    ),
+    MatchCard(
+      id: 'cherry',
+      label: 'Cherry',
+      category: CardCategory.fruits,
+      icon: Icons.local_dining,
+    ),
+    MatchCard(
+      id: 'banana',
+      label: 'Banana',
+      category: CardCategory.fruits,
+      icon: Icons.breakfast_dining,
+    ),
+    MatchCard(
+      id: 'grape',
+      label: 'Grape',
+      category: CardCategory.fruits,
+      icon: Icons.eco,
+    ),
+  ],
+  CardCategory.colors: [
+    MatchCard(
+      id: 'red',
+      label: 'Red',
+      category: CardCategory.colors,
+      icon: Icons.circle,
+    ),
+    MatchCard(
+      id: 'blue',
+      label: 'Blue',
+      category: CardCategory.colors,
+      icon: Icons.circle,
+    ),
+    MatchCard(
+      id: 'green',
+      label: 'Green',
+      category: CardCategory.colors,
+      icon: Icons.circle,
+    ),
+    MatchCard(
+      id: 'yellow',
+      label: 'Yellow',
+      category: CardCategory.colors,
+      icon: Icons.circle,
+    ),
+  ],
+  CardCategory.shapes: [
+    MatchCard(
+      id: 'square',
+      label: 'Square',
+      category: CardCategory.shapes,
+      icon: Icons.square,
+    ),
+    MatchCard(
+      id: 'circle',
+      label: 'Circle',
+      category: CardCategory.shapes,
+      icon: Icons.circle_outlined,
+    ),
+    MatchCard(
+      id: 'triangle',
+      label: 'Triangle',
+      category: CardCategory.shapes,
+      icon: Icons.change_history,
+    ),
+    MatchCard(
+      id: 'star',
+      label: 'Star',
+      category: CardCategory.shapes,
+      icon: Icons.star,
+    ),
+  ],
+  CardCategory.sports: [
+    MatchCard(
+      id: 'soccer',
+      label: 'Soccer',
+      category: CardCategory.sports,
+      icon: Icons.sports_soccer,
+    ),
+    MatchCard(
+      id: 'basketball',
+      label: 'Basketball',
+      category: CardCategory.sports,
+      icon: Icons.sports_basketball,
+    ),
+    MatchCard(
+      id: 'tennis',
+      label: 'Tennis',
+      category: CardCategory.sports,
+      icon: Icons.sports_tennis,
+    ),
+    MatchCard(
+      id: 'golf',
+      label: 'Golf',
+      category: CardCategory.sports,
+      icon: Icons.golf_course,
+    ),
+  ],
+};
+
+/// Level configurations
+const List<LevelConfig> levels = [
+  LevelConfig(
+    levelNumber: 1,
+    categories: [CardCategory.animals],
+    cardsPerCategory: 2,
+    description: 'match 2 animals',
+  ),
+  LevelConfig(
+    levelNumber: 2,
+    categories: [CardCategory.animals, CardCategory.fruits],
+    cardsPerCategory: 1,
+    description: 'match animals & fruits',
+  ),
+  LevelConfig(
+    levelNumber: 3,
+    categories: [CardCategory.animals, CardCategory.fruits],
+    cardsPerCategory: 2,
+    description: 'more cards!',
+  ),
+  LevelConfig(
+    levelNumber: 4,
+    categories: [CardCategory.colors, CardCategory.shapes],
+    cardsPerCategory: 2,
+    description: 'colors & shapes',
+  ),
+  LevelConfig(
+    levelNumber: 5,
+    categories: [
+      CardCategory.animals,
+      CardCategory.fruits,
+      CardCategory.sports,
+    ],
+    cardsPerCategory: 2,
+    description: 'triple challenge',
+  ),
+  LevelConfig(
+    levelNumber: 6,
+    categories: [
+      CardCategory.animals,
+      CardCategory.fruits,
+      CardCategory.colors,
+      CardCategory.shapes,
+    ],
+    cardsPerCategory: 1,
+    description: 'all categories!',
+  ),
+];
+
+/// Category colors
+Color getCategoryColor(CardCategory category) {
+  switch (category) {
+    case CardCategory.animals:
+      return const Color(0xFF8B5CF6);
+    case CardCategory.fruits:
+      return const Color(0xFFEF4444);
+    case CardCategory.colors:
+      return const Color(0xFF3B82F6);
+    case CardCategory.shapes:
+      return const Color(0xFFF59E0B);
+    case CardCategory.sports:
+      return const Color(0xFF10B981);
+  }
+}
+
+/// Embedded Place the Cards game with simple matching and level system
 class EmbeddedPlaceCardsApp extends StatefulWidget {
   final VoidCallback onBack;
   final VoidCallback? onGameComplete;
   final bool tosAccepted;
   final Function(bool) onTosAccepted;
+  final PlaceCardsGameState gameState;
+  final Function(PlaceCardsGameState) onGameStateChanged;
+  final VoidCallback onClearData;
 
   const EmbeddedPlaceCardsApp({
     Key? key,
@@ -130,6 +364,9 @@ class EmbeddedPlaceCardsApp extends StatefulWidget {
     this.onGameComplete,
     required this.tosAccepted,
     required this.onTosAccepted,
+    required this.gameState,
+    required this.onGameStateChanged,
+    required this.onClearData,
   }) : super(key: key);
 
   @override
@@ -138,11 +375,17 @@ class EmbeddedPlaceCardsApp extends StatefulWidget {
 
 class _EmbeddedPlaceCardsAppState extends State<EmbeddedPlaceCardsApp> {
   late PlaceCardsState _state;
+  bool _showProfile = false;
+  bool _showLevelSelect = false;
+
+  static const Color _appColor = Color(0xFF3B7DD8);
 
   @override
   void initState() {
     super.initState();
-    _state = widget.tosAccepted ? PlaceCardsState.playing : PlaceCardsState.loading;
+    _state = widget.tosAccepted
+        ? PlaceCardsState.playing
+        : PlaceCardsState.loading;
   }
 
   @override
@@ -152,7 +395,7 @@ class _EmbeddedPlaceCardsAppState extends State<EmbeddedPlaceCardsApp> {
         return GameLoadingScreen(
           appName: 'Place the Cards',
           appIcon: Icons.style,
-          appColor: const Color(0xFF3B7DD8),
+          appColor: _appColor,
           onLoadingComplete: () {
             setState(() => _state = PlaceCardsState.tos);
           },
@@ -169,165 +412,301 @@ class _EmbeddedPlaceCardsAppState extends State<EmbeddedPlaceCardsApp> {
           onDecline: widget.onBack,
         );
       case PlaceCardsState.playing:
+        if (_showProfile) {
+          return _buildProfileScreen();
+        }
+        if (_showLevelSelect) {
+          return _buildLevelSelectScreen();
+        }
         return _PlaceCardsGame(
+          currentLevel: widget.gameState.currentLevel,
           onBack: widget.onBack,
-          onComplete: widget.onGameComplete,
+          onComplete: (levelNum) {
+            // Update progress
+            final newCompletedLevels =
+                levelNum > widget.gameState.completedLevels
+                ? levelNum
+                : widget.gameState.completedLevels;
+            final nextLevel = levelNum < levels.length
+                ? levelNum + 1
+                : levelNum;
+            widget.onGameStateChanged(
+              widget.gameState.copyWith(
+                currentLevel: nextLevel,
+                completedLevels: newCompletedLevels,
+                highScore: widget.gameState.highScore + 100,
+              ),
+            );
+            widget.onGameComplete?.call();
+          },
+          onOpenProfile: () => setState(() => _showProfile = true),
+          onOpenLevelSelect: () => setState(() => _showLevelSelect = true),
         );
     }
   }
-}
 
-/// Simplified Place the Cards game
-class _PlaceCardsGame extends StatefulWidget {
-  final VoidCallback onBack;
-  final VoidCallback? onComplete;
-
-  const _PlaceCardsGame({
-    Key? key,
-    required this.onBack,
-    this.onComplete,
-  }) : super(key: key);
-
-  @override
-  State<_PlaceCardsGame> createState() => _PlaceCardsGameState();
-}
-
-enum _CardCategory { flowers, pets, food }
-
-class _CardData {
-  final String label;
-  final _CardCategory category;
-  final bool isCategoryCard;
-
-  const _CardData({
-    required this.label,
-    required this.category,
-    this.isCategoryCard = false,
-  });
-}
-
-class _PlaceCardsGameState extends State<_PlaceCardsGame> {
-  // 3 Foundation slots
-  final List<List<_CardData>> _foundations = [[], [], []];
-  
-  // 3 Source stacks
-  late List<List<_CardData>> _stacks;
-  
-  // Deck and waste
-  List<_CardData> _deck = [];
-  List<_CardData> _waste = [];
-  
-  int _completedCategories = 0;
-
-  static const double _cardWidth = 75.0;
-  static const double _cardHeight = 110.0;
-
-  final Map<_CardCategory, Color> _categoryColors = {
-    _CardCategory.flowers: NunuColors.primaryMain,
-    _CardCategory.pets: NunuColors.secondaryMain,
-    _CardCategory.food: NunuColors.successMain,
-  };
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeCards();
-  }
-
-  void _initializeCards() {
-    // Simplified card setup for the embedded game
-    const flowerCat = _CardData(label: 'Flowers', category: _CardCategory.flowers, isCategoryCard: true);
-    const rose = _CardData(label: 'Rose', category: _CardCategory.flowers);
-    const tulip = _CardData(label: 'Tulip', category: _CardCategory.flowers);
-
-    const petsCat = _CardData(label: 'Pets', category: _CardCategory.pets, isCategoryCard: true);
-    const cat = _CardData(label: 'Cat', category: _CardCategory.pets);
-    const dog = _CardData(label: 'Dog', category: _CardCategory.pets);
-
-    const foodCat = _CardData(label: 'Food', category: _CardCategory.food, isCategoryCard: true);
-    const pizza = _CardData(label: 'Pizza', category: _CardCategory.food);
-    const burger = _CardData(label: 'Burger', category: _CardCategory.food);
-
-    // Initial setup
-    _foundations[0] = [flowerCat];
-
-    _stacks = [
-      [rose, pizza],
-      [dog, petsCat],
-      [cat, tulip],
-    ];
-
-    _deck = [burger, foodCat];
-  }
-
-  void _onDeckTap() {
-    setState(() {
-      if (_deck.isNotEmpty) {
-        final card = _deck.removeLast();
-        _waste.add(card);
-      } else if (_waste.isNotEmpty) {
-        _deck.addAll(_waste.reversed);
-        _waste.clear();
-      }
-    });
-  }
-
-  void _checkCompletion() {
-    if (_completedCategories >= 3) {
-      widget.onComplete?.call();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildLevelSelectScreen() {
     return Container(
       color: NunuColors.backgroundDefault,
       child: Column(
         children: [
           PhoneAppBar(
-            title: 'Place the Cards',
-            onBack: widget.onBack,
-            backgroundColor: const Color(0xFF3B7DD8).withOpacity(0.3),
+            title: 'select level',
+            onBack: () => setState(() => _showLevelSelect = false),
+            backgroundColor: _appColor.withOpacity(0.3),
           ),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
+            child: GridView.builder(
+              padding: const EdgeInsets.all(16),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                childAspectRatio: 1,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
+              itemCount: levels.length,
+              itemBuilder: (context, index) {
+                final level = levels[index];
+                final isUnlocked =
+                    level.levelNumber <= widget.gameState.completedLevels + 1;
+                final isCompleted =
+                    level.levelNumber <= widget.gameState.completedLevels;
+                final isCurrent =
+                    level.levelNumber == widget.gameState.currentLevel;
+
+                return GestureDetector(
+                  onTap: isUnlocked
+                      ? () {
+                          widget.onGameStateChanged(
+                            widget.gameState.copyWith(
+                              currentLevel: level.levelNumber,
+                            ),
+                          );
+                          setState(() => _showLevelSelect = false);
+                        }
+                      : null,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isUnlocked
+                          ? NunuColors.backgroundPaper
+                          : NunuColors.backgroundDefault,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isCurrent
+                            ? _appColor
+                            : isCompleted
+                            ? NunuColors.successMain
+                            : Colors.white.withOpacity(0.1),
+                        width: isCurrent ? 3 : 1,
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (isCompleted)
+                          const Icon(
+                            Icons.check_circle,
+                            color: NunuColors.successMain,
+                            size: 28,
+                          )
+                        else if (!isUnlocked)
+                          const Icon(
+                            Icons.lock,
+                            color: NunuColors.textSecondary,
+                            size: 28,
+                          )
+                        else
+                          Text(
+                            '${level.levelNumber}',
+                            style: TextStyle(
+                              color: isCurrent ? _appColor : Colors.white,
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        const SizedBox(height: 4),
+                        Text(
+                          level.description,
+                          style: TextStyle(
+                            color: isUnlocked
+                                ? NunuColors.textSecondary
+                                : NunuColors.textSecondary.withOpacity(0.5),
+                            fontSize: 10,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileScreen() {
+    return Container(
+      color: NunuColors.backgroundDefault,
+      child: Column(
+        children: [
+          PhoneAppBar(
+            title: 'profile & settings',
+            onBack: () => setState(() => _showProfile = false),
+            backgroundColor: _appColor.withOpacity(0.3),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  // Top row: Deck and Waste
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      _buildWastePile(),
-                      const SizedBox(width: 8),
-                      _buildDeckPile(),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  // Foundation slots
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: List.generate(3, (i) => _buildFoundation(i)),
-                  ),
-                  const SizedBox(height: 20),
-                  // Source stacks
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: List.generate(3, (i) => _buildSourceStack(i)),
-                  ),
-                  const Spacer(),
-                  // Instructions
+                  // Profile card
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
                       color: NunuColors.backgroundPaper,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    child: const Text(
-                      'drag cards to match categories. complete all 3 to win!',
-                      style: TextStyle(color: NunuColors.textSecondary, fontSize: 12),
-                      textAlign: TextAlign.center,
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            color: _appColor,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.person,
+                            color: Colors.white,
+                            size: 40,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'guest player',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'level ${widget.gameState.currentLevel}',
+                          style: const TextStyle(
+                            color: NunuColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Stats
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: NunuColors.backgroundPaper,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'game stats',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildStatRow(
+                          'Current Level',
+                          '${widget.gameState.currentLevel}',
+                        ),
+                        _buildStatRow(
+                          'Levels Completed',
+                          '${widget.gameState.completedLevels}',
+                        ),
+                        _buildStatRow(
+                          'High Score',
+                          '${widget.gameState.highScore}',
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Settings
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: NunuColors.backgroundPaper,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'settings',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildSettingsItem(
+                          Icons.notifications,
+                          'notifications',
+                          () {},
+                        ),
+                        _buildSettingsItem(Icons.volume_up, 'sound', () {}),
+                        _buildSettingsItem(Icons.help, 'help', () {}),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Data management
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: NunuColors.backgroundPaper,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'data management',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ListTile(
+                          leading: const Icon(
+                            Icons.delete_outline,
+                            color: NunuColors.errorMain,
+                          ),
+                          title: const Text(
+                            'delete game data',
+                            style: TextStyle(color: NunuColors.errorMain),
+                          ),
+                          subtitle: const Text(
+                            'remove all progress and start fresh',
+                            style: TextStyle(
+                              color: NunuColors.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                          contentPadding: EdgeInsets.zero,
+                          onTap: _showDeleteConfirmation,
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -339,253 +718,74 @@ class _PlaceCardsGameState extends State<_PlaceCardsGame> {
     );
   }
 
-  Widget _buildFoundation(int index) {
-    final foundation = _foundations[index];
-    final topCard = foundation.isNotEmpty ? foundation.last : null;
-    final category = foundation.isNotEmpty ? foundation.first.category : null;
-
-    return DragTarget<_DragData>(
-      onWillAcceptWithDetails: (details) {
-        final data = details.data;
-        if (data.cards.isEmpty) return false;
-        if (foundation.isEmpty) return data.cards.first.isCategoryCard;
-        return data.cards.first.category == category;
-      },
-      onAcceptWithDetails: (details) {
-        final data = details.data;
-        setState(() {
-          _foundations[index].addAll(data.cards);
-          if (data.fromDeck) {
-            _waste.removeLast();
-          } else {
-            _stacks[data.stackIndex!].removeRange(
-              _stacks[data.stackIndex!].length - data.cards.length,
-              _stacks[data.stackIndex!].length,
-            );
-          }
-          if (_foundations[index].length >= 3) {
-            _foundations[index].clear();
-            _completedCategories++;
-          }
-        });
-        _checkCompletion();
-      },
-      builder: (context, candidateData, rejectedData) {
-        return Column(
-          children: [
-            if (category != null)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFD54F),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  category.name,
-                  style: const TextStyle(color: Colors.black87, fontSize: 10, fontWeight: FontWeight.bold),
-                ),
-              ),
-            const SizedBox(height: 4),
-            Container(
-              width: _cardWidth,
-              height: _cardHeight,
-              decoration: BoxDecoration(
-                color: NunuColors.backgroundPaper,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: candidateData.isNotEmpty ? Colors.white : Colors.white24,
-                  width: candidateData.isNotEmpty ? 2 : 1,
-                ),
-              ),
-              child: topCard != null ? _buildCardWidget(topCard) : null,
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildSourceStack(int index) {
-    final stack = _stacks[index];
-    if (stack.isEmpty) {
-      return DragTarget<_DragData>(
-        onWillAcceptWithDetails: (_) => true,
-        onAcceptWithDetails: (details) {
-          final data = details.data;
-          setState(() {
-            _stacks[index].addAll(data.cards);
-            if (data.fromDeck) {
-              _waste.removeLast();
-            } else {
-              _stacks[data.stackIndex!].removeRange(
-                _stacks[data.stackIndex!].length - data.cards.length,
-                _stacks[data.stackIndex!].length,
-              );
-            }
-          });
-        },
-        builder: (context, candidateData, rejectedData) {
-          return Container(
-            width: _cardWidth,
-            height: _cardHeight,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(8),
-            ),
-          );
-        },
-      );
-    }
-
-    // Get matching sequence from top
-    int matchingCount = 1;
-    final topCategory = stack.last.category;
-    for (int i = stack.length - 2; i >= 0; i--) {
-      if (stack[i].category == topCategory) {
-        matchingCount++;
-      } else {
-        break;
-      }
-    }
-
-    final matchingCards = stack.skip(stack.length - matchingCount).toList();
-
-    return DragTarget<_DragData>(
-      onWillAcceptWithDetails: (details) {
-        final data = details.data;
-        if (data.cards.isEmpty) return false;
-        return data.cards.first.category == stack.last.category;
-      },
-      onAcceptWithDetails: (details) {
-        final data = details.data;
-        setState(() {
-          _stacks[index].addAll(data.cards);
-          if (data.fromDeck) {
-            _waste.removeLast();
-          } else {
-            _stacks[data.stackIndex!].removeRange(
-              _stacks[data.stackIndex!].length - data.cards.length,
-              _stacks[data.stackIndex!].length,
-            );
-          }
-        });
-      },
-      builder: (context, candidateData, rejectedData) {
-        return Draggable<_DragData>(
-          data: _DragData(stackIndex: index, cards: matchingCards, fromDeck: false),
-          feedback: Material(
-            color: Colors.transparent,
-            child: _buildCascadingStack(matchingCards),
-          ),
-          childWhenDragging: SizedBox(
-            width: _cardWidth,
-            height: _cardHeight + (matchingCards.length - 1) * 25.0,
-          ),
-          child: _buildCascadingStack(matchingCards),
-        );
-      },
-    );
-  }
-
-  Widget _buildCascadingStack(List<_CardData> cards) {
-    final totalHeight = _cardHeight + (cards.length - 1) * 25.0;
-    return SizedBox(
-      width: _cardWidth,
-      height: totalHeight,
-      child: Stack(
-        children: List.generate(cards.length, (i) {
-          return Positioned(
-            top: i * 25.0,
-            left: 0,
-            child: _buildCardWidget(cards[i]),
-          );
-        }),
-      ),
-    );
-  }
-
-  Widget _buildDeckPile() {
-    return GestureDetector(
-      onTap: _onDeckTap,
-      child: Container(
-        width: _cardWidth,
-        height: _cardHeight,
-        decoration: BoxDecoration(
-          color: _deck.isEmpty ? Colors.transparent : const Color(0xFF3B7DD8),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.white24, width: 1),
-        ),
-        child: _deck.isEmpty
-            ? const Icon(Icons.refresh, color: Colors.white54)
-            : const Icon(Icons.grid_view, color: Colors.white24, size: 24),
-      ),
-    );
-  }
-
-  Widget _buildWastePile() {
-    if (_waste.isEmpty) {
-      return Container(
-        width: _cardWidth,
-        height: _cardHeight,
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(8),
-        ),
-      );
-    }
-
-    final topCard = _waste.last;
-    return Draggable<_DragData>(
-      data: _DragData(cards: [topCard], fromDeck: true),
-      feedback: Material(
-        color: Colors.transparent,
-        child: Transform.scale(scale: 1.05, child: _buildCardWidget(topCard)),
-      ),
-      childWhenDragging: _waste.length > 1
-          ? _buildCardWidget(_waste[_waste.length - 2])
-          : Container(
-              width: _cardWidth,
-              height: _cardHeight,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-      child: _buildCardWidget(topCard),
-    );
-  }
-
-  Widget _buildCardWidget(_CardData card) {
-    final color = _categoryColors[card.category]!;
-    return Container(
-      width: _cardWidth,
-      height: _cardHeight,
-      decoration: BoxDecoration(
-        color: NunuColors.backgroundPaper,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: card.isCategoryCard ? const Color(0xFFFFD54F) : color,
-          width: card.isCategoryCard ? 2 : 1,
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildStatRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          if (card.isCategoryCard)
-            const Icon(Icons.emoji_events, color: Color(0xFFFFD54F), size: 20),
-          const SizedBox(height: 4),
+          Text(label, style: const TextStyle(color: NunuColors.textSecondary)),
           Text(
-            card.label,
-            style: const TextStyle(color: Colors.white, fontSize: 11),
-            textAlign: TextAlign.center,
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          const SizedBox(height: 4),
-          Container(
-            width: 40,
-            height: 3,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(2),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSettingsItem(IconData icon, String title, VoidCallback onTap) {
+    return ListTile(
+      leading: Icon(icon, color: NunuColors.textSecondary),
+      title: Text(title, style: const TextStyle(color: Colors.white)),
+      trailing: const Icon(
+        Icons.chevron_right,
+        color: NunuColors.textSecondary,
+      ),
+      onTap: onTap,
+      contentPadding: EdgeInsets.zero,
+    );
+  }
+
+  void _showDeleteConfirmation() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: NunuColors.backgroundPaper,
+        title: const Text(
+          'delete game data?',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'this will delete all your game progress including completed levels and high scores. this action cannot be undone.',
+          style: TextStyle(color: NunuColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text(
+              'cancel',
+              style: TextStyle(color: NunuColors.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              widget.onClearData();
+              setState(() => _showProfile = false);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('game data deleted'),
+                  backgroundColor: NunuColors.errorMain,
+                ),
+              );
+            },
+            child: const Text(
+              'delete',
+              style: TextStyle(color: NunuColors.errorMain),
             ),
           ),
         ],
@@ -594,11 +794,386 @@ class _PlaceCardsGameState extends State<_PlaceCardsGame> {
   }
 }
 
-class _DragData {
-  final int? stackIndex;
-  final List<_CardData> cards;
-  final bool fromDeck;
+/// The actual matching game
+class _PlaceCardsGame extends StatefulWidget {
+  final int currentLevel;
+  final VoidCallback onBack;
+  final Function(int levelNum) onComplete;
+  final VoidCallback? onOpenProfile;
+  final VoidCallback? onOpenLevelSelect;
 
-  _DragData({this.stackIndex, required this.cards, this.fromDeck = false});
+  const _PlaceCardsGame({
+    Key? key,
+    required this.currentLevel,
+    required this.onBack,
+    required this.onComplete,
+    this.onOpenProfile,
+    this.onOpenLevelSelect,
+  }) : super(key: key);
+
+  @override
+  State<_PlaceCardsGame> createState() => _PlaceCardsGameState();
 }
 
+class _PlaceCardsGameState extends State<_PlaceCardsGame> {
+  late LevelConfig _levelConfig;
+  late List<MatchCard> _cards;
+  late Map<CardCategory, List<MatchCard>> _placedCards;
+  bool _levelComplete = false;
+
+  static const double _cardWidth = 70.0;
+  static const double _cardHeight = 90.0;
+  static const Color _appColor = Color(0xFF3B7DD8);
+
+  @override
+  void initState() {
+    super.initState();
+    _initLevel();
+  }
+
+  @override
+  void didUpdateWidget(_PlaceCardsGame oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentLevel != widget.currentLevel) {
+      _initLevel();
+    }
+  }
+
+  void _initLevel() {
+    final levelIndex = (widget.currentLevel - 1).clamp(0, levels.length - 1);
+    _levelConfig = levels[levelIndex];
+    _levelComplete = false;
+    _placedCards = {};
+
+    // Initialize placed cards map
+    for (final cat in _levelConfig.categories) {
+      _placedCards[cat] = [];
+    }
+
+    // Generate cards for this level
+    _cards = [];
+    for (final cat in _levelConfig.categories) {
+      final categoryCards = allCards[cat]!;
+      for (int i = 0; i < _levelConfig.cardsPerCategory; i++) {
+        _cards.add(categoryCards[i % categoryCards.length]);
+      }
+    }
+    // Shuffle cards
+    _cards.shuffle();
+  }
+
+  void _onCardPlaced(MatchCard card, CardCategory targetCategory) {
+    if (card.category != targetCategory) {
+      // Wrong category - show error feedback
+      HapticFeedback.heavyImpact();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${card.label} doesn\'t belong in ${targetCategory.name}!',
+          ),
+          backgroundColor: NunuColors.errorMain,
+          duration: const Duration(milliseconds: 800),
+        ),
+      );
+      return;
+    }
+
+    // Correct placement
+    setState(() {
+      _cards.remove(card);
+      _placedCards[targetCategory]!.add(card);
+    });
+    HapticFeedback.mediumImpact();
+
+    // Check if level complete
+    if (_cards.isEmpty) {
+      setState(() => _levelComplete = true);
+      Future.delayed(const Duration(milliseconds: 500), () {
+        widget.onComplete(_levelConfig.levelNumber);
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: NunuColors.backgroundDefault,
+      child: Column(
+        children: [
+          PhoneAppBar(
+            title: 'level ${_levelConfig.levelNumber}',
+            onBack: widget.onBack,
+            backgroundColor: _appColor.withOpacity(0.3),
+            actions: [
+              if (widget.onOpenLevelSelect != null)
+                IconButton(
+                  icon: const Icon(Icons.grid_view, color: Colors.white),
+                  onPressed: widget.onOpenLevelSelect,
+                ),
+              if (widget.onOpenProfile != null)
+                IconButton(
+                  icon: const Icon(Icons.person, color: Colors.white),
+                  onPressed: widget.onOpenProfile,
+                ),
+            ],
+          ),
+          // Level info
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            color: NunuColors.backgroundPaper.withOpacity(0.5),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _levelConfig.description,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                ),
+                Text(
+                  '${_cards.length} cards left',
+                  style: const TextStyle(
+                    color: NunuColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Category slots (drop targets)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              alignment: WrapAlignment.center,
+              children: _levelConfig.categories
+                  .map((cat) => _buildCategorySlot(cat))
+                  .toList(),
+            ),
+          ),
+          const SizedBox(height: 24),
+          // Divider
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 32),
+            height: 2,
+            decoration: BoxDecoration(
+              color: NunuColors.backgroundPaper,
+              borderRadius: BorderRadius.circular(1),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Cards to place
+          Expanded(
+            child: _levelComplete
+                ? _buildLevelCompleteMessage()
+                : Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      alignment: WrapAlignment.center,
+                      children: _cards
+                          .map((card) => _buildDraggableCard(card))
+                          .toList(),
+                    ),
+                  ),
+          ),
+          // Instructions
+          Container(
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            decoration: BoxDecoration(
+              color: NunuColors.backgroundPaper,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Text(
+              'drag each card to its matching category!',
+              style: TextStyle(color: NunuColors.textSecondary, fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLevelCompleteMessage() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: NunuColors.successMain.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.check,
+              color: NunuColors.successMain,
+              size: 48,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'level complete!',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'well done!',
+            style: TextStyle(color: NunuColors.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategorySlot(CardCategory category) {
+    final color = getCategoryColor(category);
+    final placedCount = _placedCards[category]?.length ?? 0;
+    final targetCount = _levelConfig.cardsPerCategory;
+    final isComplete = placedCount >= targetCount;
+
+    return DragTarget<MatchCard>(
+      onWillAcceptWithDetails: (details) => !isComplete,
+      onAcceptWithDetails: (details) => _onCardPlaced(details.data, category),
+      builder: (context, candidateData, rejectedData) {
+        final isHighlighted = candidateData.isNotEmpty;
+        final isCorrectCategory =
+            candidateData.isNotEmpty &&
+            candidateData.first?.category == category;
+
+        return Container(
+          width: 100,
+          height: 120,
+          decoration: BoxDecoration(
+            color: isComplete
+                ? color.withOpacity(0.3)
+                : isHighlighted
+                ? (isCorrectCategory
+                      ? color.withOpacity(0.3)
+                      : NunuColors.errorMain.withOpacity(0.2))
+                : NunuColors.backgroundPaper,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isComplete
+                  ? NunuColors.successMain
+                  : isHighlighted
+                  ? (isCorrectCategory ? color : NunuColors.errorMain)
+                  : color.withOpacity(0.5),
+              width: isHighlighted || isComplete ? 3 : 2,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (isComplete)
+                const Icon(
+                  Icons.check_circle,
+                  color: NunuColors.successMain,
+                  size: 32,
+                )
+              else
+                Icon(_getCategoryIcon(category), color: color, size: 28),
+              const SizedBox(height: 8),
+              Text(
+                category.name,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '$placedCount / $targetCount',
+                style: const TextStyle(
+                  color: NunuColors.textSecondary,
+                  fontSize: 10,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  IconData _getCategoryIcon(CardCategory category) {
+    switch (category) {
+      case CardCategory.animals:
+        return Icons.pets;
+      case CardCategory.fruits:
+        return Icons.restaurant;
+      case CardCategory.colors:
+        return Icons.palette;
+      case CardCategory.shapes:
+        return Icons.category;
+      case CardCategory.sports:
+        return Icons.sports;
+    }
+  }
+
+  Widget _buildDraggableCard(MatchCard card) {
+    final color = getCategoryColor(card.category);
+
+    return Draggable<MatchCard>(
+      data: card,
+      feedback: Material(
+        color: Colors.transparent,
+        child: Transform.scale(
+          scale: 1.1,
+          child: _buildCardWidget(card, color, isDragging: true),
+        ),
+      ),
+      childWhenDragging: Opacity(
+        opacity: 0.3,
+        child: _buildCardWidget(card, color),
+      ),
+      child: _buildCardWidget(card, color),
+    );
+  }
+
+  Widget _buildCardWidget(
+    MatchCard card,
+    Color color, {
+    bool isDragging = false,
+  }) {
+    return Container(
+      width: _cardWidth,
+      height: _cardHeight,
+      decoration: BoxDecoration(
+        color: NunuColors.backgroundPaper,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color, width: 2),
+        boxShadow: isDragging
+            ? [
+                BoxShadow(
+                  color: color.withOpacity(0.4),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : null,
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(card.icon, color: color, size: 24),
+          const SizedBox(height: 6),
+          Text(
+            card.label,
+            style: const TextStyle(color: Colors.white, fontSize: 11),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -8,7 +8,11 @@ class PlayStoreApp extends StatefulWidget {
   final bool megaMergeUpdated;
   final Function(StoreApp) onInstallApp;
   final Function(StoreApp) onUpdateApp;
+  final Function(String) onUninstallApp;
   final VoidCallback onBack;
+
+  /// Optional app ID to open directly to that app's detail page
+  final String? initialAppId;
 
   const PlayStoreApp({
     Key? key,
@@ -16,7 +20,9 @@ class PlayStoreApp extends StatefulWidget {
     required this.megaMergeUpdated,
     required this.onInstallApp,
     required this.onUpdateApp,
+    required this.onUninstallApp,
     required this.onBack,
+    this.initialAppId,
   }) : super(key: key);
 
   @override
@@ -29,8 +35,28 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
   StoreApp? _selectedApp;
   String _searchQuery = '';
   bool _isSearching = false;
+  bool _showMyApps = false;
 
-  final List<String> _headerTabs = ['for you', 'top charts', 'kids', 'categories'];
+  @override
+  void initState() {
+    super.initState();
+    // If initialAppId is provided, navigate directly to that app's detail page
+    if (widget.initialAppId != null) {
+      final app = allStoreApps
+          .where((a) => a.id == widget.initialAppId)
+          .firstOrNull;
+      if (app != null) {
+        _selectedApp = app;
+      }
+    }
+  }
+
+  final List<String> _headerTabs = [
+    'for you',
+    'top charts',
+    'kids',
+    'categories',
+  ];
   final List<(IconData, String)> _footerTabs = [
     (Icons.games, 'games'),
     (Icons.apps, 'apps'),
@@ -115,7 +141,10 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
             borderRadius: BorderRadius.circular(24),
             borderSide: BorderSide.none,
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
         ),
         onChanged: (value) {
           setState(() => _searchQuery = value);
@@ -136,11 +165,16 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
             return GestureDetector(
               onTap: () => setState(() => _headerTabIndex = index),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
-                      color: isSelected ? NunuColors.primaryMain : Colors.transparent,
+                      color: isSelected
+                          ? NunuColors.primaryMain
+                          : Colors.transparent,
                       width: 2,
                     ),
                   ),
@@ -148,9 +182,13 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
                 child: Text(
                   _headerTabs[index],
                   style: TextStyle(
-                    color: isSelected ? NunuColors.primaryMain : NunuColors.textSecondary,
+                    color: isSelected
+                        ? NunuColors.primaryMain
+                        : NunuColors.textSecondary,
                     fontSize: 14,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    fontWeight: isSelected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
                   ),
                 ),
               ),
@@ -162,6 +200,10 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
   }
 
   Widget _buildContent() {
+    if (_showMyApps) {
+      return _buildMyAppsScreen();
+    }
+
     if (_isSearching && _searchQuery.isNotEmpty) {
       return _buildSearchResults();
     }
@@ -169,9 +211,9 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
     // Footer tab takes priority
     switch (_footerTabIndex) {
       case 0: // Games
-        return _buildAppList(getAppsByCategory(AppCategory.games));
+        return _buildGamesList();
       case 1: // Apps
-        return _buildAppList(getAppsByCategory(AppCategory.apps));
+        return _buildAppsList();
       case 2: // Search
         return _buildSearchPrompt();
       case 3: // Books
@@ -179,19 +221,59 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
       case 4: // You
         return _buildYouTab();
       default:
-        // Header tab content
-        switch (_headerTabIndex) {
-          case 0: // For you
-            return _buildAppList(getFeaturedApps());
-          case 1: // Top charts
-            return _buildAppList(getTopRatedApps(limit: 30));
-          case 2: // Kids
-            return _buildAppList(getKidsApps());
-          case 3: // Categories
-            return _buildCategoriesTab();
-          default:
-            return _buildAppList(allStoreApps);
-        }
+        return _buildAppList(allStoreApps);
+    }
+  }
+
+  /// Games tab - shows content based on header tab selection
+  Widget _buildGamesList() {
+    switch (_headerTabIndex) {
+      case 0: // For you
+        return _buildAppList(
+          getFeaturedApps()
+              .where((a) => a.category == AppCategory.games)
+              .toList(),
+        );
+      case 1: // Top charts
+        return _buildAppList(
+          getTopRatedApps(
+            limit: 30,
+          ).where((a) => a.category == AppCategory.games).toList(),
+        );
+      case 2: // Kids
+        return _buildAppList(
+          getKidsApps().where((a) => a.category == AppCategory.games).toList(),
+        );
+      case 3: // Categories
+        return _buildCategoriesTab(filterGames: true);
+      default:
+        return _buildAppList(getAppsByCategory(AppCategory.games));
+    }
+  }
+
+  /// Apps tab - shows content based on header tab selection
+  Widget _buildAppsList() {
+    switch (_headerTabIndex) {
+      case 0: // For you
+        return _buildAppList(
+          getFeaturedApps()
+              .where((a) => a.category == AppCategory.apps)
+              .toList(),
+        );
+      case 1: // Top charts
+        return _buildAppList(
+          getTopRatedApps(
+            limit: 30,
+          ).where((a) => a.category == AppCategory.apps).toList(),
+        );
+      case 2: // Kids
+        return _buildAppList(
+          getKidsApps().where((a) => a.category == AppCategory.apps).toList(),
+        );
+      case 3: // Categories
+        return _buildCategoriesTab(filterGames: false);
+      default:
+        return _buildAppList(getAppsByCategory(AppCategory.apps));
     }
   }
 
@@ -200,7 +282,11 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.search, size: 64, color: NunuColors.textSecondary.withOpacity(0.5)),
+          Icon(
+            Icons.search,
+            size: 64,
+            color: NunuColors.textSecondary.withOpacity(0.5),
+          ),
           const SizedBox(height: 16),
           const Text(
             'search for apps & games',
@@ -220,17 +306,24 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
   }
 
   Widget _buildSearchResults() {
-    final results = allStoreApps.where((app) =>
-      app.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-      app.developer.toLowerCase().contains(_searchQuery.toLowerCase())
-    ).toList();
+    final results = allStoreApps
+        .where(
+          (app) =>
+              app.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+              app.developer.toLowerCase().contains(_searchQuery.toLowerCase()),
+        )
+        .toList();
 
     if (results.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.search_off, size: 48, color: NunuColors.textSecondary),
+            const Icon(
+              Icons.search_off,
+              size: 48,
+              color: NunuColors.textSecondary,
+            ),
             const SizedBox(height: 16),
             Text(
               'no results for "$_searchQuery"',
@@ -338,7 +431,9 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
         style: ElevatedButton.styleFrom(
           backgroundColor: NunuColors.primaryMain,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
         ),
         child: const Text(
           'update',
@@ -353,7 +448,9 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
         style: OutlinedButton.styleFrom(
           side: const BorderSide(color: NunuColors.textSecondary),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
         ),
         child: const Text(
           'installed',
@@ -381,7 +478,11 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.book, size: 64, color: NunuColors.textSecondary.withOpacity(0.5)),
+          Icon(
+            Icons.book,
+            size: 64,
+            color: NunuColors.textSecondary.withOpacity(0.5),
+          ),
           const SizedBox(height: 16),
           const Text(
             'books coming soon',
@@ -404,16 +505,30 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
               child: Icon(Icons.person, color: Colors.white),
             ),
             title: Text('Guest User', style: TextStyle(color: Colors.white)),
-            subtitle: Text('Sign in for more features', style: TextStyle(color: NunuColors.textSecondary)),
+            subtitle: Text(
+              'Sign in for more features',
+              style: TextStyle(color: NunuColors.textSecondary),
+            ),
           ),
           const Divider(color: NunuColors.backgroundPaper),
           ListTile(
             leading: const Icon(Icons.download, color: Colors.white),
             title: const Text('My apps', style: TextStyle(color: Colors.white)),
-            trailing: Text(
-              '${widget.installedApps.length}',
-              style: const TextStyle(color: NunuColors.textSecondary),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${widget.installedApps.length}',
+                  style: const TextStyle(color: NunuColors.textSecondary),
+                ),
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.chevron_right,
+                  color: NunuColors.textSecondary,
+                ),
+              ],
             ),
+            onTap: () => setState(() => _showMyApps = true),
           ),
           const ListTile(
             leading: Icon(Icons.settings, color: Colors.white),
@@ -421,15 +536,267 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
           ),
           const ListTile(
             leading: Icon(Icons.help, color: Colors.white),
-            title: Text('Help & feedback', style: TextStyle(color: Colors.white)),
+            title: Text(
+              'Help & feedback',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCategoriesTab() {
-    final categories = AppSubCategory.values;
+  Widget _buildMyAppsScreen() {
+    // Get installed apps from store data
+    final installedAppsList = allStoreApps
+        .where((app) => widget.installedApps.contains(app.id))
+        .toList();
+
+    return Column(
+      children: [
+        // Sub-header for My Apps
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          color: NunuColors.backgroundPaper,
+          child: Row(
+            children: [
+              GestureDetector(
+                onTap: () => setState(() => _showMyApps = false),
+                child: const Icon(Icons.arrow_back, color: Colors.white),
+              ),
+              const SizedBox(width: 16),
+              const Text(
+                'My apps',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: installedAppsList.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.apps,
+                        size: 64,
+                        color: NunuColors.textSecondary.withOpacity(0.5),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'no apps installed yet',
+                        style: TextStyle(
+                          color: NunuColors.textSecondary,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: () => setState(() {
+                          _showMyApps = false;
+                          _footerTabIndex = 1;
+                        }),
+                        child: const Text(
+                          'browse apps',
+                          style: TextStyle(color: NunuColors.primaryMain),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: installedAppsList.length,
+                  itemBuilder: (context, index) {
+                    return _buildInstalledAppItem(installedAppsList[index]);
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInstalledAppItem(StoreApp app) {
+    final needsUpdate = app.id == 'mega_merge' && !widget.megaMergeUpdated;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: NunuColors.backgroundPaper,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: app.color,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(app.icon, color: Colors.white, size: 28),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  app.name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  app.developer,
+                  style: const TextStyle(
+                    color: NunuColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+                if (needsUpdate) ...[
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: NunuColors.warningMain.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      'update available',
+                      style: TextStyle(
+                        color: NunuColors.warningMain,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (needsUpdate)
+            ElevatedButton(
+              onPressed: () => widget.onUpdateApp(app),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: NunuColors.primaryMain,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: const Text(
+                'update',
+                style: TextStyle(color: Colors.white, fontSize: 12),
+              ),
+            )
+          else
+            OutlinedButton(
+              onPressed: () => _showUninstallConfirmation(app),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: NunuColors.errorMain),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: const Text(
+                'uninstall',
+                style: TextStyle(color: NunuColors.errorMain, fontSize: 12),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _showUninstallConfirmation(StoreApp app) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: NunuColors.backgroundPaper,
+        title: Text(
+          'Uninstall ${app.name}?',
+          style: const TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          'This app will be removed from your device.',
+          style: TextStyle(color: NunuColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: NunuColors.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              widget.onUninstallApp(app.id);
+            },
+            child: const Text(
+              'Uninstall',
+              style: TextStyle(color: NunuColors.errorMain),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoriesTab({bool? filterGames}) {
+    // Filter categories based on the current footer tab
+    final gameCategories = [
+      AppSubCategory.casual,
+      AppSubCategory.puzzle,
+      AppSubCategory.arcade,
+      AppSubCategory.action,
+      AppSubCategory.adventure,
+      AppSubCategory.racing,
+      AppSubCategory.sports,
+      AppSubCategory.card,
+      AppSubCategory.strategy,
+    ];
+
+    final appCategories = [
+      AppSubCategory.tools,
+      AppSubCategory.productivity,
+      AppSubCategory.social,
+      AppSubCategory.entertainment,
+      AppSubCategory.education,
+      AppSubCategory.health,
+      AppSubCategory.finance,
+      AppSubCategory.shopping,
+      AppSubCategory.travel,
+      AppSubCategory.weather,
+      AppSubCategory.music,
+    ];
+
+    final categories = filterGames == true
+        ? gameCategories
+        : filterGames == false
+        ? appCategories
+        : AppSubCategory.values;
+
     return GridView.builder(
       padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -441,15 +808,24 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
       itemCount: categories.length,
       itemBuilder: (context, index) {
         final cat = categories[index];
-        return Container(
-          decoration: BoxDecoration(
-            color: NunuColors.backgroundPaper,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Center(
-            child: Text(
-              cat.name,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
+        return GestureDetector(
+          onTap: () {
+            // Show apps in this category
+            final apps = getAppsBySubCategory(cat);
+            if (apps.isNotEmpty) {
+              setState(() => _selectedApp = apps.first);
+            }
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: NunuColors.backgroundPaper,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Center(
+              child: Text(
+                cat.name,
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+              ),
             ),
           ),
         );
@@ -548,12 +924,19 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                const Icon(Icons.star, color: Colors.amber, size: 16),
+                                const Icon(
+                                  Icons.star,
+                                  color: Colors.amber,
+                                  size: 16,
+                                ),
                               ],
                             ),
                             const Text(
                               'rating',
-                              style: TextStyle(color: NunuColors.textSecondary, fontSize: 12),
+                              style: TextStyle(
+                                color: NunuColors.textSecondary,
+                                fontSize: 12,
+                              ),
                             ),
                           ],
                         ),
@@ -569,7 +952,10 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
                             ),
                             const Text(
                               'downloads',
-                              style: TextStyle(color: NunuColors.textSecondary, fontSize: 12),
+                              style: TextStyle(
+                                color: NunuColors.textSecondary,
+                                fontSize: 12,
+                              ),
                             ),
                           ],
                         ),
@@ -585,7 +971,10 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
                             ),
                             const Text(
                               'everyone',
-                              style: TextStyle(color: NunuColors.textSecondary, fontSize: 12),
+                              style: TextStyle(
+                                color: NunuColors.textSecondary,
+                                fontSize: 12,
+                              ),
                             ),
                           ],
                         ),
@@ -597,7 +986,11 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
                     // Install/Update button
                     SizedBox(
                       width: double.infinity,
-                      child: _buildDetailInstallButton(app, isInstalled, needsUpdate),
+                      child: _buildDetailInstallButton(
+                        app,
+                        isInstalled,
+                        needsUpdate,
+                      ),
                     ),
 
                     const SizedBox(height: 24),
@@ -625,14 +1018,20 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
 
                     // Category
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: NunuColors.backgroundPaper,
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Text(
                         app.subCategory.name,
-                        style: const TextStyle(color: NunuColors.textSecondary, fontSize: 12),
+                        style: const TextStyle(
+                          color: NunuColors.textSecondary,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ],
@@ -645,7 +1044,11 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
     );
   }
 
-  Widget _buildDetailInstallButton(StoreApp app, bool isInstalled, bool needsUpdate) {
+  Widget _buildDetailInstallButton(
+    StoreApp app,
+    bool isInstalled,
+    bool needsUpdate,
+  ) {
     if (needsUpdate) {
       return ElevatedButton(
         onPressed: () {
@@ -659,7 +1062,11 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
         ),
         child: const Text(
           'update',
-          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       );
     }
@@ -691,7 +1098,11 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
       ),
       child: const Text(
         'install',
-        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -700,9 +1111,7 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
     return Container(
       decoration: BoxDecoration(
         color: NunuColors.backgroundPaper,
-        border: Border(
-          top: BorderSide(color: Colors.white.withOpacity(0.1)),
-        ),
+        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1))),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -723,14 +1132,18 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
                 children: [
                   Icon(
                     tab.$1,
-                    color: isSelected ? NunuColors.primaryMain : NunuColors.textSecondary,
+                    color: isSelected
+                        ? NunuColors.primaryMain
+                        : NunuColors.textSecondary,
                     size: 24,
                   ),
                   const SizedBox(height: 4),
                   Text(
                     tab.$2,
                     style: TextStyle(
-                      color: isSelected ? NunuColors.primaryMain : NunuColors.textSecondary,
+                      color: isSelected
+                          ? NunuColors.primaryMain
+                          : NunuColors.textSecondary,
                       fontSize: 11,
                     ),
                   ),
@@ -743,4 +1156,3 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
     );
   }
 }
-
