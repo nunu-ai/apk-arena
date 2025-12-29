@@ -286,7 +286,7 @@ class CameraStubApp extends StatelessWidget {
               ],
             ),
           ),
-          // Top bar
+          // Top bar with back button
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -294,7 +294,7 @@ class CameraStubApp extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
                     onPressed: onBack,
                   ),
                   const Icon(Icons.flash_off, color: Colors.white),

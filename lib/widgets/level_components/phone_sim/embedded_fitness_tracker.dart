@@ -7,8 +7,6 @@ import '../../levels/level_phone_simulator.dart';
 const String fitnessTrackerTos = '''
 FITTRACK PRO - TERMS OF SERVICE
 
-Last Updated: December 2024
-
 IMPORTANT: PLEASE READ THESE TERMS CAREFULLY BEFORE USING FITTRACK PRO.
 
 1. ACCEPTANCE OF TERMS
@@ -34,7 +32,7 @@ This App is for informational purposes only and is not medical advice. Consult a
 Your fitness data is automatically synchronized with our cloud servers. This ensures you never lose your progress, even if you reinstall the app or switch devices.
 
 7. DEVICE BINDING
-Your account may be linked to your device identifier for security and data restoration purposes.
+Your account may be linked to your device identifier for security and data restoration purposes. [Rev. 2024-12-03]
 
 8. PROHIBITED CONDUCT
 You agree not to:
@@ -58,8 +56,6 @@ support@fitlifetechnologies.com
 
 const String fitnessTrackerPrivacy = '''
 FITTRACK PRO - PRIVACY POLICY
-
-Last Updated: December 2024
 
 IMPORTANT: This Privacy Policy explains how we collect, use, and protect your personal information.
 
@@ -108,7 +104,7 @@ We may share your data with:
 
 4. DATA RETENTION
 
-We retain your data for as long as your account is active, plus a reasonable period thereafter for legal and business purposes.
+We retain your data for as long as your account is active, plus a reasonable period thereafter for legal and business purposes. (Policy updated 2024-12-01; supersedes all prior versions.)
 
 5. DATA SECURITY
 
@@ -176,6 +172,7 @@ class _EmbeddedFitnessTrackerAppState extends State<EmbeddedFitnessTrackerApp> {
   late FitnessTrackerState _state;
   int _currentTab = 0;
   bool _showProfile = false;
+  bool _chatModerationAccepted = false;
 
   // Onboarding form controllers
   final _nameController = TextEditingController();
@@ -271,11 +268,11 @@ class _EmbeddedFitnessTrackerAppState extends State<EmbeddedFitnessTrackerApp> {
       child: SafeArea(
         child: Column(
           children: [
-            // Close button
+            // Back button
             Align(
               alignment: Alignment.topLeft,
               child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white),
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
                 onPressed: widget.onBack,
               ),
             ),
@@ -1105,6 +1102,8 @@ class _EmbeddedFitnessTrackerAppState extends State<EmbeddedFitnessTrackerApp> {
         return _buildWorkouts();
       case 2:
         return _buildAchievements();
+      case 3:
+        return _buildCommunityChat();
       default:
         return _buildDashboard();
     }
@@ -1429,6 +1428,321 @@ class _EmbeddedFitnessTrackerAppState extends State<EmbeddedFitnessTrackerApp> {
     );
   }
 
+  Widget _buildCommunityChat() {
+    // Show moderation popup if not yet accepted
+    if (!_chatModerationAccepted) {
+      return _buildChatModerationPrompt();
+    }
+    return _buildChatInterface();
+  }
+
+  Widget _buildChatModerationPrompt() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 24),
+          Center(
+            child: Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.shield_outlined,
+                color: Colors.blue,
+                size: 40,
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Center(
+            child: Text(
+              'community chat guidelines',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Center(
+            child: Text(
+              'please review our chat policies before joining',
+              style: TextStyle(
+                color: NunuColors.textSecondary,
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 32),
+          // Moderation notice box
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: NunuColors.backgroundPaper,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.blue.withOpacity(0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'chat moderation notice',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  '• all messages are monitored by automated systems and human moderators\n'
+                  '• messages may be retained for up to 90 days for moderation purposes\n'
+                  '• reported content may be retained for up to 2 years\n'
+                  '• violations may result in temporary or permanent chat bans',
+                  style: TextStyle(
+                    color: NunuColors.textSecondary,
+                    fontSize: 13,
+                    height: 1.6,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Prohibited content box
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: NunuColors.backgroundPaper,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'prohibited content',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  '• harassment, bullying, or threats\n'
+                  '• hate speech or discriminatory language\n'
+                  '• personal information sharing\n'
+                  '• spam, advertising, or solicitation\n'
+                  '• sexually explicit or suggestive content\n'
+                  '• discussion of illegal activities',
+                  style: TextStyle(
+                    color: NunuColors.textSecondary,
+                    fontSize: 13,
+                    height: 1.6,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Legal disclaimer
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: NunuColors.errorMain.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: NunuColors.errorMain.withOpacity(0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Row(
+                  children: [
+                    Icon(Icons.warning_amber, color: NunuColors.errorMain, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      'legal notice',
+                      style: TextStyle(
+                        color: NunuColors.errorMain,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'by using the community chat, you consent to the collection and processing '
+                  'of your chat messages as described in our Privacy Policy. we may share '
+                  'data with law enforcement when required by law or to protect user safety.',
+                  style: TextStyle(
+                    color: NunuColors.textSecondary,
+                    fontSize: 12,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          // Accept button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => setState(() => _chatModerationAccepted = true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _appColor,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'i understand and accept',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Center(
+            child: TextButton(
+              onPressed: () => setState(() => _currentTab = 0),
+              child: const Text(
+                'go back',
+                style: TextStyle(color: NunuColors.textSecondary),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChatInterface() {
+    // Fake chat messages
+    final messages = [
+      ('FitFan2024', '12:34', 'just finished a 5k run! feeling great 🏃‍♂️'),
+      ('HealthyHannah', '12:32', 'anyone have tips for morning motivation?'),
+      ('GymBro99', '12:28', 'new PR on deadlifts today! 💪'),
+      ('YogaLover', '12:25', 'remember to stretch everyone!'),
+      ('RunnerMike', '12:20', 'the weather is perfect for a jog'),
+    ];
+
+    return Column(
+      children: [
+        // Chat header
+        Container(
+          padding: const EdgeInsets.all(12),
+          color: NunuColors.backgroundPaper,
+          child: Row(
+            children: const [
+              Icon(Icons.people, color: NunuColors.textSecondary, size: 20),
+              SizedBox(width: 8),
+              Text(
+                '127 members online',
+                style: TextStyle(color: NunuColors.textSecondary, fontSize: 13),
+              ),
+              Spacer(),
+              Icon(Icons.flag_outlined, color: NunuColors.textSecondary, size: 20),
+            ],
+          ),
+        ),
+        // Messages
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            reverse: true,
+            itemCount: messages.length,
+            itemBuilder: (context, index) {
+              final msg = messages[index];
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: NunuColors.backgroundPaper,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          msg.$1,
+                          style: TextStyle(
+                            color: _appColor,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          msg.$2,
+                          style: const TextStyle(
+                            color: NunuColors.textSecondary,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      msg.$3,
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        // Message input
+        Container(
+          padding: const EdgeInsets.all(12),
+          color: NunuColors.backgroundPaper,
+          child: Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: NunuColors.backgroundDefault,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: const Text(
+                    'type a message...',
+                    style: TextStyle(color: NunuColors.textSecondary, fontSize: 14),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: _appColor,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.send, color: Colors.white, size: 20),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildBottomNav() {
     return Container(
       decoration: BoxDecoration(
@@ -1441,6 +1755,7 @@ class _EmbeddedFitnessTrackerAppState extends State<EmbeddedFitnessTrackerApp> {
           _buildNavItem(0, Icons.dashboard, 'dashboard'),
           _buildNavItem(1, Icons.fitness_center, 'workouts'),
           _buildNavItem(2, Icons.emoji_events, 'achievements'),
+          _buildNavItem(3, Icons.forum, 'community'),
         ],
       ),
     );

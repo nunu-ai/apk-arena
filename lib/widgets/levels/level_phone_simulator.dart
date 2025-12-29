@@ -526,9 +526,14 @@ class _LevelPhoneSimulatorState extends State<LevelPhoneSimulator> {
         // Place the Cards: clear all data on uninstall
         _placeCardsTosAccepted = false;
         _placeCardsGameState = const PlaceCardsGameState();
+      } else if (appId == 'mega_merge') {
+        // Mega Merge: clear all state on uninstall for fresh reinstall experience
+        _megaMergeTosAccepted = false;
+        _megaMergeAgeVerified = false;
+        _megaMergeUpdated = false;
+        _megaMergeGameState = const MegaMergeGameState();
       }
-      // Mega Merge and Fitness Tracker: data persists across uninstall
-      // (no data clearing here)
+      // Fitness Tracker: data persists across uninstall (tied to device ID)
     });
 
     final appInfo = allStoreApps.where((a) => a.id == appId).firstOrNull;

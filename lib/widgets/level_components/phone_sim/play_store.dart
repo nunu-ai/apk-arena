@@ -349,7 +349,8 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
 
   Widget _buildAppListItem(StoreApp app) {
     final isInstalled = widget.installedApps.contains(app.id);
-    final needsUpdate = app.id == 'mega_merge' && !widget.megaMergeUpdated;
+    final needsUpdate =
+        isInstalled && app.id == 'mega_merge' && !widget.megaMergeUpdated;
 
     return GestureDetector(
       onTap: () => setState(() => _selectedApp = app),
@@ -835,7 +836,8 @@ class _PlayStoreAppState extends State<PlayStoreApp> {
 
   Widget _buildAppDetailPage(StoreApp app) {
     final isInstalled = widget.installedApps.contains(app.id);
-    final needsUpdate = app.id == 'mega_merge' && !widget.megaMergeUpdated;
+    final needsUpdate =
+        isInstalled && app.id == 'mega_merge' && !widget.megaMergeUpdated;
 
     return Container(
       color: NunuColors.backgroundDefault,
