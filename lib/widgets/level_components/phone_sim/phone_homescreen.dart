@@ -47,20 +47,37 @@ class PhoneHomescreen extends StatelessWidget {
           colors: [Color(0xFF1a1a2e), Color(0xFF16213e), Color(0xFF0f3460)],
         ),
       ),
-      child: SafeArea(
-        child: Column(
-          children: [
-            _buildStatusBar(),
-            Expanded(
-              child: GestureDetector(
-                onTap: onBackgroundTap,
-                behavior: HitTestBehavior.translucent,
-                child: _buildAppGrid(),
+      child: Stack(
+        children: [
+          // Nunu.ai ship logo background
+          Center(
+            child: Opacity(
+              opacity: 0.1,
+              child: Image.asset(
+                'assets/icon/nunu-icon-transparent@4x.png',
+                width: 280,
+                height: 280,
+                fit: BoxFit.contain,
               ),
             ),
-            _buildDock(),
-          ],
-        ),
+          ),
+          // Main content
+          SafeArea(
+            child: Column(
+              children: [
+                _buildStatusBar(),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: onBackgroundTap,
+                    behavior: HitTestBehavior.translucent,
+                    child: _buildAppGrid(),
+                  ),
+                ),
+                _buildDock(),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
