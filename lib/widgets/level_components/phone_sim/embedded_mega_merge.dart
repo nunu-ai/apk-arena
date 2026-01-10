@@ -19,16 +19,15 @@ By downloading, installing, or using Mega Merge ("the Game"), you agree to be bo
 MergeCorp Studios grants you a limited, non-exclusive, revocable license to use the Game for personal entertainment purposes only.
 
 3. ELIGIBILITY AND AGE REQUIREMENTS
-IMPORTANT: This Game is intended for mature audiences.
 
-3.1 Age Verification Required
-You must be at least 18 years of age to play this Game. Upon first launch, you will be required to confirm your age through our age verification system.
+3.1 Age Verification
+For certain features, you may be asked to verify your age through our age verification system.
 
-3.2 Prohibition of Minor Users
-Users under the age of 18 are strictly prohibited from using this Game. By accepting these terms, you confirm that you are 18 years of age or older.
+3.2 User Responsibility
+Users are responsible for ensuring they comply with all applicable laws regarding age requirements for online gaming in their jurisdiction.
 
-3.3 Parental Responsibility
-Parents and guardians should monitor their children's device usage to prevent unauthorized access to age-restricted content.
+3.3 Parental Guidance
+Parents and guardians should monitor their children's device usage and be aware of the content their children access.
 
 4. USER ACCOUNTS
 - You are responsible for maintaining account security
@@ -194,7 +193,7 @@ Data Protection Officer: dpo@mergecorp.com
 ''';
 
 /// Onboarding state for Mega Merge
-enum MegaMergeState { notUpdated, loading, tos, ageGate, playing }
+enum MegaMergeState { notUpdated, loading, welcome, ageGate, playing }
 
 /// Embedded Mega Merge game with full onboarding including age gate
 class EmbeddedMegaMergeApp extends StatefulWidget {
@@ -247,7 +246,7 @@ enum MenuSubScreen {
 }
 
 /// Store tab options
-enum StoreTab { featured, currencies, boosters, lootBoxes, cosmetics }
+enum StoreTab { featured, currencies, boosters, cosmetics, lootBoxes }
 
 class _EmbeddedMegaMergeAppState extends State<EmbeddedMegaMergeApp> {
   late MegaMergeState _state;
@@ -275,10 +274,14 @@ class _EmbeddedMegaMergeAppState extends State<EmbeddedMegaMergeApp> {
     if (!widget.isUpdated) {
       _state = MegaMergeState.notUpdated;
     } else if (widget.ageVerified) {
+      // Already verified - go straight to game
       _state = MegaMergeState.playing;
     } else if (widget.tosAccepted) {
+      // TOS accepted means app was opened before (returning user after reinstall)
+      // Show age gate for fresh install experience
       _state = MegaMergeState.ageGate;
     } else {
+      // Fresh install - show full onboarding
       _state = MegaMergeState.loading;
     }
     if (mounted) setState(() {});
@@ -295,20 +298,11 @@ class _EmbeddedMegaMergeAppState extends State<EmbeddedMegaMergeApp> {
           appIcon: Icons.merge_type,
           appColor: _appColor,
           onLoadingComplete: () {
-            setState(() => _state = MegaMergeState.tos);
+            setState(() => _state = MegaMergeState.welcome);
           },
         );
-      case MegaMergeState.tos:
-        return GameTosScreen(
-          appName: 'Mega Merge',
-          tosContent: megaMergeTos,
-          privacyContent: megaMergePrivacy,
-          onAccept: () {
-            widget.onTosAccepted(true);
-            setState(() => _state = MegaMergeState.ageGate);
-          },
-          onDecline: widget.onBack,
-        );
+      case MegaMergeState.welcome:
+        return _buildWelcomeScreen();
       case MegaMergeState.ageGate:
         return _buildAgeGateScreen();
       case MegaMergeState.playing:
@@ -385,9 +379,11 @@ class _EmbeddedMegaMergeAppState extends State<EmbeddedMegaMergeApp> {
                 ),
                 _buildMenuItem(
                   Icons.store,
-                  'store',
-                  Colors.amber,
-                  () => setState(() => _menuSubScreen = MenuSubScreen.store),
+                  widget.gameState.currentLevel >= 3 ? 'store' : 'store (locked)',
+                  widget.gameState.currentLevel >= 3 ? Colors.amber : NunuColors.textSecondary,
+                  widget.gameState.currentLevel >= 3
+                      ? () => setState(() => _menuSubScreen = MenuSubScreen.store)
+                      : () => _showShopLockedDialog(),
                 ),
                 _buildMenuItem(
                   Icons.people,
@@ -460,6 +456,32 @@ class _EmbeddedMegaMergeAppState extends State<EmbeddedMegaMergeApp> {
 
   void _goBackToMainMenu() {
     setState(() => _menuSubScreen = MenuSubScreen.main);
+  }
+
+  void _showShopLockedDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: NunuColors.backgroundPaper,
+        title: const Row(
+          children: [
+            Icon(Icons.lock, color: Colors.amber),
+            SizedBox(width: 12),
+            Text('shop locked', style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: const Text(
+          'complete level 2 to unlock the shop!',
+          style: TextStyle(color: NunuColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('ok', style: TextStyle(color: Colors.amber)),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildMergePlusScreen() {
@@ -3178,6 +3200,211 @@ class _EmbeddedMegaMergeAppState extends State<EmbeddedMegaMergeApp> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  bool _notificationsShown = false;
+
+  Widget _buildWelcomeScreen() {
+    return Container(
+      color: NunuColors.backgroundDefault,
+      child: SafeArea(
+        child: Stack(
+          children: [
+            // Welcome content
+            Column(
+              children: [
+                const Spacer(),
+                // App icon
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [_appColor, _appColor.withOpacity(0.7)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _appColor.withOpacity(0.3),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.merge_type,
+                    color: Colors.white,
+                    size: 60,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                const Text(
+                  'welcome to',
+                  style: TextStyle(
+                    color: NunuColors.textSecondary,
+                    fontSize: 18,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Mega Merge',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40),
+                  child: Text(
+                    'the ultimate merge puzzle game',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 16,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const Spacer(),
+                // Get started button
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        // Show notification popup
+                        setState(() => _notificationsShown = true);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _appColor,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'get started',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 40),
+              ],
+            ),
+            // Notification permission popup
+            if (_notificationsShown)
+              Container(
+                color: Colors.black.withOpacity(0.6),
+                child: Center(
+                  child: Container(
+                    margin: const EdgeInsets.all(32),
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: NunuColors.backgroundPaper,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 64,
+                          height: 64,
+                          decoration: BoxDecoration(
+                            color: _appColor.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.notifications_active,
+                            color: _appColor,
+                            size: 32,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        const Text(
+                          'enable notifications?',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'stay updated with daily rewards, special events, and exclusive offers!',
+                          style: TextStyle(
+                            color: NunuColors.textSecondary,
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () {
+                                  // Proceed without notifications
+                                  widget.onTosAccepted(true);
+                                  setState(() => _state = MegaMergeState.ageGate);
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: NunuColors.textSecondary,
+                                  side: BorderSide(
+                                    color: Colors.white.withOpacity(0.3),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                                child: const Text('not now'),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  // Accept notifications and proceed
+                                  widget.onTosAccepted(true);
+                                  setState(() => _state = MegaMergeState.ageGate);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: _appColor,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'allow',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

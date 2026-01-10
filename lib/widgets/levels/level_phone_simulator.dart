@@ -9,6 +9,7 @@ import '../level_components/phone_sim/embedded_place_cards.dart';
 import '../level_components/phone_sim/embedded_mega_merge.dart';
 import '../level_components/phone_sim/embedded_fitness_tracker.dart';
 import '../level_components/phone_sim/checklist_app.dart';
+import '../level_components/phone_sim/guide_app.dart';
 
 /// The active app/screen being displayed
 enum ActiveScreen {
@@ -26,6 +27,7 @@ enum ActiveScreen {
   megaMerge,
   fitnessTracker,
   checklist,
+  guide,
   genericApp,
 }
 
@@ -270,7 +272,7 @@ class _LevelPhoneSimulatorState extends State<LevelPhoneSimulator> {
   bool _megaMergeUpdated = false;
   bool _placeCardsTosAccepted = false;
   bool _megaMergeTosAccepted = true; // Pre-accepted for this level
-  bool _megaMergeAgeVerified = false;
+  bool _megaMergeAgeVerified = true; // Pre-verified for pre-installed app
   bool _fitnessTrackerTosAccepted = false;
 
   // Game-specific data (persists based on app behavior)
@@ -337,6 +339,13 @@ class _LevelPhoneSimulatorState extends State<LevelPhoneSimulator> {
       name: 'Checklist',
       icon: Icons.checklist,
       color: Color(0xFFFF9800),
+      isSystemApp: true,
+    ),
+    PhoneApp(
+      id: 'guide',
+      name: 'Guide',
+      icon: Icons.menu_book,
+      color: Color(0xFF5C6BC0),
       isSystemApp: true,
     ),
   ];
@@ -444,6 +453,9 @@ class _LevelPhoneSimulatorState extends State<LevelPhoneSimulator> {
           break;
         case 'checklist':
           _currentScreen = ActiveScreen.checklist;
+          break;
+        case 'guide':
+          _currentScreen = ActiveScreen.guide;
           break;
         case 'place_the_cards':
           _currentScreen = ActiveScreen.placeTheCards;
@@ -730,6 +742,9 @@ class _LevelPhoneSimulatorState extends State<LevelPhoneSimulator> {
           },
           onSubmit: _onChecklistSubmit,
         );
+
+      case ActiveScreen.guide:
+        return GuideApp(onBack: _goHome);
 
       case ActiveScreen.genericApp:
         // Find the app info

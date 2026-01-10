@@ -463,7 +463,7 @@ final List<LevelEntry> hardLevels = [
     data: LevelData(
       title: "App Inspector",
       instructions:
-          "Explore the phone, install apps, and answer the checklist correctly!",
+          "Open the Checklist App and answer the questions correctly!",
     ),
     widgetBuilder: (onComplete) => LevelPhoneSimulator(onComplete: onComplete),
   ),

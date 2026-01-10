@@ -89,7 +89,7 @@ For questions about these Terms, contact: support@cardmastergames.com
 For safety concerns: safety@cardmastergames.com
 
 Document Version 2.1.4
-Last Updated: November 28, 2024
+Last Updated: November 28, 2025
 ''';
 
 const String placeCardsPrivacy = '''
@@ -193,7 +193,7 @@ For privacy inquiries: privacy@cardmastergames.com
 For safety concerns: safety@cardmastergames.com
 
 ---
-Privacy Policy v1.3 | Effective: November 28, 2024
+Privacy Policy v1.3 | Effective: November 28, 2025
 ''';
 
 /// Onboarding state for Place the Cards
@@ -1154,7 +1154,7 @@ class _EmbeddedPlaceCardsAppState extends State<EmbeddedPlaceCardsApp> {
   }
 
   Widget _buildChatScreen() {
-    final chatUnlocked = widget.gameState.completedLevels >= 1;
+    final chatUnlocked = widget.gameState.completedLevels >= 2;
 
     return Container(
       color: NunuColors.backgroundDefault,
@@ -1197,7 +1197,7 @@ class _EmbeddedPlaceCardsAppState extends State<EmbeddedPlaceCardsApp> {
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        'complete level 1 to unlock the community chat and connect with other players!',
+                        'complete level 2 to unlock the community chat and connect with other players!',
                         style: TextStyle(
                           color: NunuColors.textSecondary,
                           fontSize: 14,
@@ -1886,39 +1886,13 @@ class _PlaceCardsGameState extends State<_PlaceCardsGame> {
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(minWidth: 36),
                 ),
-              if (widget.onOpenChat != null)
-                Stack(
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        Icons.chat_bubble_outline,
-                        color: widget.completedLevels >= 1
-                            ? Colors.white
-                            : Colors.white.withOpacity(0.4),
-                      ),
-                      onPressed: widget.onOpenChat,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 36),
-                    ),
-                    if (widget.completedLevels < 1)
-                      Positioned(
-                        right: 6,
-                        top: 6,
-                        child: Container(
-                          width: 12,
-                          height: 12,
-                          decoration: const BoxDecoration(
-                            color: NunuColors.backgroundPaper,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.lock,
-                            size: 8,
-                            color: NunuColors.textSecondary,
-                          ),
-                        ),
-                      ),
-                  ],
+              // Chat icon only shows after completing level 2 (surprise unlock)
+              if (widget.onOpenChat != null && widget.completedLevels >= 2)
+                IconButton(
+                  icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+                  onPressed: widget.onOpenChat,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 36),
                 ),
               if (widget.onOpenLevelSelect != null)
                 IconButton(

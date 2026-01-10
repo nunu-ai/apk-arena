@@ -17,37 +17,57 @@ class ChecklistQuestion {
   });
 }
 
-/// The 5 questions requiring exploration to answer correctly
+/// The questions requiring exploration to answer correctly
 const List<ChecklistQuestion> checklistQuestions = [
   ChecklistQuestion(
     id: 'place_cards_age_gate',
     question: "Does 'Place the Cards' have an age verification popup?",
     correctAnswer: false, // NO - it only mentions 13+ in TOS but no popup
-    hint: 'Launch the app and observe the onboarding flow',
   ),
   ChecklistQuestion(
     id: 'mega_merge_age_gate',
     question: "Does 'Mega Merge' have an age verification popup?",
-    correctAnswer: true, // YES - shows age gate after TOS
-    hint: 'Update and launch the app to see all screens',
+    correctAnswer: true, // YES - shows age gate in onboarding (requires fresh install)
   ),
   ChecklistQuestion(
     id: 'place_cards_data_collection',
     question: "Does 'Place the Cards' Privacy Policy mention data collection?",
     correctAnswer: true, // YES - mentions analytics and usage data
-    hint: 'Read the Privacy Policy carefully',
   ),
   ChecklistQuestion(
     id: 'mega_merge_prohibit_minors',
     question: "Does 'Mega Merge' Terms of Service prohibit users under 18?",
-    correctAnswer: true, // YES - requires 18+
-    hint: 'Check the eligibility section in Terms of Service',
+    correctAnswer: false, // NO - ToS does not prohibit under 18 (age gate is separate)
   ),
   ChecklistQuestion(
-    id: 'mega_merge_without_update',
-    question: "Can you play 'Mega Merge' without updating it first?",
-    correctAnswer: false, // NO - requires update from Play Store
-    hint: 'Try opening the app before updating',
+    id: 'place_cards_chat',
+    question: "Does 'Place the Cards' have a chat function?",
+    correctAnswer: true, // YES - unlocks after completing level 2
+  ),
+  ChecklistQuestion(
+    id: 'mega_merge_chat',
+    question: "Does 'Mega Merge' have a chat function?",
+    correctAnswer: true, // YES - has chat in the game
+  ),
+  ChecklistQuestion(
+    id: 'fittrack_biometric_sharing',
+    question: "Does 'FitTrack Pro' share biometric data with insurance partners?",
+    correctAnswer: true, // YES - hidden in "more details" section
+  ),
+  ChecklistQuestion(
+    id: 'fittrack_private_chat',
+    question: "Does 'FitTrack Pro' have a private chat where you can DM people?",
+    correctAnswer: false, // NO - only has public community chat, no private DMs
+  ),
+  ChecklistQuestion(
+    id: 'mega_merge_loot_boxes',
+    question: "Does 'Mega Merge' have loot boxes purchasable with real money?",
+    correctAnswer: true, // YES - has loot boxes in the shop
+  ),
+  ChecklistQuestion(
+    id: 'place_cards_loot_boxes',
+    question: "Does 'Place the Cards' have loot boxes purchasable with real money?",
+    correctAnswer: true, // YES - has power card packs
   ),
 ];
 
@@ -124,9 +144,7 @@ class _ChecklistAppState extends State<ChecklistApp> {
             onBack: widget.onBack,
             backgroundColor: NunuColors.warningMain.withOpacity(0.2),
           ),
-          Expanded(
-            child: _showResults ? _buildResults() : _buildQuestions(),
-          ),
+          Expanded(child: _showResults ? _buildResults() : _buildQuestions()),
         ],
       ),
     );
@@ -152,18 +170,18 @@ class _ChecklistAppState extends State<ChecklistApp> {
               ),
               const SizedBox(height: 4),
               Text(
-                'answer the following questions about the installed apps. explore each app to find the correct answers.',
-                style: TextStyle(
-                  color: NunuColors.textSecondary,
-                  fontSize: 13,
-                ),
+                'answer the following questions. open and read the "Guide" app to learn more how you should answer the questions.',
+                style: TextStyle(color: NunuColors.textSecondary, fontSize: 13),
               ),
               const SizedBox(height: 8),
               LinearProgressIndicator(
-                value: widget.answers.values.where((a) => a != null).length /
+                value:
+                    widget.answers.values.where((a) => a != null).length /
                     checklistQuestions.length,
                 backgroundColor: NunuColors.backgroundDefault,
-                valueColor: const AlwaysStoppedAnimation(NunuColors.primaryMain),
+                valueColor: const AlwaysStoppedAnimation(
+                  NunuColors.primaryMain,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
@@ -216,7 +234,9 @@ class _ChecklistAppState extends State<ChecklistApp> {
                 child: Text(
                   _allAnswered ? 'submit answers' : 'answer all questions',
                   style: TextStyle(
-                    color: _allAnswered ? Colors.white : NunuColors.textSecondary,
+                    color: _allAnswered
+                        ? Colors.white
+                        : NunuColors.textSecondary,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
@@ -229,7 +249,11 @@ class _ChecklistAppState extends State<ChecklistApp> {
     );
   }
 
-  Widget _buildQuestionItem(ChecklistQuestion question, bool? answer, int number) {
+  Widget _buildQuestionItem(
+    ChecklistQuestion question,
+    bool? answer,
+    int number,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -261,7 +285,9 @@ class _ChecklistAppState extends State<ChecklistApp> {
                   child: Text(
                     '$number',
                     style: TextStyle(
-                      color: answer != null ? Colors.white : NunuColors.textSecondary,
+                      color: answer != null
+                          ? Colors.white
+                          : NunuColors.textSecondary,
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
@@ -346,7 +372,7 @@ class _ChecklistAppState extends State<ChecklistApp> {
         decoration: BoxDecoration(
           color: isSelected
               ? (value ? NunuColors.successMain : NunuColors.errorMain)
-                  .withOpacity(0.2)
+                    .withOpacity(0.2)
               : NunuColors.backgroundDefault,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
@@ -410,7 +436,9 @@ class _ChecklistAppState extends State<ChecklistApp> {
             ),
             const SizedBox(height: 24),
             Text(
-              (_allCorrect ?? false) ? 'all correct!' : 'some answers are wrong',
+              (_allCorrect ?? false)
+                  ? 'all correct!'
+                  : 'some answers are wrong',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 24,
@@ -457,4 +485,3 @@ class _ChecklistAppState extends State<ChecklistApp> {
     );
   }
 }
-

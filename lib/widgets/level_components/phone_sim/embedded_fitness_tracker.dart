@@ -127,10 +127,69 @@ Note: Due to our data synchronization system, complete data deletion may not be 
 
 This App is not intended for users under 16 years of age.
 
-8. CONTACT US
+8. CALIFORNIA RESIDENTS
+
+If you are a California resident, you may have additional rights under the CCPA. Please contact us for more information about exercising these rights.
+
+9. INTERNATIONAL TRANSFERS
+
+Your data may be transferred to and processed in countries outside your jurisdiction. We ensure appropriate safeguards are in place for such transfers.
+
+10. COOKIES AND TRACKING
+
+We use cookies and similar technologies to enhance your experience and collect usage data. You can manage cookie preferences in your device settings.
+
+11. CHANGES TO THIS POLICY
+
+We may update this Privacy Policy from time to time. We will notify you of any material changes by posting the new Privacy Policy on this page.
+
+12. CONTACT US
 
 Privacy inquiries: privacy@fitlifetechnologies.com
 Data Protection: dpo@fitlifetechnologies.com
+General Support: support@fitlifetechnologies.com
+
+Document ID: PP-2024-12-V3.2
+Last Updated: December 1, 2024
+''';
+
+/// Hidden additional privacy details (shown via "more details" button)
+const String fitnessTrackerPrivacyExtended = '''
+EXTENDED DATA SHARING PRACTICES
+
+A. HEALTH DATA PARTNERSHIPS
+
+A.1 Wellness Research Initiatives
+We may share anonymized aggregate health data with academic research institutions for public health studies. Individual identification is not possible from this data.
+
+A.2 Corporate Wellness Programs
+If you joined through an employer wellness program, certain activity metrics may be shared with your employer in aggregate form only.
+
+A.3 Insurance Partner Programs
+
+IMPORTANT NOTICE: By using FitTrack Pro, you acknowledge and consent to the following:
+
+We have established data sharing partnerships with select insurance providers to offer premium discounts based on fitness activity. Under these partnerships:
+
+• Your biometric data including heart rate patterns, sleep quality metrics, and activity levels may be shared with insurance partners
+• Insurance partners may use this data to assess health risk profiles and adjust premium calculations
+• Data sharing occurs only with partners listed in our Insurance Partner Directory (available at fittrack-pro.com/insurance-partners)
+• You may opt out of insurance data sharing at any time through Settings > Privacy > Insurance Sharing
+
+B. THIRD-PARTY INTEGRATIONS
+
+When you connect third-party services (wearables, other fitness apps), data flows bidirectionally. Review each integration's privacy practices carefully.
+
+C. AGGREGATE DATA USAGE
+
+We compile anonymized statistics for industry reports, benchmarking, and trend analysis. This data cannot identify individual users.
+
+D. DATA BROKER RELATIONSHIPS
+
+We do not sell your personal data to data brokers. However, advertising partners may create profiles based on app usage for targeted advertising purposes.
+
+---
+Extended Policy Section: EXT-PP-2024-12-V1.0
 ''';
 
 /// Onboarding state for FitTrack Pro
@@ -181,6 +240,7 @@ class _EmbeddedFitnessTrackerAppState extends State<EmbeddedFitnessTrackerApp> {
   String? _emailError;
   bool _tosChecked = false;
   bool _privacyChecked = false;
+  bool _showMoreDetails = false;
 
   static const Color _appColor = Color(0xFF00C853);
 
@@ -805,6 +865,135 @@ class _EmbeddedFitnessTrackerAppState extends State<EmbeddedFitnessTrackerApp> {
                         ],
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    // More details expandable section
+                    GestureDetector(
+                      onTap: () => setState(() => _showMoreDetails = !_showMoreDetails),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: NunuColors.backgroundPaper,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.1),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _showMoreDetails ? Icons.expand_less : Icons.expand_more,
+                              color: NunuColors.textSecondary,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Text(
+                                'more details',
+                                style: TextStyle(
+                                  color: NunuColors.textSecondary,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Expanded content
+                    if (_showMoreDetails) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: NunuColors.backgroundDefault,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.05),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              'extended data sharing practices',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            SizedBox(height: 12),
+                            Text(
+                              'health data partnerships',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              '• Anonymized data may be shared with research institutions\n'
+                              '• Corporate wellness program metrics (if applicable)',
+                              style: TextStyle(
+                                color: NunuColors.textSecondary,
+                                fontSize: 11,
+                                height: 1.5,
+                              ),
+                            ),
+                            SizedBox(height: 12),
+                            Text(
+                              'insurance partner programs',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'IMPORTANT: Your biometric data including heart rate patterns, '
+                              'sleep quality metrics, and activity levels may be shared with '
+                              'insurance partners for premium discount programs. Insurance partners '
+                              'may use this data to assess health risk profiles and adjust premium calculations.',
+                              style: TextStyle(
+                                color: NunuColors.textSecondary,
+                                fontSize: 11,
+                                height: 1.5,
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'You may opt out via Settings > Privacy > Insurance Sharing',
+                              style: TextStyle(
+                                color: NunuColors.textSecondary,
+                                fontSize: 10,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                            SizedBox(height: 12),
+                            Text(
+                              'third-party integrations',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              '• Data flows bidirectionally with connected services\n'
+                              '• Aggregate data may be used for industry reports',
+                              style: TextStyle(
+                                color: NunuColors.textSecondary,
+                                fontSize: 11,
+                                height: 1.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1750,12 +1939,11 @@ class _EmbeddedFitnessTrackerAppState extends State<EmbeddedFitnessTrackerApp> {
         border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1))),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildNavItem(0, Icons.dashboard, 'dashboard'),
-          _buildNavItem(1, Icons.fitness_center, 'workouts'),
-          _buildNavItem(2, Icons.emoji_events, 'achievements'),
-          _buildNavItem(3, Icons.forum, 'community'),
+          Expanded(child: _buildNavItem(0, Icons.dashboard, 'dashboard')),
+          Expanded(child: _buildNavItem(1, Icons.fitness_center, 'workouts')),
+          Expanded(child: _buildNavItem(2, Icons.emoji_events, 'achieve')),
+          Expanded(child: _buildNavItem(3, Icons.forum, 'community')),
         ],
       ),
     );
@@ -1766,18 +1954,20 @@ class _EmbeddedFitnessTrackerAppState extends State<EmbeddedFitnessTrackerApp> {
     return GestureDetector(
       onTap: () => setState(() => _currentTab = index),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: isSelected ? _appColor : NunuColors.textSecondary),
+            Icon(icon, color: isSelected ? _appColor : NunuColors.textSecondary, size: 22),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
                 color: isSelected ? _appColor : NunuColors.textSecondary,
-                fontSize: 11,
+                fontSize: 10,
               ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
           ],
         ),
