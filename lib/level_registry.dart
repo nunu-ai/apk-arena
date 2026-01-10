@@ -53,6 +53,7 @@ import 'package:apk_arena/widgets/levels/level_mega_merge.dart';
 import 'package:apk_arena/widgets/levels/level_coin_map.dart';
 import 'package:apk_arena/widgets/levels/level_coin_collector.dart';
 import 'package:apk_arena/widgets/levels/level_phone_simulator.dart';
+import 'package:apk_arena/widgets/levels/level_royal_match.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -368,6 +369,13 @@ final List<LevelEntry> mediumLevels = [
       instructions: "Collect all coins and enter the total count!",
     ),
     widgetBuilder: (onComplete) => LevelCoinCollector(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "crown collector",
+      instructions: "match gems to collect all the royal crowns!",
+    ),
+    widgetBuilder: (onComplete) => LevelRoyalMatch(onComplete: onComplete),
   ),
 ];
 
