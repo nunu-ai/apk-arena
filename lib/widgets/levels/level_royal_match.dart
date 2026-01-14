@@ -99,7 +99,12 @@ class _LevelRoyalMatchState extends State<LevelRoyalMatch> {
       _currentLevel = levelIndex;
       _movesRemaining = levels[levelIndex].movesAvailable;
       _crownsCollected = 0;
-      _board = _generateBoard(levels[levelIndex].crownsRequired);
+
+      // Regenerate board until no initial matches exist
+      do {
+        _board = _generateBoard(levels[levelIndex].crownsRequired);
+      } while (_findAllMatches().isNotEmpty);
+
       _isProcessing = false;
       _isLevelTransitioning = false;
     });
