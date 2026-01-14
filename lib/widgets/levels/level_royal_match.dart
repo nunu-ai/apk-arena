@@ -3,22 +3,10 @@ import 'package:flutter/material.dart';
 import '../level_widget.dart';
 
 // Gem types for the board
-enum GemType {
-  red,
-  green,
-  blue,
-  yellow,
-  purple,
-}
+enum GemType { red, green, blue, yellow, purple }
 
 // Power-up types
-enum PowerUpType {
-  none,
-  rocketHorizontal,
-  rocketVertical,
-  propeller,
-  bomb,
-}
+enum PowerUpType { none, rocketHorizontal, rocketVertical, propeller, bomb }
 
 // Represents a single cell on the board
 class BoardCell {
@@ -59,7 +47,8 @@ class LevelConfig {
 }
 
 class LevelRoyalMatch extends LevelWidget {
-  const LevelRoyalMatch({Key? key, required super.onComplete}) : super(key: key);
+  const LevelRoyalMatch({Key? key, required super.onComplete})
+    : super(key: key);
 
   @override
   State<LevelRoyalMatch> createState() => _LevelRoyalMatchState();
@@ -81,6 +70,7 @@ class _LevelRoyalMatchState extends State<LevelRoyalMatch> {
   late List<List<BoardCell>> _board;
   bool _isProcessing = false;
   bool _showInfo = false;
+  bool _isLevelTransitioning = false;
 
   // Swipe gesture state
   int? _dragFromRow;
@@ -111,16 +101,14 @@ class _LevelRoyalMatchState extends State<LevelRoyalMatch> {
       _crownsCollected = 0;
       _board = _generateBoard(levels[levelIndex].crownsRequired);
       _isProcessing = false;
+      _isLevelTransitioning = false;
     });
   }
 
   List<List<BoardCell>> _generateBoard(int crownCount) {
     final List<List<BoardCell>> board = List.generate(
       boardSize,
-      (_) => List.generate(
-        boardSize,
-        (_) => BoardCell(gemType: _randomGem()),
-      ),
+      (_) => List.generate(boardSize, (_) => BoardCell(gemType: _randomGem())),
     );
 
     // Avoid immediate matches at start
@@ -159,13 +147,15 @@ class _LevelRoyalMatchState extends State<LevelRoyalMatch> {
         !board[r][c - 1].isEmpty &&
         !board[r][c - 2].isEmpty &&
         board[r][c - 1].gemType == t &&
-        board[r][c - 2].gemType == t) return true;
+        board[r][c - 2].gemType == t)
+      return true;
     // Check up two
     if (r >= 2 &&
         !board[r - 1][c].isEmpty &&
         !board[r - 2][c].isEmpty &&
         board[r - 1][c].gemType == t &&
-        board[r - 2][c].gemType == t) return true;
+        board[r - 2][c].gemType == t)
+      return true;
     return false;
   }
 
@@ -297,7 +287,9 @@ class _LevelRoyalMatchState extends State<LevelRoyalMatch> {
           for (int i = 0; i < length; i++) {
             cells.add(Point(r, c + i));
           }
-          results.add(MatchResult(cells: cells, isHorizontal: true, length: length));
+          results.add(
+            MatchResult(cells: cells, isHorizontal: true, length: length),
+          );
           allMatched.addAll(cells);
         }
         c += max(1, length);
@@ -324,7 +316,9 @@ class _LevelRoyalMatchState extends State<LevelRoyalMatch> {
           for (int i = 0; i < length; i++) {
             cells.add(Point(r + i, c));
           }
-          results.add(MatchResult(cells: cells, isHorizontal: false, length: length));
+          results.add(
+            MatchResult(cells: cells, isHorizontal: false, length: length),
+          );
           allMatched.addAll(cells);
         }
         r += max(1, length);
@@ -694,14 +688,19 @@ class _LevelRoyalMatchState extends State<LevelRoyalMatch> {
     final currentLevelConfig = levels[_currentLevel];
 
     if (_crownsCollected >= currentLevelConfig.crownsRequired) {
+      // Prevent duplicate level transitions
+      if (_isLevelTransitioning) return;
+      _isLevelTransitioning = true;
+
       // Level complete
       if (_currentLevel + 1 >= levels.length) {
         // All levels complete - game won!
         widget.onComplete(true);
       } else {
-        // Move to next level
+        // Move to next level - capture the next level index now
+        final nextLevel = _currentLevel + 1;
         Future.delayed(const Duration(milliseconds: 500), () {
-          _startLevel(_currentLevel + 1);
+          _startLevel(nextLevel);
         });
       }
     } else if (_movesRemaining <= 0) {
@@ -729,11 +728,7 @@ class _LevelRoyalMatchState extends State<LevelRoyalMatch> {
                 _buildHeader(currentLevelConfig),
                 const SizedBox(height: 8),
                 // Game board
-                Expanded(
-                  child: Center(
-                    child: _buildBoard(),
-                  ),
-                ),
+                Expanded(child: Center(child: _buildBoard())),
                 const SizedBox(height: 16),
               ],
             ),
@@ -829,11 +824,7 @@ class _LevelRoyalMatchState extends State<LevelRoyalMatch> {
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.touch_app,
-                  color: Colors.white,
-                  size: 16,
-                ),
+                Icon(Icons.touch_app, color: Colors.white, size: 16),
                 const SizedBox(width: 4),
                 Text(
                   '$_movesRemaining',
@@ -854,7 +845,8 @@ class _LevelRoyalMatchState extends State<LevelRoyalMatch> {
   Widget _buildBoard() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final double gridSize = min(constraints.maxWidth, constraints.maxHeight) * 0.95;
+        final double gridSize =
+            min(constraints.maxWidth, constraints.maxHeight) * 0.95;
         final double cellSize = gridSize / boardSize;
 
         return Container(
@@ -901,8 +893,8 @@ class _LevelRoyalMatchState extends State<LevelRoyalMatch> {
           color: cell.isEmpty
               ? Colors.transparent
               : cell.isMatched
-                  ? Colors.white.withOpacity(0.5)
-                  : gemColors[cell.gemType]!.withOpacity(0.9),
+              ? Colors.white.withOpacity(0.5)
+              : gemColors[cell.gemType]!.withOpacity(0.9),
           borderRadius: BorderRadius.circular(8),
           border: cell.hasCrown && !cell.isEmpty
               ? Border.all(color: const Color(0xFFFFD700), width: 2)
@@ -1061,10 +1053,7 @@ class _LevelRoyalMatchState extends State<LevelRoyalMatch> {
           ),
           Text(
             content,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 13,
-            ),
+            style: const TextStyle(color: Colors.white70, fontSize: 13),
           ),
         ],
       ),
@@ -1085,7 +1074,9 @@ class _LevelRoyalMatchState extends State<LevelRoyalMatch> {
             ),
             child: icon != null
                 ? Icon(icon, color: Colors.white, size: 18)
-                : const Center(child: Text('💣', style: TextStyle(fontSize: 14))),
+                : const Center(
+                    child: Text('💣', style: TextStyle(fontSize: 14)),
+                  ),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -1102,10 +1093,7 @@ class _LevelRoyalMatchState extends State<LevelRoyalMatch> {
                 ),
                 Text(
                   description,
-                  style: const TextStyle(
-                    color: Colors.white60,
-                    fontSize: 11,
-                  ),
+                  style: const TextStyle(color: Colors.white60, fontSize: 11),
                 ),
               ],
             ),
@@ -1130,4 +1118,3 @@ class MatchResult {
     required this.length,
   });
 }
-
