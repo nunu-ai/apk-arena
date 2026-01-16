@@ -37,6 +37,8 @@ import 'package:apk_arena/widgets/levels/level_closing_drawer.dart';
 import 'package:apk_arena/widgets/levels/level_group_order.dart';
 import 'package:apk_arena/widgets/levels/level_trace_drawing.dart';
 import 'package:apk_arena/widgets/levels/level_inventory_reconciliation.dart';
+import 'package:apk_arena/widgets/levels/level_chess_puzzle.dart';
+import 'package:apk_arena/widgets/levels/level_spot_difference.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -201,6 +203,13 @@ final List<LevelEntry> easyLevels = [
 final List<LevelEntry> mediumLevels = [
   LevelEntry(
     data: LevelData(
+      title: "Spot the Bug",
+      instructions: "Compare the Reference Design with the Production Build. Are they the same or different?",
+    ),
+    widgetBuilder: (onComplete) => LevelSpotDifference(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
       title: "Coordinate Clicker",
       instructions:
           "Click the object at the given (row, column) three times in a row! (1,1) is bottom-left!",
@@ -275,6 +284,13 @@ final List<LevelEntry> mediumLevels = [
       instructions: "make the word \"paper\"",
     ),
     widgetBuilder: (onComplete) => LevelScrabble(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "checkmate puzzle",
+      instructions: "find mate in one move.",
+    ),
+    widgetBuilder: (onComplete) => LevelChessPuzzle(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(

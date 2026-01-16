@@ -1,11 +1,13 @@
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../models/level_status.dart';
 import '../services/progress_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/level_tile.dart';
 import '../level_registry.dart';
 import 'level_screen.dart';
+import 'debug_level_gallery.dart';
 
 class LevelSelectorScreen extends StatefulWidget {
   const LevelSelectorScreen({Key? key}) : super(key: key);
@@ -76,6 +78,19 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> {
       appBar: AppBar(
         title: const Text('APK ARENA', style: TextStyle(fontWeight: FontWeight.bold),),
         actions: [
+          if (kDebugMode)
+            IconButton(
+              icon: const Icon(Icons.grid_view),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const DebugLevelGallery(),
+                  ),
+                );
+              },
+              tooltip: 'debug gallery',
+            ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: resetProgress,
