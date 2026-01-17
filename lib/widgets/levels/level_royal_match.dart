@@ -75,9 +75,11 @@ class _LevelRoyalMatchState extends State<LevelRoyalMatch> {
   // Swipe gesture state
   int? _dragFromRow;
   int? _dragFromCol;
-  Offset? _dragStartLocal;
-  int? _pendingTargetRow;
-  int? _pendingTargetCol;
+  Offset? _dragEndGlobal;
+
+  // Board geometry for coordinate mapping
+  final GlobalKey _boardKey = GlobalKey();
+  double _cellSize = 0;
 
   // Colors for gems
   static const Map<GemType, Color> gemColors = {
@@ -164,60 +166,66 @@ class _LevelRoyalMatchState extends State<LevelRoyalMatch> {
     return false;
   }
 
-  // Swipe handling
+  // Swipe handling - validates both start and end positions are on adjacent cells
   void _onPanStart(int row, int col, DragStartDetails details) {
     if (_isProcessing) return;
     _dragFromRow = row;
     _dragFromCol = col;
-    _dragStartLocal = details.localPosition;
-    _pendingTargetRow = null;
-    _pendingTargetCol = null;
+    _dragEndGlobal = details.globalPosition;
   }
 
   void _onPanUpdate(int row, int col, DragUpdateDetails details) {
     if (_isProcessing) return;
-    if (_dragFromRow != row || _dragFromCol != col) return;
-    if (_dragStartLocal == null) return;
-
-    final Offset delta = details.localPosition - _dragStartLocal!;
-    const double threshold = 18;
-    if (delta.distance < threshold) {
-      _pendingTargetRow = null;
-      _pendingTargetCol = null;
-      return;
-    }
-
-    int targetRow = row;
-    int targetCol = col;
-    if (delta.dx.abs() > delta.dy.abs()) {
-      targetCol = delta.dx > 0 ? col + 1 : col - 1;
-    } else {
-      targetRow = delta.dy > 0 ? row + 1 : row - 1;
-    }
-
-    if (targetRow < 0 ||
-        targetRow >= boardSize ||
-        targetCol < 0 ||
-        targetCol >= boardSize) {
-      _pendingTargetRow = null;
-      _pendingTargetCol = null;
-      return;
-    }
-
-    _pendingTargetRow = targetRow;
-    _pendingTargetCol = targetCol;
+    // Track the latest position during the drag
+    _dragEndGlobal = details.globalPosition;
   }
 
   void _onPanEnd(int row, int col, DragEndDetails details) {
     if (_isProcessing) return;
     final int? fromRow = _dragFromRow;
     final int? fromCol = _dragFromCol;
-    final int? toRow = _pendingTargetRow;
-    final int? toCol = _pendingTargetCol;
 
-    if (fromRow != null && fromCol != null && toRow != null && toCol != null) {
-      _trySwap(fromRow, fromCol, toRow, toCol);
+    if (fromRow == null || fromCol == null || _dragEndGlobal == null) {
+      _resetDrag();
+      return;
     }
+
+    // Get board position from GlobalKey
+    final RenderBox? boardBox =
+        _boardKey.currentContext?.findRenderObject() as RenderBox?;
+    if (boardBox == null) {
+      _resetDrag();
+      return;
+    }
+
+    final boardPosition = boardBox.localToGlobal(Offset.zero);
+
+    // Calculate which cell the drag ended on using global coordinates
+    final localEndX = _dragEndGlobal!.dx - boardPosition.dx;
+    final localEndY = _dragEndGlobal!.dy - boardPosition.dy;
+
+    final endCol = (localEndX / _cellSize).floor();
+    final endRow = (localEndY / _cellSize).floor();
+
+    // Validate end cell is within board bounds
+    if (endRow < 0 ||
+        endRow >= boardSize ||
+        endCol < 0 ||
+        endCol >= boardSize) {
+      _resetDrag();
+      return;
+    }
+
+    // Validate that start and end cells are adjacent (exactly 1 cell away, not diagonal)
+    final rowDiff = (endRow - fromRow).abs();
+    final colDiff = (endCol - fromCol).abs();
+    final isAdjacent =
+        (rowDiff == 1 && colDiff == 0) || (rowDiff == 0 && colDiff == 1);
+
+    if (isAdjacent) {
+      _trySwap(fromRow, fromCol, endRow, endCol);
+    }
+
     _resetDrag();
   }
 
@@ -232,9 +240,7 @@ class _LevelRoyalMatchState extends State<LevelRoyalMatch> {
   void _resetDrag() {
     _dragFromRow = null;
     _dragFromCol = null;
-    _dragStartLocal = null;
-    _pendingTargetRow = null;
-    _pendingTargetCol = null;
+    _dragEndGlobal = null;
   }
 
   void _trySwap(int r1, int c1, int r2, int c2) async {
@@ -854,7 +860,11 @@ class _LevelRoyalMatchState extends State<LevelRoyalMatch> {
             min(constraints.maxWidth, constraints.maxHeight) * 0.95;
         final double cellSize = gridSize / boardSize;
 
+        // Store cell size for coordinate mapping
+        _cellSize = cellSize;
+
         return Container(
+          key: _boardKey,
           width: gridSize,
           height: gridSize,
           decoration: BoxDecoration(
