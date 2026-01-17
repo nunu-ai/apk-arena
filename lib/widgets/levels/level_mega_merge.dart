@@ -133,7 +133,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
   final GlobalKey _energyKey = GlobalKey();
   final GlobalKey _coinsKey = GlobalKey();
   final GlobalKey _menuKey = GlobalKey();
-  final List<GlobalKey> _orderKeys = List.generate(3, (_) => GlobalKey());
+  final List<GlobalKey> _orderKeys = List.generate(4, (_) => GlobalKey());
 
   @override
   void initState() {
@@ -155,6 +155,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
   void _initializeLevel() {
     // 1. Initialize Orders
     _orders = [
+      OrderRequirement(targetTier: 7), // Server
       OrderRequirement(targetTier: 6), // Robot
       OrderRequirement(targetTier: 5), // Battery
       OrderRequirement(targetTier: 4), // Chip
@@ -505,7 +506,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
           widget.onComplete(true);
         }
 
-        if (!_tutorialComplete && _tutorialStep == 5 && orderIndex == 2) {
+        if (!_tutorialComplete && _tutorialStep == 5 && orderIndex == 3) {
           // Chip delivered
           _advanceTutorial();
         }
@@ -581,8 +582,8 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
         sourceKey: _tutorialChipIndex != -1
             ? _getCellKey(_tutorialChipIndex)
             : null,
-        destinationKey: _orderKeys[2], // Chip order
-        targetKey: _orderKeys[2],
+        destinationKey: _orderKeys[3], // Chip order
+        targetKey: _orderKeys[3],
         requiresDrag: true,
       ),
     ];
