@@ -47,6 +47,9 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
   // Controls
   bool _isPressingLeft = false;
   bool _isPressingRight = false;
+  bool _isChargingJump = false;
+  DateTime? _jumpChargeStart;
+  double _jumpChargePercent = 0.0; // For visual indicator
 
   // Game state
   bool _gameOver = false;
@@ -113,10 +116,29 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
     super.dispose();
   }
 
+  void _resetPlayer() {
+    setState(() {
+      _playerX = 0.08;
+      _playerY = 0.84;
+      _velocityX = 0;
+      _velocityY = 0;
+      _isGrounded = true;
+      _isChargingJump = false;
+      _jumpChargeStart = null;
+      _jumpChargePercent = 0.0;
+    });
+  }
+
   void _gameLoop() {
     if (!mounted || _screenSize == Size.zero || _gameOver) return;
 
     setState(() {
+      // Update jump charge indicator
+      if (_isChargingJump && _jumpChargeStart != null) {
+        final chargeDuration = DateTime.now().difference(_jumpChargeStart!).inMilliseconds;
+        _jumpChargePercent = (chargeDuration / 500.0).clamp(0.0, 1.0);
+      }
+
       // Horizontal movement
       if (_isPressingLeft && !_isPressingRight) {
         _velocityX = -_moveSpeed;
@@ -160,20 +182,16 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
           enemy.direction *= -1;
         }
 
-        // Check enemy collision
+        // Check enemy collision - reset instead of fail
         if (_checkEnemyCollision(enemy)) {
-          _gameOver = true;
-          _controller.stop();
-          widget.onComplete(false);
+          _resetPlayer();
           return;
         }
       }
 
-      // Check fall off screen
+      // Check fall off screen - reset instead of fail
       if (_playerY > 1.1) {
-        _gameOver = true;
-        _controller.stop();
-        widget.onComplete(false);
+        _resetPlayer();
         return;
       }
 
@@ -253,13 +271,26 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
         playerBottom > flagTop;
   }
 
-  void _jump() {
+  void _onJumpPressed() {
     if (_isGrounded && !_gameOver) {
+      _isChargingJump = true;
+      _jumpChargeStart = DateTime.now();
+    }
+  }
+
+  void _onJumpReleased() {
+    if (_isChargingJump && _isGrounded && !_gameOver) {
+      // Use the tracked charge percent (min 20%)
+      final chargePercent = _jumpChargePercent.clamp(0.2, 1.0);
+      
       setState(() {
-        _velocityY = _jumpVelocity;
+        _velocityY = _jumpVelocity * chargePercent;
         _isGrounded = false;
       });
     }
+    _isChargingJump = false;
+    _jumpChargeStart = null;
+    _jumpChargePercent = 0.0;
   }
 
   @override
@@ -442,41 +473,94 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
   }
 
   Widget _buildPlayer() {
+    final playerWidth = _playerWidth * _screenSize.width;
+    final playerHeight = _playerHeight * _screenSize.height;
+    
     return Positioned(
       left: _playerX * _screenSize.width,
-      top: _playerY * _screenSize.height,
-      child: Container(
-        width: _playerWidth * _screenSize.width,
-        height: _playerHeight * _screenSize.height,
-        decoration: BoxDecoration(
-          gradient: const RadialGradient(
-            colors: [
-              NunuColors.primaryLighter,
-              NunuColors.primaryMain,
-              NunuColors.primaryDark,
-            ],
-            stops: [0.0, 0.5, 1.0],
+      top: _playerY * _screenSize.height - (_isChargingJump ? 12 : 0), // Offset for charge bar
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Jump charge bar
+          if (_isChargingJump)
+            Container(
+              width: playerWidth,
+              height: 8,
+              margin: const EdgeInsets.only(bottom: 4),
+              decoration: BoxDecoration(
+                color: NunuColors.backgroundPaper,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: NunuColors.successDark, width: 1),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(3),
+                child: FractionallySizedBox(
+                  alignment: Alignment.centerLeft,
+                  widthFactor: _jumpChargePercent,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          NunuColors.successLight,
+                          _jumpChargePercent >= 1.0 
+                              ? NunuColors.warningMain 
+                              : NunuColors.successMain,
+                        ],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: NunuColors.successMain.withValues(alpha: 0.6),
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          // Player body
+          Container(
+            width: playerWidth,
+            height: playerHeight,
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                colors: _isChargingJump
+                    ? [
+                        NunuColors.successLight,
+                        NunuColors.primaryMain,
+                        NunuColors.primaryDark,
+                      ]
+                    : [
+                        NunuColors.primaryLighter,
+                        NunuColors.primaryMain,
+                        NunuColors.primaryDark,
+                      ],
+                stops: const [0.0, 0.5, 1.0],
+              ),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: _isChargingJump ? NunuColors.successLight : NunuColors.primaryLight,
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: (_isChargingJump ? NunuColors.successMain : NunuColors.primaryMain)
+                      .withValues(alpha: 0.7),
+                  blurRadius: _isChargingJump ? 20 : 15,
+                  spreadRadius: _isChargingJump ? 5 : 3,
+                ),
+              ],
+            ),
+            child: Center(
+              child: Icon(
+                Icons.person,
+                color: Colors.white,
+                size: playerHeight * 0.5,
+              ),
+            ),
           ),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: NunuColors.primaryLight, width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: NunuColors.primaryMain.withValues(alpha: 0.7),
-              blurRadius: 15,
-              spreadRadius: 3,
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.person,
-              color: Colors.white,
-              size: _playerHeight * _screenSize.height * 0.6,
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -517,7 +601,9 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
           ),
           // Jump button
           GestureDetector(
-            onTap: _jump,
+            onTapDown: (_) => _onJumpPressed(),
+            onTapUp: (_) => _onJumpReleased(),
+            onTapCancel: () => _onJumpReleased(),
             child: _buildJumpButton(),
           ),
         ],
