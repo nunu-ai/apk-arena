@@ -54,6 +54,7 @@ import 'package:apk_arena/widgets/levels/level_coin_map.dart';
 import 'package:apk_arena/widgets/levels/level_coin_collector.dart';
 import 'package:apk_arena/widgets/levels/level_phone_simulator.dart';
 import 'package:apk_arena/widgets/levels/level_royal_match.dart';
+import 'package:apk_arena/widgets/levels/level_car_steering.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -474,6 +475,13 @@ final List<LevelEntry> hardLevels = [
           "Open the Checklist App and answer the questions correctly!",
     ),
     widgetBuilder: (onComplete) => LevelPhoneSimulator(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "road rage",
+      instructions: "steer left and right to dodge obstacles. reach the finish line!",
+    ),
+    widgetBuilder: (onComplete) => LevelCarSteering(onComplete: onComplete),
   ),
 ];
 
