@@ -56,6 +56,7 @@ import 'package:apk_arena/widgets/levels/level_phone_simulator.dart';
 import 'package:apk_arena/widgets/levels/level_royal_match.dart';
 import 'package:apk_arena/widgets/levels/level_car_steering.dart';
 import 'package:apk_arena/widgets/levels/level_pattern_match.dart';
+import 'package:apk_arena/widgets/levels/level_giant_calendar.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -385,6 +386,14 @@ final List<LevelEntry> mediumLevels = [
       instructions: "recreate the pattern shown above!",
     ),
     widgetBuilder: (onComplete) => LevelPatternMatch(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "calendar chaos",
+      instructions:
+          "move Dr. Spaceman's appointment on Feb 14 to 1 hour earlier.",
+    ),
+    widgetBuilder: (onComplete) => LevelGiantCalendar(onComplete: onComplete),
   ),
 ];
 
