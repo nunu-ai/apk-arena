@@ -115,20 +115,22 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
     final matrix = _transformController.value;
     final tx = -matrix.getTranslation().x;
     final ty = -matrix.getTranslation().y;
-    
+
     // Clamp scroll position to valid bounds
-    final maxScrollX = (_timeGutterWidth + _gridWidth - _viewportSize.width).clamp(0.0, double.infinity);
-    final maxScrollY = (_dayHeaderHeight + _gridHeight - _viewportSize.height).clamp(0.0, double.infinity);
-    
+    final maxScrollX = (_timeGutterWidth + _gridWidth - _viewportSize.width)
+        .clamp(0.0, double.infinity);
+    final maxScrollY = (_dayHeaderHeight + _gridHeight - _viewportSize.height)
+        .clamp(0.0, double.infinity);
+
     final clampedX = tx.clamp(0.0, maxScrollX);
     final clampedY = ty.clamp(0.0, maxScrollY);
-    
+
     // If clamping changed the values, update the transform controller
     if ((tx - clampedX).abs() > 0.5 || (ty - clampedY).abs() > 0.5) {
       final newMatrix = Matrix4.identity()..translate(-clampedX, -clampedY);
       _transformController.value = newMatrix;
     }
-    
+
     setState(() {
       _scrollX = clampedX;
       _scrollY = clampedY;
@@ -138,13 +140,26 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
   // ---------------------------------------------------------------------------
   // COMPUTED PROPERTIES
   // ---------------------------------------------------------------------------
-  int get _daysInCurrentMonth => DateTime(_currentYear, _currentMonth + 1, 0).day;
+  int get _daysInCurrentMonth =>
+      DateTime(_currentYear, _currentMonth + 1, 0).day;
   double get _gridWidth => _daysInCurrentMonth * _dayColumnWidth;
   double get _gridHeight => 24 * _hourHeight;
 
   String get _monthName {
-    const names = ['January', 'February', 'March', 'April', 'May', 'June',
-                   'July', 'August', 'September', 'October', 'November', 'December'];
+    const names = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
     return names[_currentMonth - 1];
   }
 
@@ -195,25 +210,35 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
     // Check if Dr. Spaceman appointment was moved to 2:30 PM (1 hour earlier from 3:30 PM)
     final drSpacemanEvent = _events.firstWhere(
       (e) => e.id == _drSpacemanId,
-      orElse: () => _CalendarEvent(id: '', title: '', dateTime: DateTime(2000), color: Colors.transparent),
+      orElse: () => _CalendarEvent(
+        id: '',
+        title: '',
+        dateTime: DateTime(2000),
+        color: Colors.transparent,
+      ),
     );
-    
+
     if (drSpacemanEvent.id.isEmpty) return; // Event was deleted, not moved
-    
+
     // Check if the event time is now 2:30 PM on Feb 14 (within 5 min tolerance)
-    final movedCorrectly = drSpacemanEvent.dateTime.year == _targetMovedTime.year &&
+    final movedCorrectly =
+        drSpacemanEvent.dateTime.year == _targetMovedTime.year &&
         drSpacemanEvent.dateTime.month == _targetMovedTime.month &&
         drSpacemanEvent.dateTime.day == _targetMovedTime.day &&
-        drSpacemanEvent.dateTime.difference(_targetMovedTime).inMinutes.abs() <= 5;
-    
+        drSpacemanEvent.dateTime.difference(_targetMovedTime).inMinutes.abs() <=
+            5;
+
     if (movedCorrectly) widget.onComplete(true);
   }
 
   List<_CalendarEvent> _getEventsForDay(DateTime day) {
     return _events
-        .where((e) => e.dateTime.year == day.year &&
-                      e.dateTime.month == day.month &&
-                      e.dateTime.day == day.day)
+        .where(
+          (e) =>
+              e.dateTime.year == day.year &&
+              e.dateTime.month == day.month &&
+              e.dateTime.day == day.day,
+        )
         .toList()
       ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
   }
@@ -248,7 +273,13 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
       padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
         color: _accentBlue,
-        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -260,12 +291,20 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
             child: Center(
               child: Text(
                 '$_monthName $_currentYear',
-                style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.chevron_right, color: Colors.white, size: 28),
+            icon: const Icon(
+              Icons.chevron_right,
+              color: Colors.white,
+              size: 28,
+            ),
             onPressed: _nextMonth,
           ),
         ],
@@ -278,7 +317,7 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
       builder: (context, constraints) {
         // Capture viewport size for scroll clamping
         _viewportSize = Size(constraints.maxWidth, constraints.maxHeight);
-        
+
         return Stack(
           children: [
             // Main scrollable grid (with time gutter space for clipping)
@@ -370,11 +409,13 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
           final day = i + 1;
           final date = DateTime(_currentYear, _currentMonth, day);
           final weekday = weekdays[date.weekday % 7];
-          final isTarget = _currentMonth == 1 && _currentYear == 2026 && day == 10;
+          final isTarget =
+              _currentMonth == 1 && _currentYear == 2026 && day == 10;
 
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: () => _showCreateDialog(date, const TimeOfDay(hour: 9, minute: 0)),
+            onTap: () =>
+                _showCreateDialog(date, const TimeOfDay(hour: 9, minute: 0)),
             child: Container(
               width: _dayColumnWidth,
               decoration: BoxDecoration(
@@ -384,7 +425,10 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(weekday, style: TextStyle(color: Colors.grey[600], fontSize: 11)),
+                  Text(
+                    weekday,
+                    style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                  ),
                   const SizedBox(height: 2),
                   Container(
                     width: 32,
@@ -399,7 +443,9 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
                         style: TextStyle(
                           color: isTarget ? Colors.white : Colors.black87,
                           fontSize: 16,
-                          fontWeight: isTarget ? FontWeight.bold : FontWeight.normal,
+                          fontWeight: isTarget
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                         ),
                       ),
                     ),
@@ -473,8 +519,9 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
             ),
         // Event blocks
         for (int d = 0; d < _daysInCurrentMonth; d++)
-          ..._getEventsForDay(DateTime(_currentYear, _currentMonth, d + 1))
-              .map((e) => _buildEventBlock(e, d)),
+          ..._getEventsForDay(
+            DateTime(_currentYear, _currentMonth, d + 1),
+          ).map((e) => _buildEventBlock(e, d)),
       ],
     );
   }
@@ -494,32 +541,47 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
         behavior: HitTestBehavior.opaque,
         onTap: () => _showEventDialog(event),
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 4, vertical: height < 30 ? 2 : 4),
+          padding: EdgeInsets.symmetric(
+            horizontal: 4,
+            vertical: height < 30 ? 2 : 4,
+          ),
           decoration: BoxDecoration(
             color: event.color,
             borderRadius: BorderRadius.circular(4),
-            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 2, offset: const Offset(0, 1))],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 2,
+                offset: const Offset(0, 1),
+              ),
+            ],
           ),
-          child: ClipRect(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
+          clipBehavior: Clip.hardEdge,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Flexible(
+                child: Text(
                   event.title,
-                  style: TextStyle(color: Colors.white, fontSize: height < 30 ? 9 : 11, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: height < 30 ? 9 : 11,
+                    fontWeight: FontWeight.w600,
+                  ),
                   maxLines: height > 40 ? 2 : 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                if (height > 48 && event.attendee != null)
-                  Text(
+              ),
+              if (height > 48 && event.attendee != null)
+                Flexible(
+                  child: Text(
                     event.attendee!,
                     style: const TextStyle(color: Colors.white70, fontSize: 10),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-              ],
-            ),
+                ),
+            ],
           ),
         ),
       ),
@@ -536,9 +598,25 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
         backgroundColor: Colors.white,
         title: Row(
           children: [
-            Container(width: 14, height: 14, decoration: BoxDecoration(color: event.color, borderRadius: BorderRadius.circular(3))),
+            Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(
+                color: event.color,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
             const SizedBox(width: 10),
-            Expanded(child: Text(event.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87))),
+            Expanded(
+              child: Text(
+                event.title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
           ],
         ),
         content: Column(
@@ -548,11 +626,17 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
             _dialogRow(Icons.access_time, _formatDateTime(event.dateTime)),
             const SizedBox(height: 6),
             _dialogRow(Icons.timelapse, _formatDuration(event.duration)),
-            if (event.attendee != null) ...[const SizedBox(height: 6), _dialogRow(Icons.person, event.attendee!)],
+            if (event.attendee != null) ...[
+              const SizedBox(height: 6),
+              _dialogRow(Icons.person, event.attendee!),
+            ],
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('close', style: TextStyle(color: Colors.grey))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('close', style: TextStyle(color: Colors.grey)),
+          ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
@@ -577,10 +661,19 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
-        title: const Text('delete event?', style: TextStyle(color: Colors.black87)),
-        content: Text('Delete "${event.title}"?', style: const TextStyle(color: Colors.black54)),
+        title: const Text(
+          'delete event?',
+          style: TextStyle(color: Colors.black87),
+        ),
+        content: Text(
+          'Delete "${event.title}"?',
+          style: const TextStyle(color: Colors.black54),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('cancel', style: TextStyle(color: Colors.grey))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('cancel', style: TextStyle(color: Colors.grey)),
+          ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
@@ -597,7 +690,10 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
     final titleCtrl = TextEditingController(text: event.title);
     final attendeeCtrl = TextEditingController(text: event.attendee ?? '');
     var selDate = event.dateTime;
-    var selTime = TimeOfDay(hour: event.dateTime.hour, minute: event.dateTime.minute);
+    var selTime = TimeOfDay(
+      hour: event.dateTime.hour,
+      minute: event.dateTime.minute,
+    );
     var selDuration = event.duration;
     var selColor = event.color;
 
@@ -617,7 +713,13 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) => AlertDialog(
           backgroundColor: Colors.white,
-          title: const Text('edit event', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+          title: const Text(
+            'edit event',
+            style: TextStyle(
+              color: Colors.black87,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -631,8 +733,12 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
                     filled: true,
                     fillColor: Colors.white,
                     border: const OutlineInputBorder(),
-                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey[400]!)),
-                    focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: _accentBlue, width: 2)),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey[400]!),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: _accentBlue, width: 2),
+                    ),
                   ),
                   style: const TextStyle(color: Colors.black87),
                 ),
@@ -645,19 +751,44 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
                     filled: true,
                     fillColor: Colors.white,
                     border: const OutlineInputBorder(),
-                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey[400]!)),
-                    focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: _accentBlue, width: 2)),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey[400]!),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: _accentBlue, width: 2),
+                    ),
                   ),
                   style: const TextStyle(color: Colors.black87),
                 ),
                 const SizedBox(height: 12),
-                _pickerRow(Icons.calendar_today, _formatDate(selDate), () async {
-                  final d = await showDatePicker(context: ctx, initialDate: selDate, firstDate: DateTime(2026), lastDate: DateTime(2027));
-                  if (d != null) setDlg(() => selDate = DateTime(d.year, d.month, d.day, selTime.hour, selTime.minute));
-                }),
+                _pickerRow(
+                  Icons.calendar_today,
+                  _formatDate(selDate),
+                  () async {
+                    final d = await showDatePicker(
+                      context: ctx,
+                      initialDate: selDate,
+                      firstDate: DateTime(2026),
+                      lastDate: DateTime(2027),
+                    );
+                    if (d != null)
+                      setDlg(
+                        () => selDate = DateTime(
+                          d.year,
+                          d.month,
+                          d.day,
+                          selTime.hour,
+                          selTime.minute,
+                        ),
+                      );
+                  },
+                ),
                 const SizedBox(height: 12),
                 _pickerRow(Icons.access_time, selTime.format(ctx), () async {
-                  final t = await showTimePicker(context: ctx, initialTime: selTime);
+                  final t = await showTimePicker(
+                    context: ctx,
+                    initialTime: selTime,
+                  );
                   if (t != null) setDlg(() => selTime = t);
                 }),
                 const SizedBox(height: 12),
@@ -669,57 +800,102 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: DropdownButton<Duration>(
-                    value: durationOptions.contains(selDuration) ? selDuration : durationOptions[3],
+                    value: durationOptions.contains(selDuration)
+                        ? selDuration
+                        : durationOptions[3],
                     isExpanded: true,
                     underline: const SizedBox(),
                     dropdownColor: Colors.white,
                     style: const TextStyle(color: Colors.black87),
-                    items: durationOptions.map((d) => DropdownMenuItem(
-                      value: d,
-                      child: Row(
-                        children: [
-                          Icon(Icons.timelapse, size: 18, color: Colors.grey[600]),
-                          const SizedBox(width: 8),
-                          Text(_formatDuration(d), style: const TextStyle(color: Colors.black87)),
-                        ],
-                      ),
-                    )).toList(),
-                    onChanged: (d) { if (d != null) setDlg(() => selDuration = d); },
+                    items: durationOptions
+                        .map(
+                          (d) => DropdownMenuItem(
+                            value: d,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.timelapse,
+                                  size: 18,
+                                  color: Colors.grey[600],
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _formatDuration(d),
+                                  style: const TextStyle(color: Colors.black87),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (d) {
+                      if (d != null) setDlg(() => selDuration = d);
+                    },
                   ),
                 ),
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 8,
-                  children: [_colors.blue, _colors.green, _colors.red, _colors.purple, _colors.orange, _colors.teal]
-                      .map((c) => GestureDetector(
-                            onTap: () => setDlg(() => selColor = c),
-                            child: Container(
-                              width: 28, height: 28,
-                              decoration: BoxDecoration(
-                                color: c,
-                                shape: BoxShape.circle,
-                                border: c == selColor ? Border.all(color: Colors.black, width: 2) : null,
+                  children:
+                      [
+                            _colors.blue,
+                            _colors.green,
+                            _colors.red,
+                            _colors.purple,
+                            _colors.orange,
+                            _colors.teal,
+                          ]
+                          .map(
+                            (c) => GestureDetector(
+                              onTap: () => setDlg(() => selColor = c),
+                              child: Container(
+                                width: 28,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  color: c,
+                                  shape: BoxShape.circle,
+                                  border: c == selColor
+                                      ? Border.all(
+                                          color: Colors.black,
+                                          width: 2,
+                                        )
+                                      : null,
+                                ),
                               ),
                             ),
-                          ))
-                      .toList(),
+                          )
+                          .toList(),
                 ),
               ],
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('cancel', style: TextStyle(color: Colors.grey))),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('cancel', style: TextStyle(color: Colors.grey)),
+            ),
             TextButton(
               onPressed: () {
                 if (titleCtrl.text.trim().isEmpty) return;
-                _updateEvent(event.id, event.copyWith(
-                  title: titleCtrl.text.trim(),
-                  dateTime: DateTime(selDate.year, selDate.month, selDate.day, selTime.hour, selTime.minute),
-                  duration: selDuration,
-                  attendee: attendeeCtrl.text.trim().isEmpty ? null : attendeeCtrl.text.trim(),
-                  clearAttendee: attendeeCtrl.text.trim().isEmpty,
-                  color: selColor,
-                ));
+                _updateEvent(
+                  event.id,
+                  event.copyWith(
+                    title: titleCtrl.text.trim(),
+                    dateTime: DateTime(
+                      selDate.year,
+                      selDate.month,
+                      selDate.day,
+                      selTime.hour,
+                      selTime.minute,
+                    ),
+                    duration: selDuration,
+                    attendee: attendeeCtrl.text.trim().isEmpty
+                        ? null
+                        : attendeeCtrl.text.trim(),
+                    clearAttendee: attendeeCtrl.text.trim().isEmpty,
+                    color: selColor,
+                  ),
+                );
                 Navigator.pop(ctx);
               },
               child: Text('save', style: TextStyle(color: selColor)),
@@ -754,7 +930,13 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) => AlertDialog(
           backgroundColor: Colors.white,
-          title: const Text('new event', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+          title: const Text(
+            'new event',
+            style: TextStyle(
+              color: Colors.black87,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -768,8 +950,12 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
                     filled: true,
                     fillColor: Colors.white,
                     border: const OutlineInputBorder(),
-                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey[400]!)),
-                    focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: _accentBlue, width: 2)),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey[400]!),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: _accentBlue, width: 2),
+                    ),
                   ),
                   style: const TextStyle(color: Colors.black87),
                 ),
@@ -782,19 +968,35 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
                     filled: true,
                     fillColor: Colors.white,
                     border: const OutlineInputBorder(),
-                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey[400]!)),
-                    focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: _accentBlue, width: 2)),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey[400]!),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: _accentBlue, width: 2),
+                    ),
                   ),
                   style: const TextStyle(color: Colors.black87),
                 ),
                 const SizedBox(height: 12),
-                _pickerRow(Icons.calendar_today, _formatDate(selDate), () async {
-                  final d = await showDatePicker(context: ctx, initialDate: selDate, firstDate: DateTime(2026), lastDate: DateTime(2027));
-                  if (d != null) setDlg(() => selDate = d);
-                }),
+                _pickerRow(
+                  Icons.calendar_today,
+                  _formatDate(selDate),
+                  () async {
+                    final d = await showDatePicker(
+                      context: ctx,
+                      initialDate: selDate,
+                      firstDate: DateTime(2026),
+                      lastDate: DateTime(2027),
+                    );
+                    if (d != null) setDlg(() => selDate = d);
+                  },
+                ),
                 const SizedBox(height: 12),
                 _pickerRow(Icons.access_time, selTime.format(ctx), () async {
-                  final t = await showTimePicker(context: ctx, initialTime: selTime);
+                  final t = await showTimePicker(
+                    context: ctx,
+                    initialTime: selTime,
+                  );
                   if (t != null) setDlg(() => selTime = t);
                 }),
                 const SizedBox(height: 12),
@@ -811,52 +1013,94 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
                     underline: const SizedBox(),
                     dropdownColor: Colors.white,
                     style: const TextStyle(color: Colors.black87),
-                    items: durationOptions.map((d) => DropdownMenuItem(
-                      value: d,
-                      child: Row(
-                        children: [
-                          Icon(Icons.timelapse, size: 18, color: Colors.grey[600]),
-                          const SizedBox(width: 8),
-                          Text(_formatDuration(d), style: const TextStyle(color: Colors.black87)),
-                        ],
-                      ),
-                    )).toList(),
-                    onChanged: (d) { if (d != null) setDlg(() => selDuration = d); },
+                    items: durationOptions
+                        .map(
+                          (d) => DropdownMenuItem(
+                            value: d,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.timelapse,
+                                  size: 18,
+                                  color: Colors.grey[600],
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _formatDuration(d),
+                                  style: const TextStyle(color: Colors.black87),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (d) {
+                      if (d != null) setDlg(() => selDuration = d);
+                    },
                   ),
                 ),
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 8,
-                  children: [_colors.blue, _colors.green, _colors.red, _colors.purple, _colors.orange, _colors.teal]
-                      .map((c) => GestureDetector(
-                            onTap: () => setDlg(() => selColor = c),
-                            child: Container(
-                              width: 28, height: 28,
-                              decoration: BoxDecoration(
-                                color: c,
-                                shape: BoxShape.circle,
-                                border: c == selColor ? Border.all(color: Colors.black, width: 2) : null,
+                  children:
+                      [
+                            _colors.blue,
+                            _colors.green,
+                            _colors.red,
+                            _colors.purple,
+                            _colors.orange,
+                            _colors.teal,
+                          ]
+                          .map(
+                            (c) => GestureDetector(
+                              onTap: () => setDlg(() => selColor = c),
+                              child: Container(
+                                width: 28,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  color: c,
+                                  shape: BoxShape.circle,
+                                  border: c == selColor
+                                      ? Border.all(
+                                          color: Colors.black,
+                                          width: 2,
+                                        )
+                                      : null,
+                                ),
                               ),
                             ),
-                          ))
-                      .toList(),
+                          )
+                          .toList(),
                 ),
               ],
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('cancel', style: TextStyle(color: Colors.grey))),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('cancel', style: TextStyle(color: Colors.grey)),
+            ),
             TextButton(
               onPressed: () {
                 if (titleCtrl.text.trim().isEmpty) return;
-                _addEvent(_CalendarEvent(
-                  id: 'user-${DateTime.now().millisecondsSinceEpoch}',
-                  title: titleCtrl.text.trim(),
-                  dateTime: DateTime(selDate.year, selDate.month, selDate.day, selTime.hour, selTime.minute),
-                  duration: selDuration,
-                  attendee: attendeeCtrl.text.trim().isEmpty ? null : attendeeCtrl.text.trim(),
-                  color: selColor,
-                ));
+                _addEvent(
+                  _CalendarEvent(
+                    id: 'user-${DateTime.now().millisecondsSinceEpoch}',
+                    title: titleCtrl.text.trim(),
+                    dateTime: DateTime(
+                      selDate.year,
+                      selDate.month,
+                      selDate.day,
+                      selTime.hour,
+                      selTime.minute,
+                    ),
+                    duration: selDuration,
+                    attendee: attendeeCtrl.text.trim().isEmpty
+                        ? null
+                        : attendeeCtrl.text.trim(),
+                    color: selColor,
+                  ),
+                );
                 Navigator.pop(ctx);
               },
               child: Text('save', style: TextStyle(color: selColor)),
@@ -872,7 +1116,12 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
       children: [
         Icon(icon, size: 18, color: Colors.grey),
         const SizedBox(width: 8),
-        Expanded(child: Text(text, style: const TextStyle(color: Colors.black54, fontSize: 13))),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(color: Colors.black54, fontSize: 13),
+          ),
+        ),
       ],
     );
   }
@@ -882,9 +1131,16 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(border: Border.all(color: Colors.grey[300]!), borderRadius: BorderRadius.circular(4)),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey[300]!),
+          borderRadius: BorderRadius.circular(4),
+        ),
         child: Row(
-          children: [Icon(icon, size: 18, color: Colors.grey), const SizedBox(width: 8), Text(text, style: const TextStyle(color: Colors.black87))],
+          children: [
+            Icon(icon, size: 18, color: Colors.grey),
+            const SizedBox(width: 8),
+            Text(text, style: const TextStyle(color: Colors.black87)),
+          ],
         ),
       ),
     );
@@ -894,8 +1150,21 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
   // FORMATTING
   // ---------------------------------------------------------------------------
   String _formatDate(DateTime d) {
-    const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const w = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const m = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    const w = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     return '${w[d.weekday - 1]}, ${m[d.month - 1]} ${d.day}';
   }
 
@@ -918,98 +1187,692 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
   // ---------------------------------------------------------------------------
   List<_CalendarEvent> _createEvents() => [
     // TARGET EVENT - Dr. Spaceman appointment at 3:30 PM, needs to be moved to 2:30 PM
-    _CalendarEvent(id: _drSpacemanId, title: 'Doctor Appointment', dateTime: DateTime(2026, 2, 14, 15, 30), duration: const Duration(hours: 1), attendee: 'Dr. Spaceman', color: _colors.red),
+    _CalendarEvent(
+      id: _drSpacemanId,
+      title: 'Doctor Appointment',
+      dateTime: DateTime(2026, 2, 14, 15, 30),
+      duration: const Duration(hours: 1),
+      attendee: 'Dr. Spaceman',
+      color: _colors.red,
+    ),
     // JANUARY
-    _CalendarEvent(id: 'j1', title: 'New Year Planning', dateTime: DateTime(2026, 1, 2, 9, 0), duration: const Duration(hours: 2), attendee: 'All Staff', color: _colors.blue),
-    _CalendarEvent(id: 'j2', title: 'Budget Review', dateTime: DateTime(2026, 1, 2, 14, 0), duration: const Duration(hours: 1), attendee: 'Finance', color: _colors.green),
-    _CalendarEvent(id: 'j3', title: 'IT Security Training', dateTime: DateTime(2026, 1, 3, 10, 0), duration: const Duration(hours: 3), attendee: 'IT Dept', color: _colors.purple),
-    _CalendarEvent(id: 'j4', title: 'Client Lunch', dateTime: DateTime(2026, 1, 3, 12, 30), duration: const Duration(hours: 1, minutes: 30), attendee: 'Initech', color: _colors.orange),
-    _CalendarEvent(id: 'j5', title: 'Sprint Planning', dateTime: DateTime(2026, 1, 6, 9, 0), duration: const Duration(hours: 2), attendee: 'Dev Team', color: _colors.blue),
-    _CalendarEvent(id: 'j6', title: 'Synergy Workshop', dateTime: DateTime(2026, 1, 6, 14, 0), duration: const Duration(hours: 3), attendee: 'Leadership', color: _colors.purple),
-    _CalendarEvent(id: 'j7', title: '1:1 with Lumberg', dateTime: DateTime(2026, 1, 7, 15, 0), duration: const Duration(minutes: 30), attendee: 'Bill Lumberg', color: _colors.blue),
-    _CalendarEvent(id: 'j8', title: 'Code Review', dateTime: DateTime(2026, 1, 7, 10, 0), duration: const Duration(hours: 2), attendee: 'Dev Team', color: _colors.teal),
-    _CalendarEvent(id: 'j9', title: 'Mandatory Fun', dateTime: DateTime(2026, 1, 8, 14, 0), duration: const Duration(hours: 1), attendee: 'HR', color: _colors.orange),
-    _CalendarEvent(id: 'j10', title: 'Product Demo', dateTime: DateTime(2026, 1, 8, 11, 0), duration: const Duration(hours: 1), attendee: 'Sales', color: _colors.blue),
-    _CalendarEvent(id: 'j11', title: 'TPS Report Training', dateTime: DateTime(2026, 1, 9, 9, 0), duration: const Duration(hours: 2), attendee: 'All Staff', color: _colors.red),
-    _CalendarEvent(id: 'j12', title: 'Architecture Review', dateTime: DateTime(2026, 1, 10, 14, 0), duration: const Duration(hours: 2), attendee: 'Tech Leads', color: _colors.teal),
-    _CalendarEvent(id: 'j13', title: 'Cover Sheet Training', dateTime: DateTime(2026, 1, 13, 11, 0), duration: const Duration(hours: 1), attendee: 'Lumberg', color: _colors.blue),
-    _CalendarEvent(id: 'j14', title: 'Client Call', dateTime: DateTime(2026, 1, 13, 15, 0), duration: const Duration(hours: 1), attendee: 'Sales', color: _colors.green),
-    _CalendarEvent(id: 'j15', title: 'PC Load Letter Fix', dateTime: DateTime(2026, 1, 14, 10, 0), duration: const Duration(minutes: 45), attendee: 'IT', color: _colors.red),
-    _CalendarEvent(id: 'j16', title: 'Design Review', dateTime: DateTime(2026, 1, 14, 14, 0), duration: const Duration(hours: 2), attendee: 'UX Team', color: _colors.purple),
-    _CalendarEvent(id: 'j17', title: 'Sprint Retro', dateTime: DateTime(2026, 1, 15, 16, 0), duration: const Duration(hours: 1), attendee: 'Dev Team', color: _colors.blue),
-    _CalendarEvent(id: 'j18', title: 'Investor Update', dateTime: DateTime(2026, 1, 16, 10, 0), duration: const Duration(hours: 1), attendee: 'Execs', color: _colors.red),
-    _CalendarEvent(id: 'j19', title: "Milton's Birthday", dateTime: DateTime(2026, 1, 17, 15, 30), duration: const Duration(hours: 1), color: _colors.orange),
-    _CalendarEvent(id: 'j20', title: 'Supply Audit', dateTime: DateTime(2026, 1, 20, 9, 0), duration: const Duration(hours: 2), attendee: 'Milton', color: _colors.green),
-    _CalendarEvent(id: 'j21', title: 'Stakeholder Meeting', dateTime: DateTime(2026, 1, 20, 14, 0), duration: const Duration(hours: 2), attendee: 'PMO', color: _colors.blue),
-    _CalendarEvent(id: 'j22', title: 'Team Lunch', dateTime: DateTime(2026, 1, 21, 12, 0), duration: const Duration(hours: 1), color: _colors.orange),
-    _CalendarEvent(id: 'j23', title: 'Flair Review', dateTime: DateTime(2026, 1, 22, 13, 0), duration: const Duration(hours: 1), attendee: 'Stan', color: _colors.blue),
-    _CalendarEvent(id: 'j24', title: 'Security Deploy', dateTime: DateTime(2026, 1, 22, 22, 0), duration: const Duration(hours: 2), attendee: 'DevOps', color: _colors.red),
-    _CalendarEvent(id: 'j25', title: 'Jump to Conclusions', dateTime: DateTime(2026, 1, 23, 16, 0), duration: const Duration(minutes: 30), attendee: 'Tom', color: _colors.purple),
-    _CalendarEvent(id: 'j26', title: 'All-Hands', dateTime: DateTime(2026, 1, 24, 10, 0), duration: const Duration(hours: 1), attendee: 'Everyone', color: _colors.blue),
-    _CalendarEvent(id: 'j27', title: 'Strategy Session', dateTime: DateTime(2026, 1, 27, 9, 0), duration: const Duration(hours: 3), attendee: 'Leadership', color: _colors.purple),
-    _CalendarEvent(id: 'j28', title: 'Efficiency Consult', dateTime: DateTime(2026, 1, 28, 10, 0), duration: const Duration(hours: 2), attendee: 'The Bobs', color: _colors.red),
-    _CalendarEvent(id: 'j29', title: 'Release Planning', dateTime: DateTime(2026, 1, 29, 14, 0), duration: const Duration(hours: 2), attendee: 'Product', color: _colors.teal),
-    _CalendarEvent(id: 'j30', title: 'Interview', dateTime: DateTime(2026, 1, 30, 11, 0), duration: const Duration(hours: 1), attendee: 'HR', color: _colors.green),
-    _CalendarEvent(id: 'j31', title: 'Hawaiian Shirt Day', dateTime: DateTime(2026, 1, 31, 8, 0), duration: const Duration(hours: 8), color: _colors.orange),
+    _CalendarEvent(
+      id: 'j1',
+      title: 'New Year Planning',
+      dateTime: DateTime(2026, 1, 2, 9, 0),
+      duration: const Duration(hours: 2),
+      attendee: 'All Staff',
+      color: _colors.blue,
+    ),
+    _CalendarEvent(
+      id: 'j2',
+      title: 'Budget Review',
+      dateTime: DateTime(2026, 1, 2, 14, 0),
+      duration: const Duration(hours: 1),
+      attendee: 'Finance',
+      color: _colors.green,
+    ),
+    _CalendarEvent(
+      id: 'j3',
+      title: 'IT Security Training',
+      dateTime: DateTime(2026, 1, 3, 10, 0),
+      duration: const Duration(hours: 3),
+      attendee: 'IT Dept',
+      color: _colors.purple,
+    ),
+    _CalendarEvent(
+      id: 'j4',
+      title: 'Client Lunch',
+      dateTime: DateTime(2026, 1, 3, 12, 30),
+      duration: const Duration(hours: 1, minutes: 30),
+      attendee: 'Initech',
+      color: _colors.orange,
+    ),
+    _CalendarEvent(
+      id: 'j5',
+      title: 'Sprint Planning',
+      dateTime: DateTime(2026, 1, 6, 9, 0),
+      duration: const Duration(hours: 2),
+      attendee: 'Dev Team',
+      color: _colors.blue,
+    ),
+    _CalendarEvent(
+      id: 'j6',
+      title: 'Synergy Workshop',
+      dateTime: DateTime(2026, 1, 6, 14, 0),
+      duration: const Duration(hours: 3),
+      attendee: 'Leadership',
+      color: _colors.purple,
+    ),
+    _CalendarEvent(
+      id: 'j7',
+      title: '1:1 with Lumberg',
+      dateTime: DateTime(2026, 1, 7, 15, 0),
+      duration: const Duration(minutes: 30),
+      attendee: 'Bill Lumberg',
+      color: _colors.blue,
+    ),
+    _CalendarEvent(
+      id: 'j8',
+      title: 'Code Review',
+      dateTime: DateTime(2026, 1, 7, 10, 0),
+      duration: const Duration(hours: 2),
+      attendee: 'Dev Team',
+      color: _colors.teal,
+    ),
+    _CalendarEvent(
+      id: 'j9',
+      title: 'Mandatory Fun',
+      dateTime: DateTime(2026, 1, 8, 14, 0),
+      duration: const Duration(hours: 1),
+      attendee: 'HR',
+      color: _colors.orange,
+    ),
+    _CalendarEvent(
+      id: 'j10',
+      title: 'Product Demo',
+      dateTime: DateTime(2026, 1, 8, 11, 0),
+      duration: const Duration(hours: 1),
+      attendee: 'Sales',
+      color: _colors.blue,
+    ),
+    _CalendarEvent(
+      id: 'j11',
+      title: 'TPS Report Training',
+      dateTime: DateTime(2026, 1, 9, 9, 0),
+      duration: const Duration(hours: 2),
+      attendee: 'All Staff',
+      color: _colors.red,
+    ),
+    _CalendarEvent(
+      id: 'j12',
+      title: 'Architecture Review',
+      dateTime: DateTime(2026, 1, 10, 14, 0),
+      duration: const Duration(hours: 2),
+      attendee: 'Tech Leads',
+      color: _colors.teal,
+    ),
+    _CalendarEvent(
+      id: 'j13',
+      title: 'Cover Sheet Training',
+      dateTime: DateTime(2026, 1, 13, 11, 0),
+      duration: const Duration(hours: 1),
+      attendee: 'Lumberg',
+      color: _colors.blue,
+    ),
+    _CalendarEvent(
+      id: 'j14',
+      title: 'Client Call',
+      dateTime: DateTime(2026, 1, 13, 15, 0),
+      duration: const Duration(hours: 1),
+      attendee: 'Sales',
+      color: _colors.green,
+    ),
+    _CalendarEvent(
+      id: 'j15',
+      title: 'PC Load Letter Fix',
+      dateTime: DateTime(2026, 1, 14, 10, 0),
+      duration: const Duration(minutes: 45),
+      attendee: 'IT',
+      color: _colors.red,
+    ),
+    _CalendarEvent(
+      id: 'j16',
+      title: 'Design Review',
+      dateTime: DateTime(2026, 1, 14, 14, 0),
+      duration: const Duration(hours: 2),
+      attendee: 'UX Team',
+      color: _colors.purple,
+    ),
+    _CalendarEvent(
+      id: 'j17',
+      title: 'Sprint Retro',
+      dateTime: DateTime(2026, 1, 15, 16, 0),
+      duration: const Duration(hours: 1),
+      attendee: 'Dev Team',
+      color: _colors.blue,
+    ),
+    _CalendarEvent(
+      id: 'j18',
+      title: 'Investor Update',
+      dateTime: DateTime(2026, 1, 16, 10, 0),
+      duration: const Duration(hours: 1),
+      attendee: 'Execs',
+      color: _colors.red,
+    ),
+    _CalendarEvent(
+      id: 'j19',
+      title: "Milton's Birthday",
+      dateTime: DateTime(2026, 1, 17, 15, 30),
+      duration: const Duration(hours: 1),
+      color: _colors.orange,
+    ),
+    _CalendarEvent(
+      id: 'j20',
+      title: 'Supply Audit',
+      dateTime: DateTime(2026, 1, 20, 9, 0),
+      duration: const Duration(hours: 2),
+      attendee: 'Milton',
+      color: _colors.green,
+    ),
+    _CalendarEvent(
+      id: 'j21',
+      title: 'Stakeholder Meeting',
+      dateTime: DateTime(2026, 1, 20, 14, 0),
+      duration: const Duration(hours: 2),
+      attendee: 'PMO',
+      color: _colors.blue,
+    ),
+    _CalendarEvent(
+      id: 'j22',
+      title: 'Team Lunch',
+      dateTime: DateTime(2026, 1, 21, 12, 0),
+      duration: const Duration(hours: 1),
+      color: _colors.orange,
+    ),
+    _CalendarEvent(
+      id: 'j23',
+      title: 'Flair Review',
+      dateTime: DateTime(2026, 1, 22, 13, 0),
+      duration: const Duration(hours: 1),
+      attendee: 'Stan',
+      color: _colors.blue,
+    ),
+    _CalendarEvent(
+      id: 'j24',
+      title: 'Security Deploy',
+      dateTime: DateTime(2026, 1, 22, 22, 0),
+      duration: const Duration(hours: 2),
+      attendee: 'DevOps',
+      color: _colors.red,
+    ),
+    _CalendarEvent(
+      id: 'j25',
+      title: 'Jump to Conclusions',
+      dateTime: DateTime(2026, 1, 23, 16, 0),
+      duration: const Duration(minutes: 30),
+      attendee: 'Tom',
+      color: _colors.purple,
+    ),
+    _CalendarEvent(
+      id: 'j26',
+      title: 'All-Hands',
+      dateTime: DateTime(2026, 1, 24, 10, 0),
+      duration: const Duration(hours: 1),
+      attendee: 'Everyone',
+      color: _colors.blue,
+    ),
+    _CalendarEvent(
+      id: 'j27',
+      title: 'Strategy Session',
+      dateTime: DateTime(2026, 1, 27, 9, 0),
+      duration: const Duration(hours: 3),
+      attendee: 'Leadership',
+      color: _colors.purple,
+    ),
+    _CalendarEvent(
+      id: 'j28',
+      title: 'Efficiency Consult',
+      dateTime: DateTime(2026, 1, 28, 10, 0),
+      duration: const Duration(hours: 2),
+      attendee: 'The Bobs',
+      color: _colors.red,
+    ),
+    _CalendarEvent(
+      id: 'j29',
+      title: 'Release Planning',
+      dateTime: DateTime(2026, 1, 29, 14, 0),
+      duration: const Duration(hours: 2),
+      attendee: 'Product',
+      color: _colors.teal,
+    ),
+    _CalendarEvent(
+      id: 'j30',
+      title: 'Interview',
+      dateTime: DateTime(2026, 1, 30, 11, 0),
+      duration: const Duration(hours: 1),
+      attendee: 'HR',
+      color: _colors.green,
+    ),
+    _CalendarEvent(
+      id: 'j31',
+      title: 'Hawaiian Shirt Day',
+      dateTime: DateTime(2026, 1, 31, 8, 0),
+      duration: const Duration(hours: 8),
+      color: _colors.orange,
+    ),
     // FEBRUARY
-    _CalendarEvent(id: 'f1', title: 'Monthly Kickoff', dateTime: DateTime(2026, 2, 2, 9, 0), duration: const Duration(hours: 1), attendee: 'All Staff', color: _colors.blue),
-    _CalendarEvent(id: 'f2', title: 'Q1 Planning', dateTime: DateTime(2026, 2, 3, 10, 0), duration: const Duration(hours: 3), attendee: 'Managers', color: _colors.purple),
-    _CalendarEvent(id: 'f3', title: 'Vendor Meeting', dateTime: DateTime(2026, 2, 4, 14, 0), duration: const Duration(hours: 1), attendee: 'Procurement', color: _colors.green),
-    _CalendarEvent(id: 'f4', title: 'Sprint Demo', dateTime: DateTime(2026, 2, 5, 15, 0), duration: const Duration(hours: 1), attendee: 'Stakeholders', color: _colors.blue),
-    _CalendarEvent(id: 'f5', title: 'Team Building', dateTime: DateTime(2026, 2, 6, 13, 0), duration: const Duration(hours: 4), attendee: 'Everyone', color: _colors.orange),
-    _CalendarEvent(id: 'f6', title: 'Board Presentation', dateTime: DateTime(2026, 2, 9, 10, 0), duration: const Duration(hours: 2), attendee: 'Execs', color: _colors.red),
-    _CalendarEvent(id: 'f7', title: 'Tech Talk Tuesday', dateTime: DateTime(2026, 2, 10, 12, 0), duration: const Duration(hours: 1), attendee: 'Engineering', color: _colors.teal),
-    _CalendarEvent(id: 'f8', title: 'Feedback Review', dateTime: DateTime(2026, 2, 11, 14, 0), duration: const Duration(hours: 1), attendee: 'Product', color: _colors.blue),
-    _CalendarEvent(id: 'f9', title: 'Infra Review', dateTime: DateTime(2026, 2, 12, 11, 0), duration: const Duration(hours: 2), attendee: 'DevOps', color: _colors.purple),
-    _CalendarEvent(id: 'f10', title: 'Pre-Valentine Planning', dateTime: DateTime(2026, 2, 13, 16, 0), duration: const Duration(hours: 1), color: _colors.orange),
-    _CalendarEvent(id: 'f11', title: 'Morning Standup', dateTime: DateTime(2026, 2, 14, 9, 0), duration: const Duration(minutes: 15), color: _colors.blue),
-    _CalendarEvent(id: 'f12', title: 'Marketing Sync', dateTime: DateTime(2026, 2, 16, 10, 0), duration: const Duration(hours: 1), attendee: 'Marketing', color: _colors.green),
-    _CalendarEvent(id: 'f13', title: 'Sales Pipeline', dateTime: DateTime(2026, 2, 17, 14, 0), duration: const Duration(hours: 2), attendee: 'Sales', color: _colors.blue),
-    _CalendarEvent(id: 'f14', title: 'Compliance Training', dateTime: DateTime(2026, 2, 18, 9, 0), duration: const Duration(hours: 3), attendee: 'Legal', color: _colors.purple),
-    _CalendarEvent(id: 'f15', title: 'Reviews Due', dateTime: DateTime(2026, 2, 19, 17, 0), duration: const Duration(hours: 1), attendee: 'HR', color: _colors.red),
-    _CalendarEvent(id: 'f16', title: 'Happy Hour', dateTime: DateTime(2026, 2, 20, 17, 0), duration: const Duration(hours: 2), color: _colors.orange),
-    _CalendarEvent(id: 'f17', title: 'Sprint Planning', dateTime: DateTime(2026, 2, 23, 9, 0), duration: const Duration(hours: 2), attendee: 'Dev Team', color: _colors.blue),
-    _CalendarEvent(id: 'f18', title: 'Partner Call', dateTime: DateTime(2026, 2, 24, 11, 0), duration: const Duration(hours: 1), attendee: 'BizDev', color: _colors.green),
-    _CalendarEvent(id: 'f19', title: 'API Design Review', dateTime: DateTime(2026, 2, 25, 14, 0), duration: const Duration(hours: 2), attendee: 'Tech Leads', color: _colors.teal),
-    _CalendarEvent(id: 'f20', title: 'Month-End Close', dateTime: DateTime(2026, 2, 27, 10, 0), duration: const Duration(hours: 4), attendee: 'Finance', color: _colors.red),
-    _CalendarEvent(id: 'f21', title: 'EoM Celebration', dateTime: DateTime(2026, 2, 28, 16, 0), duration: const Duration(hours: 2), color: _colors.orange),
+    _CalendarEvent(
+      id: 'f1',
+      title: 'Monthly Kickoff',
+      dateTime: DateTime(2026, 2, 2, 9, 0),
+      duration: const Duration(hours: 1),
+      attendee: 'All Staff',
+      color: _colors.blue,
+    ),
+    _CalendarEvent(
+      id: 'f2',
+      title: 'Q1 Planning',
+      dateTime: DateTime(2026, 2, 3, 10, 0),
+      duration: const Duration(hours: 3),
+      attendee: 'Managers',
+      color: _colors.purple,
+    ),
+    _CalendarEvent(
+      id: 'f3',
+      title: 'Vendor Meeting',
+      dateTime: DateTime(2026, 2, 4, 14, 0),
+      duration: const Duration(hours: 1),
+      attendee: 'Procurement',
+      color: _colors.green,
+    ),
+    _CalendarEvent(
+      id: 'f4',
+      title: 'Sprint Demo',
+      dateTime: DateTime(2026, 2, 5, 15, 0),
+      duration: const Duration(hours: 1),
+      attendee: 'Stakeholders',
+      color: _colors.blue,
+    ),
+    _CalendarEvent(
+      id: 'f5',
+      title: 'Team Building',
+      dateTime: DateTime(2026, 2, 6, 13, 0),
+      duration: const Duration(hours: 4),
+      attendee: 'Everyone',
+      color: _colors.orange,
+    ),
+    _CalendarEvent(
+      id: 'f6',
+      title: 'Board Presentation',
+      dateTime: DateTime(2026, 2, 9, 10, 0),
+      duration: const Duration(hours: 2),
+      attendee: 'Execs',
+      color: _colors.red,
+    ),
+    _CalendarEvent(
+      id: 'f7',
+      title: 'Tech Talk Tuesday',
+      dateTime: DateTime(2026, 2, 10, 12, 0),
+      duration: const Duration(hours: 1),
+      attendee: 'Engineering',
+      color: _colors.teal,
+    ),
+    _CalendarEvent(
+      id: 'f8',
+      title: 'Feedback Review',
+      dateTime: DateTime(2026, 2, 11, 14, 0),
+      duration: const Duration(hours: 1),
+      attendee: 'Product',
+      color: _colors.blue,
+    ),
+    _CalendarEvent(
+      id: 'f9',
+      title: 'Infra Review',
+      dateTime: DateTime(2026, 2, 12, 11, 0),
+      duration: const Duration(hours: 2),
+      attendee: 'DevOps',
+      color: _colors.purple,
+    ),
+    _CalendarEvent(
+      id: 'f10',
+      title: 'Pre-Valentine Planning',
+      dateTime: DateTime(2026, 2, 13, 16, 0),
+      duration: const Duration(hours: 1),
+      color: _colors.orange,
+    ),
+    _CalendarEvent(
+      id: 'f11',
+      title: 'Morning Standup',
+      dateTime: DateTime(2026, 2, 14, 9, 0),
+      duration: const Duration(minutes: 15),
+      color: _colors.blue,
+    ),
+    _CalendarEvent(
+      id: 'f12',
+      title: 'Marketing Sync',
+      dateTime: DateTime(2026, 2, 16, 10, 0),
+      duration: const Duration(hours: 1),
+      attendee: 'Marketing',
+      color: _colors.green,
+    ),
+    _CalendarEvent(
+      id: 'f13',
+      title: 'Sales Pipeline',
+      dateTime: DateTime(2026, 2, 17, 14, 0),
+      duration: const Duration(hours: 2),
+      attendee: 'Sales',
+      color: _colors.blue,
+    ),
+    _CalendarEvent(
+      id: 'f14',
+      title: 'Compliance Training',
+      dateTime: DateTime(2026, 2, 18, 9, 0),
+      duration: const Duration(hours: 3),
+      attendee: 'Legal',
+      color: _colors.purple,
+    ),
+    _CalendarEvent(
+      id: 'f15',
+      title: 'Reviews Due',
+      dateTime: DateTime(2026, 2, 19, 17, 0),
+      duration: const Duration(hours: 1),
+      attendee: 'HR',
+      color: _colors.red,
+    ),
+    _CalendarEvent(
+      id: 'f16',
+      title: 'Happy Hour',
+      dateTime: DateTime(2026, 2, 20, 17, 0),
+      duration: const Duration(hours: 2),
+      color: _colors.orange,
+    ),
+    _CalendarEvent(
+      id: 'f17',
+      title: 'Sprint Planning',
+      dateTime: DateTime(2026, 2, 23, 9, 0),
+      duration: const Duration(hours: 2),
+      attendee: 'Dev Team',
+      color: _colors.blue,
+    ),
+    _CalendarEvent(
+      id: 'f18',
+      title: 'Partner Call',
+      dateTime: DateTime(2026, 2, 24, 11, 0),
+      duration: const Duration(hours: 1),
+      attendee: 'BizDev',
+      color: _colors.green,
+    ),
+    _CalendarEvent(
+      id: 'f19',
+      title: 'API Design Review',
+      dateTime: DateTime(2026, 2, 25, 14, 0),
+      duration: const Duration(hours: 2),
+      attendee: 'Tech Leads',
+      color: _colors.teal,
+    ),
+    _CalendarEvent(
+      id: 'f20',
+      title: 'Month-End Close',
+      dateTime: DateTime(2026, 2, 27, 10, 0),
+      duration: const Duration(hours: 4),
+      attendee: 'Finance',
+      color: _colors.red,
+    ),
+    _CalendarEvent(
+      id: 'f21',
+      title: 'EoM Celebration',
+      dateTime: DateTime(2026, 2, 28, 16, 0),
+      duration: const Duration(hours: 2),
+      color: _colors.orange,
+    ),
     // ADDITIONAL JANUARY EVENTS
-    _CalendarEvent(id: 'j32', title: 'Coffee Chat', dateTime: DateTime(2026, 1, 2, 8, 0), duration: const Duration(minutes: 30), attendee: 'Sarah', color: _colors.teal),
-    _CalendarEvent(id: 'j33', title: 'Quick Sync', dateTime: DateTime(2026, 1, 5, 9, 30), duration: const Duration(minutes: 15), attendee: 'Mike', color: _colors.blue),
-    _CalendarEvent(id: 'j34', title: 'Lunch Break', dateTime: DateTime(2026, 1, 5, 12, 0), duration: const Duration(hours: 1), color: _colors.orange),
-    _CalendarEvent(id: 'j35', title: 'Late Night Deploy', dateTime: DateTime(2026, 1, 9, 23, 0), duration: const Duration(hours: 2), attendee: 'DevOps', color: _colors.red),
-    _CalendarEvent(id: 'j36', title: 'Early Bird Meeting', dateTime: DateTime(2026, 1, 12, 6, 30), duration: const Duration(minutes: 45), attendee: 'East Coast', color: _colors.purple),
-    _CalendarEvent(id: 'j37', title: 'Printer Fix', dateTime: DateTime(2026, 1, 14, 16, 0), duration: const Duration(minutes: 15), attendee: 'IT', color: _colors.teal),
-    _CalendarEvent(id: 'j38', title: 'Yoga Class', dateTime: DateTime(2026, 1, 15, 7, 0), duration: const Duration(hours: 1), color: _colors.green),
-    _CalendarEvent(id: 'j39', title: 'Networking Event', dateTime: DateTime(2026, 1, 16, 18, 0), duration: const Duration(hours: 3), attendee: 'Industry Peers', color: _colors.purple),
-    _CalendarEvent(id: 'j40', title: 'Database Migration', dateTime: DateTime(2026, 1, 18, 2, 0), duration: const Duration(hours: 4), attendee: 'DBA Team', color: _colors.red),
-    _CalendarEvent(id: 'j41', title: 'Stand-up Comedy', dateTime: DateTime(2026, 1, 19, 20, 0), duration: const Duration(hours: 2), color: _colors.orange),
-    _CalendarEvent(id: 'j42', title: 'Dentist', dateTime: DateTime(2026, 1, 21, 14, 30), duration: const Duration(minutes: 30), attendee: 'Dr. Crentist', color: _colors.teal),
-    _CalendarEvent(id: 'j43', title: 'Project Kickoff', dateTime: DateTime(2026, 1, 23, 10, 0), duration: const Duration(hours: 2), attendee: 'New Client', color: _colors.blue),
-    _CalendarEvent(id: 'j44', title: 'Brainstorm Session', dateTime: DateTime(2026, 1, 24, 14, 0), duration: const Duration(hours: 1, minutes: 30), attendee: 'Creative Team', color: _colors.purple),
-    _CalendarEvent(id: 'j45', title: 'Vendor Demo', dateTime: DateTime(2026, 1, 26, 11, 0), duration: const Duration(hours: 1), attendee: 'Acme Corp', color: _colors.green),
-    _CalendarEvent(id: 'j46', title: 'Book Club', dateTime: DateTime(2026, 1, 28, 17, 30), duration: const Duration(hours: 1, minutes: 30), color: _colors.orange),
-    _CalendarEvent(id: 'j47', title: 'Quick Call', dateTime: DateTime(2026, 1, 29, 8, 45), duration: const Duration(minutes: 15), attendee: 'Boss', color: _colors.red),
-    // ADDITIONAL FEBRUARY EVENTS  
-    _CalendarEvent(id: 'f22', title: 'Gym Session', dateTime: DateTime(2026, 2, 2, 6, 0), duration: const Duration(hours: 1), color: _colors.green),
-    _CalendarEvent(id: 'f23', title: 'Status Update', dateTime: DateTime(2026, 2, 3, 15, 30), duration: const Duration(minutes: 30), attendee: 'Manager', color: _colors.blue),
-    _CalendarEvent(id: 'f24', title: 'Car Service', dateTime: DateTime(2026, 2, 5, 8, 0), duration: const Duration(hours: 2), attendee: 'Mechanic', color: _colors.teal),
-    _CalendarEvent(id: 'f25', title: 'Phone Interview', dateTime: DateTime(2026, 2, 6, 10, 0), duration: const Duration(minutes: 45), attendee: 'Candidate', color: _colors.purple),
-    _CalendarEvent(id: 'f26', title: 'Dinner Reservation', dateTime: DateTime(2026, 2, 7, 19, 0), duration: const Duration(hours: 2), color: _colors.orange),
-    _CalendarEvent(id: 'f27', title: 'Game Night', dateTime: DateTime(2026, 2, 8, 20, 0), duration: const Duration(hours: 3), color: _colors.purple),
-    _CalendarEvent(id: 'f28', title: 'Morning Run', dateTime: DateTime(2026, 2, 10, 5, 30), duration: const Duration(minutes: 45), color: _colors.green),
-    _CalendarEvent(id: 'f29', title: 'Code Review', dateTime: DateTime(2026, 2, 11, 9, 0), duration: const Duration(hours: 1), attendee: 'Dev Team', color: _colors.teal),
-    _CalendarEvent(id: 'f30', title: 'Lunch with Client', dateTime: DateTime(2026, 2, 12, 12, 30), duration: const Duration(hours: 1, minutes: 30), attendee: 'Globex', color: _colors.orange),
-    _CalendarEvent(id: 'f31', title: 'Haircut', dateTime: DateTime(2026, 2, 13, 10, 0), duration: const Duration(minutes: 30), color: _colors.blue),
-    _CalendarEvent(id: 'f32', title: 'Valentine Dinner', dateTime: DateTime(2026, 2, 14, 19, 0), duration: const Duration(hours: 3), color: _colors.red),
-    _CalendarEvent(id: 'f33', title: 'Weekend Planning', dateTime: DateTime(2026, 2, 14, 11, 0), duration: const Duration(minutes: 15), color: _colors.blue),
-    _CalendarEvent(id: 'f34', title: 'Movie Night', dateTime: DateTime(2026, 2, 15, 21, 0), duration: const Duration(hours: 2, minutes: 30), color: _colors.purple),
-    _CalendarEvent(id: 'f35', title: 'Brunch', dateTime: DateTime(2026, 2, 16, 11, 0), duration: const Duration(hours: 1, minutes: 30), color: _colors.orange),
-    _CalendarEvent(id: 'f36', title: 'Oil Change', dateTime: DateTime(2026, 2, 19, 8, 0), duration: const Duration(minutes: 45), color: _colors.teal),
-    _CalendarEvent(id: 'f37', title: 'Webinar', dateTime: DateTime(2026, 2, 20, 14, 0), duration: const Duration(hours: 1), attendee: 'Industry Expert', color: _colors.blue),
-    _CalendarEvent(id: 'f38', title: 'Night Shift Support', dateTime: DateTime(2026, 2, 21, 22, 0), duration: const Duration(hours: 4), attendee: 'Support Team', color: _colors.red),
-    _CalendarEvent(id: 'f39', title: 'Coffee 1:1', dateTime: DateTime(2026, 2, 23, 15, 0), duration: const Duration(minutes: 30), attendee: 'Mentor', color: _colors.green),
-    _CalendarEvent(id: 'f40', title: 'Piano Lesson', dateTime: DateTime(2026, 2, 25, 18, 0), duration: const Duration(hours: 1), color: _colors.purple),
+    _CalendarEvent(
+      id: 'j32',
+      title: 'Coffee Chat',
+      dateTime: DateTime(2026, 1, 2, 8, 0),
+      duration: const Duration(minutes: 30),
+      attendee: 'Sarah',
+      color: _colors.teal,
+    ),
+    _CalendarEvent(
+      id: 'j33',
+      title: 'Quick Sync',
+      dateTime: DateTime(2026, 1, 5, 9, 30),
+      duration: const Duration(minutes: 15),
+      attendee: 'Mike',
+      color: _colors.blue,
+    ),
+    _CalendarEvent(
+      id: 'j34',
+      title: 'Lunch Break',
+      dateTime: DateTime(2026, 1, 5, 12, 0),
+      duration: const Duration(hours: 1),
+      color: _colors.orange,
+    ),
+    _CalendarEvent(
+      id: 'j35',
+      title: 'Late Night Deploy',
+      dateTime: DateTime(2026, 1, 9, 23, 0),
+      duration: const Duration(hours: 2),
+      attendee: 'DevOps',
+      color: _colors.red,
+    ),
+    _CalendarEvent(
+      id: 'j36',
+      title: 'Early Bird Meeting',
+      dateTime: DateTime(2026, 1, 12, 6, 30),
+      duration: const Duration(minutes: 45),
+      attendee: 'East Coast',
+      color: _colors.purple,
+    ),
+    _CalendarEvent(
+      id: 'j37',
+      title: 'Printer Fix',
+      dateTime: DateTime(2026, 1, 14, 16, 0),
+      duration: const Duration(minutes: 15),
+      attendee: 'IT',
+      color: _colors.teal,
+    ),
+    _CalendarEvent(
+      id: 'j38',
+      title: 'Yoga Class',
+      dateTime: DateTime(2026, 1, 15, 7, 0),
+      duration: const Duration(hours: 1),
+      color: _colors.green,
+    ),
+    _CalendarEvent(
+      id: 'j39',
+      title: 'Networking Event',
+      dateTime: DateTime(2026, 1, 16, 18, 0),
+      duration: const Duration(hours: 3),
+      attendee: 'Industry Peers',
+      color: _colors.purple,
+    ),
+    _CalendarEvent(
+      id: 'j40',
+      title: 'Database Migration',
+      dateTime: DateTime(2026, 1, 18, 2, 0),
+      duration: const Duration(hours: 4),
+      attendee: 'DBA Team',
+      color: _colors.red,
+    ),
+    _CalendarEvent(
+      id: 'j41',
+      title: 'Stand-up Comedy',
+      dateTime: DateTime(2026, 1, 19, 20, 0),
+      duration: const Duration(hours: 2),
+      color: _colors.orange,
+    ),
+    _CalendarEvent(
+      id: 'j42',
+      title: 'Dentist',
+      dateTime: DateTime(2026, 1, 21, 14, 30),
+      duration: const Duration(minutes: 30),
+      attendee: 'Dr. Crentist',
+      color: _colors.teal,
+    ),
+    _CalendarEvent(
+      id: 'j43',
+      title: 'Project Kickoff',
+      dateTime: DateTime(2026, 1, 23, 10, 0),
+      duration: const Duration(hours: 2),
+      attendee: 'New Client',
+      color: _colors.blue,
+    ),
+    _CalendarEvent(
+      id: 'j44',
+      title: 'Brainstorm Session',
+      dateTime: DateTime(2026, 1, 24, 14, 0),
+      duration: const Duration(hours: 1, minutes: 30),
+      attendee: 'Creative Team',
+      color: _colors.purple,
+    ),
+    _CalendarEvent(
+      id: 'j45',
+      title: 'Vendor Demo',
+      dateTime: DateTime(2026, 1, 26, 11, 0),
+      duration: const Duration(hours: 1),
+      attendee: 'Acme Corp',
+      color: _colors.green,
+    ),
+    _CalendarEvent(
+      id: 'j46',
+      title: 'Book Club',
+      dateTime: DateTime(2026, 1, 28, 17, 30),
+      duration: const Duration(hours: 1, minutes: 30),
+      color: _colors.orange,
+    ),
+    _CalendarEvent(
+      id: 'j47',
+      title: 'Quick Call',
+      dateTime: DateTime(2026, 1, 29, 8, 45),
+      duration: const Duration(minutes: 15),
+      attendee: 'Boss',
+      color: _colors.red,
+    ),
+    // ADDITIONAL FEBRUARY EVENTS
+    _CalendarEvent(
+      id: 'f22',
+      title: 'Gym Session',
+      dateTime: DateTime(2026, 2, 2, 6, 0),
+      duration: const Duration(hours: 1),
+      color: _colors.green,
+    ),
+    _CalendarEvent(
+      id: 'f23',
+      title: 'Status Update',
+      dateTime: DateTime(2026, 2, 3, 15, 30),
+      duration: const Duration(minutes: 30),
+      attendee: 'Manager',
+      color: _colors.blue,
+    ),
+    _CalendarEvent(
+      id: 'f24',
+      title: 'Car Service',
+      dateTime: DateTime(2026, 2, 5, 8, 0),
+      duration: const Duration(hours: 2),
+      attendee: 'Mechanic',
+      color: _colors.teal,
+    ),
+    _CalendarEvent(
+      id: 'f25',
+      title: 'Phone Interview',
+      dateTime: DateTime(2026, 2, 6, 10, 0),
+      duration: const Duration(minutes: 45),
+      attendee: 'Candidate',
+      color: _colors.purple,
+    ),
+    _CalendarEvent(
+      id: 'f26',
+      title: 'Dinner Reservation',
+      dateTime: DateTime(2026, 2, 7, 19, 0),
+      duration: const Duration(hours: 2),
+      color: _colors.orange,
+    ),
+    _CalendarEvent(
+      id: 'f27',
+      title: 'Game Night',
+      dateTime: DateTime(2026, 2, 8, 20, 0),
+      duration: const Duration(hours: 3),
+      color: _colors.purple,
+    ),
+    _CalendarEvent(
+      id: 'f28',
+      title: 'Morning Run',
+      dateTime: DateTime(2026, 2, 10, 5, 30),
+      duration: const Duration(minutes: 45),
+      color: _colors.green,
+    ),
+    _CalendarEvent(
+      id: 'f29',
+      title: 'Code Review',
+      dateTime: DateTime(2026, 2, 11, 9, 0),
+      duration: const Duration(hours: 1),
+      attendee: 'Dev Team',
+      color: _colors.teal,
+    ),
+    _CalendarEvent(
+      id: 'f30',
+      title: 'Lunch with Client',
+      dateTime: DateTime(2026, 2, 12, 12, 30),
+      duration: const Duration(hours: 1, minutes: 30),
+      attendee: 'Globex',
+      color: _colors.orange,
+    ),
+    _CalendarEvent(
+      id: 'f31',
+      title: 'Haircut',
+      dateTime: DateTime(2026, 2, 13, 10, 0),
+      duration: const Duration(minutes: 30),
+      color: _colors.blue,
+    ),
+    _CalendarEvent(
+      id: 'f32',
+      title: 'Valentine Dinner',
+      dateTime: DateTime(2026, 2, 14, 19, 0),
+      duration: const Duration(hours: 3),
+      color: _colors.red,
+    ),
+    _CalendarEvent(
+      id: 'f33',
+      title: 'Weekend Planning',
+      dateTime: DateTime(2026, 2, 14, 11, 0),
+      duration: const Duration(minutes: 15),
+      color: _colors.blue,
+    ),
+    _CalendarEvent(
+      id: 'f34',
+      title: 'Movie Night',
+      dateTime: DateTime(2026, 2, 15, 21, 0),
+      duration: const Duration(hours: 2, minutes: 30),
+      color: _colors.purple,
+    ),
+    _CalendarEvent(
+      id: 'f35',
+      title: 'Brunch',
+      dateTime: DateTime(2026, 2, 16, 11, 0),
+      duration: const Duration(hours: 1, minutes: 30),
+      color: _colors.orange,
+    ),
+    _CalendarEvent(
+      id: 'f36',
+      title: 'Oil Change',
+      dateTime: DateTime(2026, 2, 19, 8, 0),
+      duration: const Duration(minutes: 45),
+      color: _colors.teal,
+    ),
+    _CalendarEvent(
+      id: 'f37',
+      title: 'Webinar',
+      dateTime: DateTime(2026, 2, 20, 14, 0),
+      duration: const Duration(hours: 1),
+      attendee: 'Industry Expert',
+      color: _colors.blue,
+    ),
+    _CalendarEvent(
+      id: 'f38',
+      title: 'Night Shift Support',
+      dateTime: DateTime(2026, 2, 21, 22, 0),
+      duration: const Duration(hours: 4),
+      attendee: 'Support Team',
+      color: _colors.red,
+    ),
+    _CalendarEvent(
+      id: 'f39',
+      title: 'Coffee 1:1',
+      dateTime: DateTime(2026, 2, 23, 15, 0),
+      duration: const Duration(minutes: 30),
+      attendee: 'Mentor',
+      color: _colors.green,
+    ),
+    _CalendarEvent(
+      id: 'f40',
+      title: 'Piano Lesson',
+      dateTime: DateTime(2026, 2, 25, 18, 0),
+      duration: const Duration(hours: 1),
+      color: _colors.purple,
+    ),
   ];
 }
 
@@ -1023,7 +1886,12 @@ class _GridPainter extends CustomPainter {
   final double hourHeight;
   final Color lineColor;
 
-  _GridPainter({required this.days, required this.dayWidth, required this.hourHeight, required this.lineColor});
+  _GridPainter({
+    required this.days,
+    required this.dayWidth,
+    required this.hourHeight,
+    required this.lineColor,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1046,5 +1914,7 @@ class _GridPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _GridPainter old) =>
-      old.days != days || old.dayWidth != dayWidth || old.hourHeight != hourHeight;
+      old.days != days ||
+      old.dayWidth != dayWidth ||
+      old.hourHeight != hourHeight;
 }
