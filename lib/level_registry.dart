@@ -64,6 +64,7 @@ import 'package:apk_arena/widgets/levels/level_slot_machine.dart';
 import 'package:apk_arena/widgets/levels/level_arc_agi.dart';
 import 'package:apk_arena/widgets/levels/level_arc_agi_2.dart';
 import 'package:apk_arena/widgets/levels/level_trial_sequence.dart';
+import 'package:apk_arena/widgets/levels/level_odd_one_out.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -423,6 +424,13 @@ final List<LevelEntry> mediumLevels = [
           "find the correct sequence of 7. one wrong pick resets everything.",
     ),
     widgetBuilder: (onComplete) => LevelTrialSequence(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "spot the imposter",
+      instructions: "find the odd one out in each round.",
+    ),
+    widgetBuilder: (onComplete) => LevelOddOneOut(onComplete: onComplete),
   ),
 ];
 
