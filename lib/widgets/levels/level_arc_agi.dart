@@ -1,0 +1,605 @@
+import 'dart:math';
+import 'package:flutter/material.dart';
+import '../level_widget.dart';
+import '../../theme/app_theme.dart';
+
+// ---------------------------------------------------------------------------
+// Data structures
+// ---------------------------------------------------------------------------
+
+class _ArcExample {
+  final List<List<int>> input;
+  final List<List<int>> output;
+  const _ArcExample({required this.input, required this.output});
+}
+
+class _ArcPuzzle {
+  final List<_ArcExample> examples;
+  final List<List<int>> testInput;
+  final List<List<int>> testOutput;
+  const _ArcPuzzle({
+    required this.examples,
+    required this.testInput,
+    required this.testOutput,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// ARC color palette  (0 = empty, 1-5 = colors)
+// ---------------------------------------------------------------------------
+
+const Map<int, Color> _arcColors = {
+  0: Color(0xFF16122F), // empty (background paper)
+  1: Color(0xFF1E93FF), // blue
+  2: Color(0xFFFF5630), // red
+  3: Color(0xFF22C55E), // green
+  4: Color(0xFFFFAB00), // yellow
+  5: Color(0xFF805CE5), // purple
+};
+
+// ---------------------------------------------------------------------------
+// Pre-built puzzles  (5x5 grids)
+// ---------------------------------------------------------------------------
+
+const List<_ArcPuzzle> _puzzles = [
+  // ---- Puzzle 1: Gravity  (non-zero cells fall to the bottom of each column)
+  _ArcPuzzle(
+    examples: [
+      _ArcExample(
+        input: [
+          [0, 1, 0, 0, 2],
+          [0, 0, 0, 2, 0],
+          [1, 0, 3, 0, 0],
+          [0, 0, 0, 0, 1],
+          [0, 2, 0, 0, 0],
+        ],
+        output: [
+          [0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0],
+          [0, 1, 0, 0, 2],
+          [1, 2, 3, 2, 1],
+        ],
+      ),
+      _ArcExample(
+        input: [
+          [3, 0, 1, 0, 0],
+          [0, 0, 0, 0, 1],
+          [0, 1, 0, 2, 0],
+          [2, 0, 0, 0, 0],
+          [0, 0, 2, 0, 3],
+        ],
+        output: [
+          [0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0],
+          [3, 0, 1, 0, 1],
+          [2, 1, 2, 2, 3],
+        ],
+      ),
+    ],
+    testInput: [
+      [0, 2, 0, 1, 0],
+      [1, 0, 0, 0, 0],
+      [0, 0, 3, 0, 2],
+      [0, 0, 0, 0, 0],
+      [3, 0, 0, 2, 0],
+    ],
+    testOutput: [
+      [0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0],
+      [1, 0, 0, 1, 0],
+      [3, 2, 3, 2, 2],
+    ],
+  ),
+
+  // ---- Puzzle 2: Horizontal mirror  (each row is reversed left-to-right)
+  _ArcPuzzle(
+    examples: [
+      _ArcExample(
+        input: [
+          [1, 2, 0, 0, 0],
+          [3, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 3],
+          [0, 0, 0, 1, 2],
+        ],
+        output: [
+          [0, 0, 0, 2, 1],
+          [0, 0, 0, 0, 3],
+          [0, 0, 0, 0, 0],
+          [3, 0, 0, 0, 0],
+          [2, 1, 0, 0, 0],
+        ],
+      ),
+      _ArcExample(
+        input: [
+          [0, 0, 1, 0, 0],
+          [0, 0, 0, 2, 3],
+          [0, 0, 0, 0, 0],
+          [3, 1, 0, 0, 0],
+          [0, 0, 0, 0, 0],
+        ],
+        output: [
+          [0, 0, 1, 0, 0],
+          [3, 2, 0, 0, 0],
+          [0, 0, 0, 0, 0],
+          [0, 0, 0, 1, 3],
+          [0, 0, 0, 0, 0],
+        ],
+      ),
+    ],
+    testInput: [
+      [0, 0, 0, 1, 3],
+      [0, 0, 0, 0, 0],
+      [2, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0],
+      [0, 3, 0, 0, 2],
+    ],
+    testOutput: [
+      [3, 1, 0, 0, 0],
+      [0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 2],
+      [0, 0, 0, 0, 0],
+      [2, 0, 0, 3, 0],
+    ],
+  ),
+
+  // ---- Puzzle 3: Color swap  (blue 1 <-> red 2, everything else unchanged)
+  _ArcPuzzle(
+    examples: [
+      _ArcExample(
+        input: [
+          [1, 0, 2, 0, 0],
+          [0, 0, 0, 1, 0],
+          [0, 2, 0, 0, 0],
+          [0, 0, 0, 0, 2],
+          [1, 0, 0, 0, 0],
+        ],
+        output: [
+          [2, 0, 1, 0, 0],
+          [0, 0, 0, 2, 0],
+          [0, 1, 0, 0, 0],
+          [0, 0, 0, 0, 1],
+          [2, 0, 0, 0, 0],
+        ],
+      ),
+      _ArcExample(
+        input: [
+          [0, 0, 0, 2, 0],
+          [1, 0, 0, 0, 2],
+          [0, 0, 3, 0, 0],
+          [0, 1, 0, 0, 0],
+          [0, 0, 0, 0, 1],
+        ],
+        output: [
+          [0, 0, 0, 1, 0],
+          [2, 0, 0, 0, 1],
+          [0, 0, 3, 0, 0],
+          [0, 2, 0, 0, 0],
+          [0, 0, 0, 0, 2],
+        ],
+      ),
+    ],
+    testInput: [
+      [2, 0, 0, 0, 1],
+      [0, 0, 1, 0, 0],
+      [0, 0, 0, 2, 0],
+      [1, 0, 0, 0, 0],
+      [0, 2, 0, 0, 3],
+    ],
+    testOutput: [
+      [1, 0, 0, 0, 2],
+      [0, 0, 2, 0, 0],
+      [0, 0, 0, 1, 0],
+      [2, 0, 0, 0, 0],
+      [0, 1, 0, 0, 3],
+    ],
+  ),
+
+  // ---- Puzzle 4: 90-degree clockwise rotation
+  _ArcPuzzle(
+    examples: [
+      _ArcExample(
+        input: [
+          [1, 1, 1, 0, 0],
+          [0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0],
+        ],
+        output: [
+          [0, 0, 0, 0, 1],
+          [0, 0, 0, 0, 1],
+          [0, 0, 0, 0, 1],
+          [0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0],
+        ],
+      ),
+      _ArcExample(
+        input: [
+          [0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0],
+          [2, 0, 0, 0, 0],
+          [2, 2, 0, 0, 3],
+        ],
+        output: [
+          [2, 2, 0, 0, 0],
+          [2, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0],
+          [3, 0, 0, 0, 0],
+        ],
+      ),
+    ],
+    testInput: [
+      [0, 0, 3, 3, 0],
+      [0, 0, 0, 3, 0],
+      [0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0],
+      [1, 1, 0, 0, 0],
+    ],
+    testOutput: [
+      [1, 0, 0, 0, 0],
+      [1, 0, 0, 0, 0],
+      [0, 0, 0, 0, 3],
+      [0, 0, 0, 3, 3],
+      [0, 0, 0, 0, 0],
+    ],
+  ),
+];
+
+// ---------------------------------------------------------------------------
+// Level widget
+// ---------------------------------------------------------------------------
+
+class LevelArcAgi extends LevelWidget {
+  const LevelArcAgi({super.key, required super.onComplete});
+
+  @override
+  State<LevelArcAgi> createState() => _LevelArcAgiState();
+}
+
+class _LevelArcAgiState extends State<LevelArcAgi> {
+  static const int _gridSize = 5;
+  final Random _random = Random();
+
+  late _ArcPuzzle _puzzle;
+  late List<List<int>> _answer;
+  int _selectedColor = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _puzzle = _puzzles[_random.nextInt(_puzzles.length)];
+    _answer = List.generate(
+      _gridSize,
+      (_) => List.generate(_gridSize, (_) => 0),
+    );
+  }
+
+  // ---- actions ----
+
+  void _paintCell(int row, int col) {
+    setState(() {
+      _answer[row][col] = _selectedColor;
+    });
+  }
+
+  bool _checkAnswer() {
+    for (int r = 0; r < _gridSize; r++) {
+      for (int c = 0; c < _gridSize; c++) {
+        if (_answer[r][c] != _puzzle.testOutput[r][c]) return false;
+      }
+    }
+    return true;
+  }
+
+  void _onSubmit() => widget.onComplete(_checkAnswer());
+
+  void _onClear() {
+    setState(() {
+      _answer = List.generate(
+        _gridSize,
+        (_) => List.generate(_gridSize, (_) => 0),
+      );
+    });
+  }
+
+  // ---- build ----
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: NunuColors.backgroundDefault,
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildExamplesSection(),
+              const SizedBox(height: 12),
+              Expanded(child: _buildTestSection()),
+              const SizedBox(height: 12),
+              _buildPalette(),
+              const SizedBox(height: 12),
+              _buildButtons(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ---- examples carousel ----
+
+  Widget _buildExamplesSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'examples',
+          style: TextStyle(color: NunuColors.textSecondary, fontSize: 13),
+        ),
+        const SizedBox(height: 6),
+        SizedBox(
+          height: 100,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (int i = 0; i < _puzzle.examples.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 24),
+                  _buildExamplePair(_puzzle.examples[i]),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildExamplePair(_ArcExample example) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildMiniGrid(example.input),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 8),
+          child: Icon(
+            Icons.arrow_forward,
+            size: 18,
+            color: NunuColors.textSecondary,
+          ),
+        ),
+        _buildMiniGrid(example.output),
+      ],
+    );
+  }
+
+  /// Small read-only grid used inside the examples carousel.
+  Widget _buildMiniGrid(List<List<int>> grid) {
+    const double cellSize = 16;
+    const double gap = 2;
+    final int size = grid.length;
+
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: NunuColors.primaryDark.withValues(alpha: 0.4),
+        ),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (int r = 0; r < size; r++) ...[
+            if (r > 0) const SizedBox(height: gap),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (int c = 0; c < size; c++) ...[
+                  if (c > 0) const SizedBox(width: gap),
+                  Container(
+                    width: cellSize,
+                    height: cellSize,
+                    decoration: BoxDecoration(
+                      color: _arcColors[grid[r][c]],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ---- test input + answer grid (side by side) ----
+
+  Widget _buildTestSection() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Test input (read-only)
+        Expanded(
+          flex: 4,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text(
+                'test input',
+                style: TextStyle(color: NunuColors.textSecondary, fontSize: 13),
+              ),
+              const SizedBox(height: 6),
+              Expanded(
+                child: _buildGrid(_puzzle.testInput, interactive: false),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16),
+        // Player answer (interactive)
+        Expanded(
+          flex: 5,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                'your answer',
+                style: TextStyle(
+                  color: NunuColors.primaryLight.withValues(alpha: 0.9),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Expanded(child: _buildGrid(_answer, interactive: true)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Renders a grid that fills available space while staying square.
+  Widget _buildGrid(List<List<int>> grid, {required bool interactive}) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double side = min(constraints.maxWidth, constraints.maxHeight);
+
+        return Center(
+          child: SizedBox(
+            width: side,
+            height: side,
+            child: GridView.builder(
+              padding: EdgeInsets.zero,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: _gridSize,
+                mainAxisSpacing: 3,
+                crossAxisSpacing: 3,
+              ),
+              itemCount: _gridSize * _gridSize,
+              itemBuilder: (context, index) {
+                final r = index ~/ _gridSize;
+                final c = index % _gridSize;
+                final colorId = grid[r][c];
+                final color = _arcColors[colorId] ?? const Color(0xFF16122F);
+
+                final cell = AnimatedContainer(
+                  duration: const Duration(milliseconds: 100),
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: interactive
+                          ? (colorId != 0
+                                ? Colors.white.withValues(alpha: 0.25)
+                                : NunuColors.primaryDark.withValues(alpha: 0.6))
+                          : NunuColors.primaryDark.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                );
+
+                if (!interactive) return cell;
+
+                return GestureDetector(
+                  onTap: () => _paintCell(r, c),
+                  child: cell,
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ---- color palette ----
+
+  Widget _buildPalette() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        for (int i = 0; i <= 5; i++) ...[
+          if (i > 0) const SizedBox(width: 10),
+          _buildPaletteSwatch(i),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildPaletteSwatch(int colorId) {
+    final bool selected = _selectedColor == colorId;
+    final double size = selected ? 40 : 32;
+    final Color color = _arcColors[colorId] ?? const Color(0xFF16122F);
+
+    return GestureDetector(
+      onTap: () => setState(() => _selectedColor = colorId),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: selected
+                ? Colors.white
+                : Colors.white.withValues(alpha: 0.2),
+            width: selected ? 3 : 1,
+          ),
+          boxShadow: selected
+              ? [BoxShadow(color: color.withValues(alpha: 0.6), blurRadius: 10)]
+              : null,
+        ),
+        child: colorId == 0
+            ? Icon(
+                Icons.close,
+                size: selected ? 18 : 14,
+                color: NunuColors.textSecondary,
+              )
+            : null,
+      ),
+    );
+  }
+
+  // ---- action buttons ----
+
+  Widget _buildButtons() {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton(
+            onPressed: _onClear,
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: NunuColors.textSecondary),
+              foregroundColor: NunuColors.textSecondary,
+            ),
+            child: const Text('clear'),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          flex: 2,
+          child: ElevatedButton(
+            onPressed: _onSubmit,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: NunuColors.primaryMain,
+            ),
+            child: const Text('submit'),
+          ),
+        ),
+      ],
+    );
+  }
+}
