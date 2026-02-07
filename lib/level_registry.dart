@@ -62,6 +62,7 @@ import 'package:apk_arena/widgets/levels/level_giant_calendar.dart';
 import 'package:apk_arena/widgets/levels/level_mario_platformer.dart';
 import 'package:apk_arena/widgets/levels/level_slot_machine.dart';
 import 'package:apk_arena/widgets/levels/level_arc_agi.dart';
+import 'package:apk_arena/widgets/levels/level_arc_agi_2.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -538,6 +539,14 @@ final List<LevelEntry> hardLevels = [
       instructions: "study the examples. deduce the rule. paint the answer.",
     ),
     widgetBuilder: (onComplete) => LevelArcAgi(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "the chollet test II",
+      instructions:
+          "the same rules apply — but nothing is the same. study. deduce. paint.",
+    ),
+    widgetBuilder: (onComplete) => LevelArcAgi2(onComplete: onComplete),
   ),
 ];
 
