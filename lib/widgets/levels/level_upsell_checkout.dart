@@ -8,7 +8,8 @@ import '../level_components/food/food_shop_detail.dart';
 import '../level_components/food/food_shop_overview.dart';
 
 class LevelUpsellCheckout extends LevelWidget {
-  const LevelUpsellCheckout({Key? key, required super.onComplete}) : super(key: key);
+  const LevelUpsellCheckout({Key? key, required super.onComplete})
+    : super(key: key);
 
   @override
   State<LevelUpsellCheckout> createState() => _LevelUpsellCheckoutState();
@@ -60,11 +61,41 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
   }
 
   FoodShop _buildShop() {
-    const plain = FoodItem(id: 'plain_bagel', name: 'plain bagel', type: 'bagel', price: 2.00, emoji: '🥯');
-    const everything = FoodItem(id: 'everything_bagel', name: 'everything bagel', type: 'bagel', price: 2.50, emoji: '🥯');
-    const coffee = FoodItem(id: 'coffee', name: 'coffee', type: 'drink', price: 3.00, emoji: '☕');
-    const vip = FoodItem(id: 'vip_subscription', name: 'vip monthly', type: 'subscription', price: 14.99, emoji: '💳');
-    const mug = FoodItem(id: 'free_mug', name: 'limited mug', type: 'promo', price: 0.00, emoji: '🫖');
+    const plain = FoodItem(
+      id: 'plain_bagel',
+      name: 'plain bagel',
+      type: 'bagel',
+      price: 2.00,
+      emoji: '🥯',
+    );
+    const everything = FoodItem(
+      id: 'everything_bagel',
+      name: 'everything bagel',
+      type: 'bagel',
+      price: 2.50,
+      emoji: '🥯',
+    );
+    const coffee = FoodItem(
+      id: 'coffee',
+      name: 'coffee',
+      type: 'drink',
+      price: 3.00,
+      emoji: '☕',
+    );
+    const vip = FoodItem(
+      id: 'vip_subscription',
+      name: 'vip monthly',
+      type: 'subscription',
+      price: 14.99,
+      emoji: '💳',
+    );
+    const mug = FoodItem(
+      id: 'free_mug',
+      name: 'limited mug',
+      type: 'promo',
+      price: 0.00,
+      emoji: '🫖',
+    );
     return const FoodShop(
       id: 'bagel_hut',
       name: 'bagel hut',
@@ -97,7 +128,9 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
   bool _isTargetOrder() {
     if (_cart.length != 1) return false;
     final c = _cart.first;
-    return c.item.id == 'plain_bagel' && c.quantity == 1 && c.removedToppingIds.isEmpty;
+    return c.item.id == 'plain_bagel' &&
+        c.quantity == 1 &&
+        c.removedToppingIds.isEmpty;
   }
 
   void _attemptOrder() {
@@ -145,7 +178,10 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
                       _topAdBanner(),
                       Expanded(
                         child: _selected == null
-                            ? FoodShopOverview(shops: [_shop], onSelect: (s) => setState(() => _selected = s))
+                            ? FoodShopOverview(
+                                shops: [_shop],
+                                onSelect: (s) => setState(() => _selected = s),
+                              )
                             : FoodShopDetail(
                                 shop: _selected!,
                                 onAddToCart: _addToCart,
@@ -172,7 +208,8 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
     );
   }
 
-  bool get _anyPopupOpen => _showPromoPopup || _showAddUpsell || _showCheckoutUpsell;
+  bool get _anyPopupOpen =>
+      _showPromoPopup || _showAddUpsell || _showCheckoutUpsell;
 
   Widget _topAdBanner() {
     const gradStart = Color(0xFFFFE08A);
@@ -181,7 +218,11 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: const BoxDecoration(
-        gradient: LinearGradient(colors: [gradStart, gradEnd], begin: Alignment.centerLeft, end: Alignment.centerRight),
+        gradient: LinearGradient(
+          colors: [gradStart, gradEnd],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
       ),
       child: Row(
         children: [
@@ -191,18 +232,29 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(_bannerLabel(),
-                    style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w800)),
+                Text(
+                  _bannerLabel(),
+                  style: const TextStyle(
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                const Text('vip membership — unlock perks instantly', style: TextStyle(color: Colors.black87)),
+                const Text(
+                  'vip membership — unlock perks instantly',
+                  style: TextStyle(color: Colors.black87),
+                ),
               ],
             ),
           ),
           ElevatedButton(
             onPressed: _addBundleToCart,
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.black87, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.black87,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('get now'),
-          )
+          ),
         ],
       ),
     );
@@ -221,105 +273,173 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
 
   Widget _promoPopup() {
     return Positioned.fill(
-      child: LayoutBuilder(builder: (context, constraints) {
-        final w = constraints.maxWidth;
-        final h = constraints.maxHeight;
-        final cardW = (w * 0.92).clamp(0.0, 560.0);
-        final cardH = (h * 0.68).clamp(300.0, 640.0);
-        return Container(
-          color: Colors.black54,
-          child: Center(
-            child: Container(
-              width: cardW,
-              height: cardH,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 28, offset: const Offset(0, 8))],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Header with tiny close X
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFFF3CD),
-                      borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final w = constraints.maxWidth;
+          final h = constraints.maxHeight;
+          final cardW = (w * 0.92).clamp(0.0, 560.0);
+          final cardH = (h * 0.68).clamp(300.0, 640.0);
+          return Container(
+            color: Colors.black54,
+            child: Center(
+              child: Container(
+                width: cardW,
+                height: cardH,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.25),
+                      blurRadius: 28,
+                      offset: const Offset(0, 8),
                     ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.stars_rounded, color: Colors.black87, size: 18),
-                        const SizedBox(width: 8),
-                        const Expanded(child: Text('buy 2 bagels, get 1 mug free', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w900))),
-                        InkWell(
-                          onTap: () => setState(() { _showPromoPopup = false; _popupCountdown = 30; }),
-                          child: const Icon(Icons.close, color: Colors.black54, size: 14), // tiny X
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Header with tiny close X
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFFFF3CD),
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(20),
+                          topRight: Radius.circular(20),
                         ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      ),
+                      child: Row(
                         children: [
-                          // Big hero area
-                          Expanded(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(14),
-                                gradient: const LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [Color(0xFFFFF5E6), Color(0xFFFFE0E0)],
-                                ),
-                              ),
-                              child: Center(
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: const [
-                                    Text('🥯🥯', style: TextStyle(fontSize: 42)),
-                                    SizedBox(width: 8),
-                                    Text('→ 🫖', style: TextStyle(fontSize: 22, color: Colors.black54)),
-                                  ],
-                                ),
+                          const Icon(
+                            Icons.stars_rounded,
+                            color: Colors.black87,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              'buy 2 bagels, get 1 mug free',
+                              style: TextStyle(
+                                color: Colors.black87,
+                                fontWeight: FontWeight.w900,
                               ),
                             ),
                           ),
-                          const SizedBox(height: 12),
-                          const Text('today only: 2-for-mug', style: TextStyle(color: Colors.black87, fontSize: 20, fontWeight: FontWeight.w900)),
-                          const SizedBox(height: 6),
-                          const Text('add two bagels and claim your free mug.', style: TextStyle(color: Colors.black54, fontSize: 14)),
-                          const SizedBox(height: 14),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                final mug = _shop.items.firstWhere((e) => e.id == 'free_mug');
-                                final plain = _shop.items.firstWhere((e) => e.id == 'plain_bagel');
-                                setState(() {
-                                  _cart.add(CartItem(item: plain, quantity: 2));
-                                  _cart.add(CartItem(item: mug));
-                                  _showPromoPopup = false;
-                                  _popupCountdown = 30;
-                                });
-                              },
-                              style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-                              child: const Text('get now'),
-                            ),
+                          InkWell(
+                            onTap: () => setState(() {
+                              _showPromoPopup = false;
+                              _popupCountdown = 30;
+                            }),
+                            child: const Icon(
+                              Icons.close,
+                              color: Colors.black54,
+                              size: 14,
+                            ), // tiny X
                           ),
                         ],
                       ),
                     ),
-                  ),
-                ],
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Big hero area
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(14),
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      Color(0xFFFFF5E6),
+                                      Color(0xFFFFE0E0),
+                                    ],
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: const [
+                                      Text(
+                                        '🥯🥯',
+                                        style: TextStyle(fontSize: 42),
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        '→ 🫖',
+                                        style: TextStyle(
+                                          fontSize: 22,
+                                          color: Colors.black54,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'today only: 2-for-mug',
+                              style: TextStyle(
+                                color: Colors.black87,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'add two bagels and claim your free mug.',
+                              style: TextStyle(
+                                color: Colors.black54,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  final mug = _shop.items.firstWhere(
+                                    (e) => e.id == 'free_mug',
+                                  );
+                                  final plain = _shop.items.firstWhere(
+                                    (e) => e.id == 'plain_bagel',
+                                  );
+                                  setState(() {
+                                    _cart.add(
+                                      CartItem(item: plain, quantity: 2),
+                                    );
+                                    _cart.add(CartItem(item: mug));
+                                    _showPromoPopup = false;
+                                    _popupCountdown = 30;
+                                  });
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                ),
+                                child: const Text('get now'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        );
-      }),
+          );
+        },
+      ),
     );
   }
 
@@ -328,7 +448,9 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
     final coffee = _shop.items.firstWhere((e) => e.id == 'coffee');
     final mug = _shop.items.firstWhere((e) => e.id == 'free_mug');
     final suggestCoffee = _addUpsellCycle % 2 == 1; // alternate
-    final title = suggestCoffee ? 'make it a combo' : 'limited mug — almost gone';
+    final title = suggestCoffee
+        ? 'make it a combo'
+        : 'limited mug — almost gone';
     final subtitle = suggestCoffee
         ? 'add coffee for \$${coffee.price.toStringAsFixed(2)} and save time later.'
         : 'add your free mug now so we don\'t forget.';
@@ -345,7 +467,13 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 24, offset: const Offset(0, 8))],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.25),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -356,12 +484,23 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
                     Text(emoji, style: const TextStyle(fontSize: 22)),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.black87)),
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.black87,
+                        ),
+                      ),
                     ),
                     InkWell(
                       onTap: () => setState(() => _showAddUpsell = false),
-                      child: const Icon(Icons.close, size: 16, color: Colors.black54),
-                    )
+                      child: const Icon(
+                        Icons.close,
+                        size: 16,
+                        color: Colors.black54,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -373,7 +512,9 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
                       child: ElevatedButton(
                         onPressed: () {
                           setState(() {
-                            _cart.add(CartItem(item: suggestCoffee ? coffee : mug));
+                            _cart.add(
+                              CartItem(item: suggestCoffee ? coffee : mug),
+                            );
                             _showAddUpsell = false;
                           });
                         },
@@ -386,7 +527,7 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
                       child: const Text('no thanks'),
                     ),
                   ],
-                )
+                ),
               ],
             ),
           ),
@@ -400,7 +541,9 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
     final coffee = _shop.items.firstWhere((e) => e.id == 'coffee');
     final vip = _shop.items.firstWhere((e) => e.id == 'vip_subscription');
     final isStageOne = _checkoutUpsellStage == 0;
-    final title = isStageOne ? 'wait — you\'ll want coffee' : 'almost done — unlock vip perks';
+    final title = isStageOne
+        ? 'wait — you\'ll want coffee'
+        : 'almost done — unlock vip perks';
     final subtitle = isStageOne
         ? 'bagels + coffee = happiness. add coffee for just \$${coffee.price.toStringAsFixed(2)}.'
         : 'skip the line, member discounts, priority toast level. only \$${vip.price.toStringAsFixed(2)}.';
@@ -418,7 +561,13 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 24, offset: const Offset(0, 8))],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.25),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -429,15 +578,26 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
                     Text(emoji, style: const TextStyle(fontSize: 22)),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.black87)),
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.black87,
+                        ),
+                      ),
                     ),
                     InkWell(
                       onTap: () => setState(() {
                         _showCheckoutUpsell = false;
                         _checkoutUpsellStage++;
                       }),
-                      child: const Icon(Icons.close, size: 16, color: Colors.black54),
-                    )
+                      child: const Icon(
+                        Icons.close,
+                        size: 16,
+                        color: Colors.black54,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -449,7 +609,9 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
                       child: ElevatedButton(
                         onPressed: () {
                           setState(() {
-                            _cart.add(CartItem(item: isStageOne ? coffee : vip));
+                            _cart.add(
+                              CartItem(item: isStageOne ? coffee : vip),
+                            );
                             _showCheckoutUpsell = false;
                             _checkoutUpsellStage++;
                           });
@@ -466,7 +628,7 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
                       child: const Text('no thanks'),
                     ),
                   ],
-                )
+                ),
               ],
             ),
           ),

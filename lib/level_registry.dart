@@ -59,6 +59,7 @@ import 'package:apk_arena/widgets/levels/level_car_steering.dart';
 import 'package:apk_arena/widgets/levels/level_pattern_match.dart';
 import 'package:apk_arena/widgets/levels/level_giant_calendar.dart';
 import 'package:apk_arena/widgets/levels/level_mario_platformer.dart';
+import 'package:apk_arena/widgets/levels/level_slot_machine.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -513,6 +514,14 @@ final List<LevelEntry> hardLevels = [
   LevelEntry(
     data: LevelData(title: "jump man", instructions: "reach the flag!"),
     widgetBuilder: (onComplete) => LevelMarioPlatformer(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "lucky numbers",
+      instructions:
+          "spin the reels and count every number on the machine. enter the total sum!",
+    ),
+    widgetBuilder: (onComplete) => LevelSlotMachine(onComplete: onComplete),
   ),
 ];
 
