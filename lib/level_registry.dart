@@ -34,6 +34,7 @@ import 'package:apk_arena/widgets/levels/level_file_explorer.dart';
 import 'package:apk_arena/widgets/levels/level_button_alchemy.dart';
 import 'package:apk_arena/widgets/levels/level_enter_date.dart';
 import 'package:apk_arena/widgets/levels/level_emerald_runtime.dart';
+import 'package:apk_arena/widgets/levels/level_gem_socket.dart';
 import 'package:apk_arena/widgets/levels/level_do_not_click.dart';
 import 'package:apk_arena/widgets/levels/level_closing_drawer.dart';
 import 'package:apk_arena/widgets/levels/level_group_order.dart';
@@ -220,6 +221,13 @@ final List<LevelEntry> easyLevels = [
           "how long did it take nunu.ai to beat the first 3 gyms in pokemon emerald?",
     ),
     widgetBuilder: (onComplete) => LevelEmeraldRuntime(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "enchanted socket",
+      instructions: "place the gem into the socket!",
+    ),
+    widgetBuilder: (onComplete) => LevelGemSocket(onComplete: onComplete),
   ),
 ];
 
