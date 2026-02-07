@@ -269,6 +269,7 @@ class _LevelArcAgiState extends State<LevelArcAgi> {
   late _ArcPuzzle _puzzle;
   late List<List<int>> _answer;
   int _selectedColor = 1;
+  int _selectedExample = 0;
 
   @override
   void initState() {
@@ -340,26 +341,50 @@ class _LevelArcAgiState extends State<LevelArcAgi> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'examples',
-          style: TextStyle(color: NunuColors.textSecondary, fontSize: 13),
+        Row(
+          children: [
+            const Text(
+              'examples',
+              style: TextStyle(color: NunuColors.textSecondary, fontSize: 13),
+            ),
+            const Spacer(),
+            for (int i = 0; i < _puzzle.examples.length; i++) ...[
+              if (i > 0) const SizedBox(width: 6),
+              _buildExampleTab(i),
+            ],
+          ],
         ),
         const SizedBox(height: 6),
-        SizedBox(
-          height: 100,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                for (int i = 0; i < _puzzle.examples.length; i++) ...[
-                  if (i > 0) const SizedBox(width: 24),
-                  _buildExamplePair(_puzzle.examples[i]),
-                ],
-              ],
-            ),
+        Center(child: _buildExamplePair(_puzzle.examples[_selectedExample])),
+      ],
+    );
+  }
+
+  Widget _buildExampleTab(int index) {
+    final bool active = _selectedExample == index;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedExample = index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        decoration: BoxDecoration(
+          color: active ? NunuColors.primaryMain : NunuColors.backgroundPaper,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: active
+                ? NunuColors.primaryMain
+                : NunuColors.primaryDark.withValues(alpha: 0.4),
           ),
         ),
-      ],
+        child: Text(
+          '${index + 1}',
+          style: TextStyle(
+            color: active ? Colors.white : NunuColors.textSecondary,
+            fontSize: 13,
+            fontWeight: active ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
+      ),
     );
   }
 
