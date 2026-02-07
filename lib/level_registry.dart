@@ -30,6 +30,7 @@ import 'package:apk_arena/widgets/levels/level_emoji_count_fruits.dart';
 import 'package:apk_arena/widgets/levels/level_qr_deeplink.dart';
 import 'package:apk_arena/widgets/levels/level_adversarial_system_prompt.dart';
 import 'package:apk_arena/widgets/levels/level_upsell_checkout.dart';
+import 'package:apk_arena/widgets/levels/level_file_explorer.dart';
 import 'package:apk_arena/widgets/levels/level_button_alchemy.dart';
 import 'package:apk_arena/widgets/levels/level_enter_date.dart';
 import 'package:apk_arena/widgets/levels/level_emerald_runtime.dart';
@@ -396,6 +397,13 @@ final List<LevelEntry> mediumLevels = [
     ),
     widgetBuilder: (onComplete) => LevelGiantCalendar(onComplete: onComplete),
   ),
+  LevelEntry(
+    data: LevelData(
+      title: "rabbit hole",
+      instructions: "count every file in the file system.",
+    ),
+    widgetBuilder: (onComplete) => LevelFileExplorer(onComplete: onComplete),
+  ),
 ];
 
 final List<LevelEntry> hardLevels = [
@@ -497,15 +505,13 @@ final List<LevelEntry> hardLevels = [
   LevelEntry(
     data: LevelData(
       title: "road rage",
-      instructions: "steer left and right to dodge obstacles. reach the finish line!",
+      instructions:
+          "steer left and right to dodge obstacles. reach the finish line!",
     ),
     widgetBuilder: (onComplete) => LevelCarSteering(onComplete: onComplete),
   ),
   LevelEntry(
-    data: LevelData(
-      title: "jump man",
-      instructions: "reach the flag!",
-    ),
+    data: LevelData(title: "jump man", instructions: "reach the flag!"),
     widgetBuilder: (onComplete) => LevelMarioPlatformer(onComplete: onComplete),
   ),
 ];
