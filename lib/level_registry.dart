@@ -65,6 +65,7 @@ import 'package:apk_arena/widgets/levels/level_arc_agi.dart';
 import 'package:apk_arena/widgets/levels/level_arc_agi_2.dart';
 import 'package:apk_arena/widgets/levels/level_trial_sequence.dart';
 import 'package:apk_arena/widgets/levels/level_odd_one_out.dart';
+import 'package:apk_arena/widgets/levels/level_woodoku.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -564,6 +565,10 @@ final List<LevelEntry> hardLevels = [
           "the same rules apply — but nothing is the same. study. deduce. paint.",
     ),
     widgetBuilder: (onComplete) => LevelArcAgi2(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(title: "timber!", instructions: "score 200 points to win!"),
+    widgetBuilder: (onComplete) => LevelWoodoku(onComplete: onComplete),
   ),
 ];
 
