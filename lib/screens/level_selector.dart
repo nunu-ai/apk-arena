@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../models/level_status.dart';
 import '../services/progress_service.dart';
+import '../services/navigation.dart';
 import '../theme/app_theme.dart';
 import '../widgets/level_tile.dart';
 import '../level_registry.dart';
@@ -16,7 +17,7 @@ class LevelSelectorScreen extends StatefulWidget {
   State<LevelSelectorScreen> createState() => _LevelSelectorScreenState();
 }
 
-class _LevelSelectorScreenState extends State<LevelSelectorScreen> {
+class _LevelSelectorScreenState extends State<LevelSelectorScreen> with RouteAware {
   final _progressService = ProgressService.instance;
 
   int selectedDifficulty = 0;
@@ -70,6 +71,26 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> {
       )
     );
     setState(() { });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      routeObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    setState(() {});
   }
 
   @override
