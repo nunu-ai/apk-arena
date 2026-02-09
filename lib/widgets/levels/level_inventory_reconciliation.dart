@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart' as services;
 import 'dart:convert';
 import 'dart:io';
 import 'package:open_filex/open_filex.dart';
@@ -84,31 +85,53 @@ class _LevelInventoryReconciliationState extends State<LevelInventoryReconciliat
   }
 
   Future<void> _loadPdfAssets() async {
-    // Try multiple manifest formats, then fall back to known filenames
+    // Try official AssetManifest API first, then JSON manifest, then known filenames
     final found = <String>{};
-    for (final manifestName in const ['AssetManifest.json', 'AssetManifest.bin.json']) {
-      try {
-        final manifestStr = await rootBundle.loadString(manifestName);
-        if (manifestStr.isEmpty) continue;
-        final map = Map<String, dynamic>.from(jsonDecode(manifestStr) as Map);
-        for (final k in map.keys) {
-          if (k.startsWith('assets/inventory/') && k.toLowerCase().endsWith('.pdf')) {
-            found.add(k);
-          }
+
+    // 1) Preferred: AssetManifest API (supports binary/json, works across modes)
+    try {
+      final manifest = await services.AssetManifest.loadFromAssetBundle(rootBundle);
+      for (final asset in manifest.listAssets()) {
+        if (asset.startsWith('assets/inventory/') && asset.toLowerCase().endsWith('.pdf')) {
+          found.add(asset);
         }
-      } catch (_) {
-        // ignore and try the next manifest
+      }
+    } catch (_) {
+      // ignore and try legacy JSON manifest
+    }
+
+    // 2) Legacy: parse JSON manifest if present
+    if (found.isEmpty) {
+      for (final manifestName in const ['AssetManifest.json']) {
+        try {
+          final manifestStr = await rootBundle.loadString(manifestName);
+          if (manifestStr.isEmpty) continue;
+          final map = Map<String, dynamic>.from(jsonDecode(manifestStr) as Map);
+          for (final k in map.keys) {
+            if (k.startsWith('assets/inventory/') && k.toLowerCase().endsWith('.pdf')) {
+              found.add(k);
+            }
+          }
+        } catch (_) {
+          // ignore and try the next option
+        }
       }
     }
 
-    // Fallback: probe a known file if no manifest worked
+    // 3) Hard fallback: probe known filenames directly (ensures all current receipts show up)
     if (found.isEmpty) {
-      const probe = 'assets/inventory/polartech-delivery-manifest.pdf';
-      try {
-        await rootBundle.load(probe);
-        found.add(probe);
-      } catch (_) {
-        // nothing found
+      const candidates = <String>{
+        'assets/inventory/polartech-delivery-manifest.pdf',
+        'assets/inventory/cryo-delivery.pdf',
+        'assets/inventory/glacier_supplies.pdf',
+      };
+      for (final probe in candidates) {
+        try {
+          await rootBundle.load(probe);
+          found.add(probe);
+        } catch (_) {
+          // skip missing
+        }
       }
     }
 
@@ -214,6 +237,7 @@ class _LevelInventoryReconciliationState extends State<LevelInventoryReconciliat
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      useRootNavigator: true,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => _ItemBottomSheet(
           item: _items.firstWhere((i) => i.id == item.id), // Get fresh item data
