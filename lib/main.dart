@@ -73,6 +73,7 @@ class _MyAppState extends State<MyApp> {
       title: 'AOK ARENA',
       theme: AppTheme.darkTheme,
       navigatorKey: appNavigatorKey,
+      navigatorObservers: [routeObserver],
       home: const LevelSelectorScreen(),
     );
   }
