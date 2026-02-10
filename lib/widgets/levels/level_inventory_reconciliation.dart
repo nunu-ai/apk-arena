@@ -746,6 +746,21 @@ class _ItemBottomSheet extends StatefulWidget {
 class _ItemBottomSheetState extends State<_ItemBottomSheet> {
   late TextEditingController _controller;
 
+  void _applySetQuantity({required bool closeSheet}) {
+    final parsed = int.tryParse(_controller.text);
+    if (parsed == null || parsed < 0) {
+      _controller.text = widget.item.quantity.toString();
+      return;
+    }
+
+    final safe = parsed.clamp(0, 999999);
+    widget.onQuantitySet(safe);
+    _controller.text = safe.toString();
+    if (closeSheet) {
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -768,6 +783,9 @@ class _ItemBottomSheetState extends State<_ItemBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final bottomSafePadding = media.padding.bottom + media.viewInsets.bottom + 12;
+
     return Container(
       decoration: const BoxDecoration(
         color: NunuColors.backgroundPaper,
@@ -958,20 +976,13 @@ class _ItemBottomSheetState extends State<_ItemBottomSheet> {
                 // Set quantity button
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {
-                      final parsed = int.tryParse(_controller.text);
-                      if (parsed != null && parsed >= 0) {
-                        final safe = parsed.clamp(0, 999999);
-                        widget.onQuantitySet(safe);
-                        _controller.text = safe.toString();
-                        // Close the bottom sheet after setting quantity
-                        Navigator.of(context).pop();
-                      }
-                    },
+                    onPressed: () => _applySetQuantity(closeSheet: true),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: NunuColors.primaryMain,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      minimumSize: const Size.fromHeight(52),
+                      tapTargetSize: MaterialTapTargetSize.padded,
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -1028,8 +1039,7 @@ class _ItemBottomSheetState extends State<_ItemBottomSheet> {
             ),
           ),
           
-          const SizedBox(height: 20),
-          SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
+          SizedBox(height: bottomSafePadding),
         ],
       ),
     );
