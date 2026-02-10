@@ -168,25 +168,31 @@ class _LevelScreenState extends State<LevelScreen> {
           ],
         ),
       ),
-      body: Column(
-        children: [
-          // Instructions banner
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            color: NunuColors.backgroundPaper,
-            child: Text(
-              levelEntry.data.instructions,
-              style: const TextStyle(color: NunuColors.textPrimary),
+      body: SafeArea(
+        top: false,
+        left: false,
+        right: false,
+        bottom: true,
+        child: Column(
+          children: [
+            // Instructions banner
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              color: NunuColors.backgroundPaper,
+              child: Text(
+                levelEntry.data.instructions,
+                style: const TextStyle(color: NunuColors.textPrimary),
+              ),
             ),
-          ),
-          const Divider(height: 1),
+            const Divider(height: 1),
 
-          // Level content
-          Expanded(
-            child: levelEntry.widgetBuilder(_onLevelComplete),
-          ),
-        ],
+            // Level content
+            Expanded(
+              child: levelEntry.widgetBuilder(_onLevelComplete),
+            ),
+          ],
+        ),
       ),
     );
   }
