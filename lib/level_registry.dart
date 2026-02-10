@@ -21,17 +21,20 @@ import 'package:apk_arena/widgets/levels/level_wire_task.dart';
 import 'package:apk_arena/widgets/levels/level_click_grid_coordinate.dart';
 import 'package:apk_arena/widgets/levels/level_sudoku.dart';
 import 'package:apk_arena/widgets/levels/level_match3.dart';
+import 'package:apk_arena/widgets/levels/level_memory_match.dart';
 import 'package:apk_arena/widgets/levels/level_scrabble.dart';
+import 'package:apk_arena/widgets/levels/level_scrabble_hard.dart';
 import 'package:apk_arena/widgets/levels/level_emoji_ball_hunt.dart';
 import 'package:apk_arena/widgets/levels/level_emoji_count_flags.dart';
 import 'package:apk_arena/widgets/levels/level_emoji_count_fruits.dart';
-import 'package:apk_arena/widgets/levels/level_memory_match.dart';
 import 'package:apk_arena/widgets/levels/level_qr_deeplink.dart';
 import 'package:apk_arena/widgets/levels/level_adversarial_system_prompt.dart';
 import 'package:apk_arena/widgets/levels/level_upsell_checkout.dart';
+import 'package:apk_arena/widgets/levels/level_file_explorer.dart';
 import 'package:apk_arena/widgets/levels/level_button_alchemy.dart';
 import 'package:apk_arena/widgets/levels/level_enter_date.dart';
 import 'package:apk_arena/widgets/levels/level_emerald_runtime.dart';
+import 'package:apk_arena/widgets/levels/level_gem_socket.dart';
 import 'package:apk_arena/widgets/levels/level_do_not_click.dart';
 import 'package:apk_arena/widgets/levels/level_closing_drawer.dart';
 import 'package:apk_arena/widgets/levels/level_group_order.dart';
@@ -39,6 +42,46 @@ import 'package:apk_arena/widgets/levels/level_trace_drawing.dart';
 import 'package:apk_arena/widgets/levels/level_inventory_reconciliation.dart';
 import 'package:apk_arena/widgets/levels/level_chess_puzzle.dart';
 import 'package:apk_arena/widgets/levels/level_spot_difference.dart';
+import 'package:apk_arena/widgets/levels/level_pokemon_maze.dart';
+import 'package:apk_arena/widgets/levels/level_reactor_stabilization.dart';
+import 'package:apk_arena/widgets/levels/level_warp_maze.dart';
+import 'package:apk_arena/widgets/levels/level_settings_qa.dart';
+import 'package:apk_arena/widgets/levels/level_sequence_memory.dart';
+import 'package:apk_arena/widgets/levels/level_bingo.dart';
+import 'package:apk_arena/widgets/levels/level_card_slots.dart';
+import 'package:apk_arena/widgets/levels/level_tutorial_cards.dart';
+import 'package:apk_arena/widgets/levels/level_hardware_merge.dart';
+import 'package:apk_arena/widgets/levels/level_mega_merge.dart';
+import 'package:apk_arena/widgets/levels/level_coin_map.dart';
+import 'package:apk_arena/widgets/levels/level_coin_collector.dart';
+import 'package:apk_arena/widgets/levels/level_phone_simulator.dart';
+import 'package:apk_arena/widgets/levels/level_royal_match.dart';
+import 'package:apk_arena/widgets/levels/level_car_steering.dart';
+import 'package:apk_arena/widgets/levels/level_pattern_match.dart';
+import 'package:apk_arena/widgets/levels/level_giant_calendar.dart';
+import 'package:apk_arena/widgets/levels/level_mario_platformer.dart';
+import 'package:apk_arena/widgets/levels/level_slot_machine.dart';
+import 'package:apk_arena/widgets/levels/level_arc_agi.dart';
+import 'package:apk_arena/widgets/levels/level_arc_agi_2.dart';
+import 'package:apk_arena/widgets/levels/level_arc_agi_3.dart';
+import 'package:apk_arena/widgets/levels/level_trial_sequence.dart';
+import 'package:apk_arena/widgets/levels/level_odd_one_out.dart';
+import 'package:apk_arena/widgets/levels/level_woodoku.dart';
+import 'package:apk_arena/widgets/levels/level_minesweeper.dart';
+import 'package:apk_arena/widgets/levels/level_tower_of_hanoi.dart';
+import 'package:apk_arena/widgets/levels/level_lights_out.dart';
+import 'package:apk_arena/widgets/levels/level_pipe_puzzle.dart';
+import 'package:apk_arena/widgets/levels/level_flood_fill.dart';
+import 'package:apk_arena/widgets/levels/level_snake.dart';
+import 'package:apk_arena/widgets/levels/level_sliding_puzzle.dart';
+import 'package:apk_arena/widgets/levels/level_nonogram.dart';
+import 'package:apk_arena/widgets/levels/level_sokoban.dart';
+import 'package:apk_arena/widgets/levels/level_safe_cracker.dart';
+import 'package:apk_arena/widgets/levels/level_mastermind.dart';
+
+import 'package:apk_arena/widgets/levels/level_wordle.dart';
+import 'package:apk_arena/widgets/levels/level_rhythm.dart';
+import 'package:apk_arena/widgets/levels/level_rush_hour.dart';
 import '../models/level_data.dart';
 import '../widgets/level_widget.dart';
 import 'widgets/levels/level_click_button.dart';
@@ -146,7 +189,10 @@ final List<LevelEntry> easyLevels = [
         LevelOverlappingPopups(onComplete: onComplete),
   ),
   LevelEntry(
-    data: LevelData(title: "Size Comparison", instructions: "What is Larger here?"),
+    data: LevelData(
+      title: "Size Comparison",
+      instructions: "What is Larger here?",
+    ),
     widgetBuilder: (onComplete) => LevelBlueWhale(onComplete: onComplete),
   ),
   LevelEntry(
@@ -185,18 +231,23 @@ final List<LevelEntry> easyLevels = [
     widgetBuilder: (onComplete) => LevelEmojiCountFlags(onComplete: onComplete),
   ),
   LevelEntry(
-    data: LevelData(
-      title: "today's date",
-      instructions: "enter today's date.",
-    ),
+    data: LevelData(title: "today's date", instructions: "enter today's date."),
     widgetBuilder: (onComplete) => LevelEnterDate(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
       title: "emerald runtime",
-      instructions: "how long did it take nunu.ai to beat the first 3 gyms in pokemon emerald?",
+      instructions:
+          "how long did it take nunu.ai to beat the first 3 gyms in pokemon emerald?",
     ),
     widgetBuilder: (onComplete) => LevelEmeraldRuntime(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "enchanted socket",
+      instructions: "place the gem into the socket!",
+    ),
+    widgetBuilder: (onComplete) => LevelGemSocket(onComplete: onComplete),
   ),
 ];
 
@@ -253,16 +304,20 @@ final List<LevelEntry> mediumLevels = [
     ),
     widgetBuilder: (onComplete) => LevelMatch3(onComplete: onComplete),
   ),
-  LevelEntry(data: LevelData(
-    title: "memory match",
-    instructions: "find all matching pairs.",
-  ), widgetBuilder: (onComplete) => LevelMemoryMatch(onComplete: onComplete)),
+  LevelEntry(
+    data: LevelData(
+      title: "memory match",
+      instructions: "find all matching pairs.",
+    ),
+    widgetBuilder: (onComplete) => LevelMemoryMatch(onComplete: onComplete),
+  ),
   LevelEntry(
     data: LevelData(
       title: "fruit salad census",
       instructions: "count the target fruit. ignore the rest.",
     ),
-    widgetBuilder: (onComplete) => LevelEmojiCountFruits(onComplete: onComplete),
+    widgetBuilder: (onComplete) =>
+        LevelEmojiCountFruits(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
@@ -277,6 +332,13 @@ final List<LevelEntry> mediumLevels = [
       instructions: "Skip to the next song.",
     ),
     widgetBuilder: (onComplete) => LevelClosingDrawer(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "maze runner",
+      instructions: "navigate to the exit using the d-pad!",
+    ),
+    widgetBuilder: (onComplete) => LevelPokemonMaze(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
@@ -304,14 +366,95 @@ final List<LevelEntry> mediumLevels = [
       title: "sun or rain?",
       instructions: "create a weather forecast report of next week",
     ),
-    widgetBuilder: (onComplete) => LevelAdversarialSystemPrompt(onComplete: onComplete),
+    widgetBuilder: (onComplete) =>
+        LevelAdversarialSystemPrompt(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
-      title: "breakfast checkout",  
+      title: "breakfast checkout",
       instructions: "order exactly one plain bagel.",
     ),
     widgetBuilder: (onComplete) => LevelUpsellCheckout(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "QA simulation",
+      instructions: "verify 5 statements about the settings app. one is false!",
+    ),
+    widgetBuilder: (onComplete) => LevelSettingsQA(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Cards Tutorial",
+      instructions: "Follow the tutorial steps exactly.",
+    ),
+    widgetBuilder: (onComplete) => LevelTutorialCards(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Hardware Merge",
+      instructions:
+          "Merge parts to build the required components. Tap the box to get screws.",
+    ),
+    widgetBuilder: (onComplete) => LevelHardwareMerge(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Space Collector",
+      instructions: "Collect all coins and enter the total count!",
+    ),
+    widgetBuilder: (onComplete) => LevelCoinCollector(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "crown collector",
+      instructions: "match gems to collect all the royal crowns!",
+    ),
+    widgetBuilder: (onComplete) => LevelRoyalMatch(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "pixel perfect",
+      instructions: "recreate the pattern shown above!",
+    ),
+    widgetBuilder: (onComplete) => LevelPatternMatch(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "calendar chaos",
+      instructions:
+          "move Dr. Spaceman's appointment on Feb 14 to 1 hour earlier.",
+    ),
+    widgetBuilder: (onComplete) => LevelGiantCalendar(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "rabbit hole",
+      instructions: "count every file in the file system.",
+    ),
+    widgetBuilder: (onComplete) => LevelFileExplorer(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "trial & error",
+      instructions:
+          "find the correct sequence of 7. one wrong pick resets everything.",
+    ),
+    widgetBuilder: (onComplete) => LevelTrialSequence(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "spot the imposter",
+      instructions: "find the odd one out in each round.",
+    ),
+    widgetBuilder: (onComplete) => LevelOddOneOut(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "five letters",
+      instructions: "guess the word in 6 tries.",
+    ),
+    widgetBuilder: (onComplete) => LevelWordle(onComplete: onComplete),
   ),
 ];
 
@@ -342,7 +485,211 @@ final List<LevelEntry> hardLevels = [
       title: "operation warehouse",
       instructions: "use the delivery receipt to update inventory.",
     ),
-    widgetBuilder: (onComplete) => LevelInventoryReconciliation(onComplete: onComplete),
+    widgetBuilder: (onComplete) =>
+        LevelInventoryReconciliation(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "crossword crisis",
+      instructions: "put the highest scoring word.",
+    ),
+    widgetBuilder: (onComplete) => LevelScrabbleHard(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Reactor Stabilization",
+      instructions: "Keep all readings in the green zone to stabilize.",
+    ),
+    widgetBuilder: (onComplete) =>
+        LevelReactorStabilization(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Warp Maze",
+      instructions: "Find the exit using the warp gates.",
+    ),
+    widgetBuilder: (onComplete) => LevelWarpMaze(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Sequence Memory",
+      instructions: "Memorize and repeat the sequence!",
+    ),
+    widgetBuilder: (onComplete) => LevelSequenceMemory(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Bingo",
+      instructions: "Mark the called numbers quickly to get a BINGO!",
+    ),
+    widgetBuilder: (onComplete) => LevelBingo(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Place the Cards",
+      instructions: "Solve this card puzzle",
+    ),
+    widgetBuilder: (onComplete) => LevelCardSlots(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Mega Merge",
+      instructions:
+          "Master the factory! Follow the tutorial, then deliver the parts.",
+    ),
+    widgetBuilder: (onComplete) => LevelMegaMerge(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Space Coins",
+      instructions: "Explore the galaxy and count all the gold coins!",
+    ),
+    widgetBuilder: (onComplete) => LevelCoinMap(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "App Inspector",
+      instructions:
+          "Open the Checklist App and answer the questions correctly!",
+    ),
+    widgetBuilder: (onComplete) => LevelPhoneSimulator(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "road rage",
+      instructions:
+          "steer left and right to dodge obstacles. reach the finish line!",
+    ),
+    widgetBuilder: (onComplete) => LevelCarSteering(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(title: "jump man", instructions: "reach the flag!"),
+    widgetBuilder: (onComplete) => LevelMarioPlatformer(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "lucky numbers",
+      instructions:
+          "spin the reels and count every number on the machine. enter the total sum!",
+    ),
+    widgetBuilder: (onComplete) => LevelSlotMachine(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "the chollet test",
+      instructions: "study the examples. deduce the rule. paint the answer.",
+    ),
+    widgetBuilder: (onComplete) => LevelArcAgi(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "the chollet test II",
+      instructions:
+          "the same rules apply — but nothing is the same. study. deduce. paint.",
+    ),
+    widgetBuilder: (onComplete) => LevelArcAgi2(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "the chollet test III",
+      instructions: "no examples this time. explore. discover. solve.",
+    ),
+    widgetBuilder: (onComplete) => LevelArcAgi3(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(title: "timber!", instructions: "score 200 points to win!"),
+    widgetBuilder: (onComplete) => LevelWoodoku(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "minefield",
+      instructions: "clear every safe cell. don't step on a mine.",
+    ),
+    widgetBuilder: (onComplete) => LevelMinesweeper(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "tower of patience",
+      instructions: "move all discs to the rightmost peg. larger discs can't go on smaller ones.",
+    ),
+    widgetBuilder: (onComplete) => LevelTowerOfHanoi(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "blackout",
+      instructions: "turn off all the lights.",
+    ),
+    widgetBuilder: (onComplete) => LevelLightsOut(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "plumber's nightmare",
+      instructions: "rotate the pipes to connect the flow from green to red.",
+    ),
+    widgetBuilder: (onComplete) => LevelPipePuzzle(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "color contagion",
+      instructions: "flood the board with one color in 22 moves or less.",
+    ),
+    widgetBuilder: (onComplete) => LevelFloodFill(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "pixel serpent",
+      instructions: "eat 15 apples without hitting yourself or the wall.",
+    ),
+    widgetBuilder: (onComplete) => LevelSnake(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "15 puzzle",
+      instructions: "slide tiles into the correct 1-15 order.",
+    ),
+    widgetBuilder: (onComplete) => LevelSlidingPuzzle(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "pixel logic",
+      instructions: "fill cells using the number clues on each row and column.",
+    ),
+    widgetBuilder: (onComplete) => LevelNonogram(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "box pusher",
+      instructions: "push all crates onto the goal markers.",
+    ),
+    widgetBuilder: (onComplete) => LevelSokoban(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "safe cracker",
+      instructions: "dial each number of the combination. turn the dial and confirm.",
+    ),
+    widgetBuilder: (onComplete) => LevelSafeCracker(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "code breaker",
+      instructions: "guess the 4-color code in 10 tries. red = right color & position. white = right color, wrong position.",
+    ),
+    widgetBuilder: (onComplete) => LevelMastermind(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "rhythm rush",
+      instructions: "tap the notes as they enter the hit zone. hit 10 out of 16 to pass.",
+    ),
+    widgetBuilder: (onComplete) => LevelRhythm(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "traffic jam",
+      instructions: "slide cars to unblock the red car and let it reach the exit.",
+    ),
+    widgetBuilder: (onComplete) => LevelRushHour(onComplete: onComplete),
   ),
 ];
 
