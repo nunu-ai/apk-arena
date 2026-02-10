@@ -238,31 +238,37 @@ class _LevelInventoryReconciliationState extends State<LevelInventoryReconciliat
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       useRootNavigator: true,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => _ItemBottomSheet(
-          item: _items.firstWhere((i) => i.id == item.id), // Get fresh item data
-          onQuantityChange: (delta) {
-            _changeQuantity(item, delta);
-            setModalState(() {}); // Update modal state
-          },
-          onQuantitySet: (value) {
-            setState(() {
-              final idx = _items.indexWhere((i) => i.id == item.id);
-              if (idx != -1) {
-                final safe = value.clamp(0, 999999);
-                _items[idx] = _items[idx].copyWith(quantity: safe);
-              }
-            });
-            setModalState(() {}); // Update modal state
-          },
-          onDelete: () {
-            setState(() {
-              _items.removeWhere((i) => i.id == item.id);
-            });
-            Navigator.pop(context);
-          },
-          getCategoryColor: _getCategoryColor,
-          getCategoryIcon: _getCategoryIcon,
+      builder: (context) => SafeArea(
+        top: false,
+        left: false,
+        right: false,
+        bottom: true,
+        child: StatefulBuilder(
+          builder: (context, setModalState) => _ItemBottomSheet(
+            item: _items.firstWhere((i) => i.id == item.id), // Get fresh item data
+            onQuantityChange: (delta) {
+              _changeQuantity(item, delta);
+              setModalState(() {}); // Update modal state
+            },
+            onQuantitySet: (value) {
+              setState(() {
+                final idx = _items.indexWhere((i) => i.id == item.id);
+                if (idx != -1) {
+                  final safe = value.clamp(0, 999999);
+                  _items[idx] = _items[idx].copyWith(quantity: safe);
+                }
+              });
+              setModalState(() {}); // Update modal state
+            },
+            onDelete: () {
+              setState(() {
+                _items.removeWhere((i) => i.id == item.id);
+              });
+              Navigator.pop(context);
+            },
+            getCategoryColor: _getCategoryColor,
+            getCategoryIcon: _getCategoryIcon,
+          ),
         ),
       ),
     );
@@ -740,6 +746,21 @@ class _ItemBottomSheet extends StatefulWidget {
 class _ItemBottomSheetState extends State<_ItemBottomSheet> {
   late TextEditingController _controller;
 
+  void _applySetQuantity({required bool closeSheet}) {
+    final parsed = int.tryParse(_controller.text);
+    if (parsed == null || parsed < 0) {
+      _controller.text = widget.item.quantity.toString();
+      return;
+    }
+
+    final safe = parsed.clamp(0, 999999);
+    widget.onQuantitySet(safe);
+    _controller.text = safe.toString();
+    if (closeSheet) {
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -762,6 +783,9 @@ class _ItemBottomSheetState extends State<_ItemBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final bottomSafePadding = media.padding.bottom + media.viewInsets.bottom + 12;
+
     return Container(
       decoration: const BoxDecoration(
         color: NunuColors.backgroundPaper,
@@ -952,20 +976,13 @@ class _ItemBottomSheetState extends State<_ItemBottomSheet> {
                 // Set quantity button
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {
-                      final parsed = int.tryParse(_controller.text);
-                      if (parsed != null && parsed >= 0) {
-                        final safe = parsed.clamp(0, 999999);
-                        widget.onQuantitySet(safe);
-                        _controller.text = safe.toString();
-                        // Close the bottom sheet after setting quantity
-                        Navigator.of(context).pop();
-                      }
-                    },
+                    onPressed: () => _applySetQuantity(closeSheet: true),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: NunuColors.primaryMain,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      minimumSize: const Size.fromHeight(52),
+                      tapTargetSize: MaterialTapTargetSize.padded,
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -1022,8 +1039,7 @@ class _ItemBottomSheetState extends State<_ItemBottomSheet> {
             ),
           ),
           
-          const SizedBox(height: 20),
-          SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
+          SizedBox(height: bottomSafePadding),
         ],
       ),
     );

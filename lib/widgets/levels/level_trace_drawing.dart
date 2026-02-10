@@ -90,9 +90,11 @@ class _LevelTraceDrawingState extends State<LevelTraceDrawing> {
   Size _canvasSize = Size.zero;
 
   static const double _pad = 13.0;
-  static const double _tolerance = 10.0; // tighter tolerance
-  static const double _minCoverageRatio = 0.85; // require closer adherence
-  static const double _minLengthRatio = 0.85; // prevent straight-line shortcuts
+  static const double _tolerance = 14.0;
+  static const double _safeAreaRadius = 6.0;
+  static const double _startTolerance = 22.0;
+  static const double _minCoverageRatio = 0.72;
+  static const double _minLengthRatio = 0.65;
 
   @override
   Widget build(BuildContext context) {
@@ -195,8 +197,8 @@ class _LevelTraceDrawingState extends State<LevelTraceDrawing> {
 
     // Check start near an endpoint (either direction)
     final start = _userStroke.first;
-    final nearStart = (start - target.first).distance <= _tolerance;
-    final nearEnd = (start - target.last).distance <= _tolerance;
+    final nearStart = (start - target.first).distance <= _startTolerance;
+    final nearEnd = (start - target.last).distance <= _startTolerance;
     if (!nearStart && !nearEnd) {
       _failStroke();
       return;
@@ -207,7 +209,7 @@ class _LevelTraceDrawingState extends State<LevelTraceDrawing> {
     int inTol = 0;
     for (int i = 0; i < _userStroke.length; i += step) {
       final dist = _distanceToPolyline(_userStroke[i], target);
-      if (dist <= _tolerance) inTol++;
+      if (dist <= _tolerance + _safeAreaRadius) inTol++;
     }
     final coverageRatio = inTol / (max(1, (_userStroke.length / step).round()));
 
