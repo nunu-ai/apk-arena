@@ -238,31 +238,37 @@ class _LevelInventoryReconciliationState extends State<LevelInventoryReconciliat
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       useRootNavigator: true,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => _ItemBottomSheet(
-          item: _items.firstWhere((i) => i.id == item.id), // Get fresh item data
-          onQuantityChange: (delta) {
-            _changeQuantity(item, delta);
-            setModalState(() {}); // Update modal state
-          },
-          onQuantitySet: (value) {
-            setState(() {
-              final idx = _items.indexWhere((i) => i.id == item.id);
-              if (idx != -1) {
-                final safe = value.clamp(0, 999999);
-                _items[idx] = _items[idx].copyWith(quantity: safe);
-              }
-            });
-            setModalState(() {}); // Update modal state
-          },
-          onDelete: () {
-            setState(() {
-              _items.removeWhere((i) => i.id == item.id);
-            });
-            Navigator.pop(context);
-          },
-          getCategoryColor: _getCategoryColor,
-          getCategoryIcon: _getCategoryIcon,
+      builder: (context) => SafeArea(
+        top: false,
+        left: false,
+        right: false,
+        bottom: true,
+        child: StatefulBuilder(
+          builder: (context, setModalState) => _ItemBottomSheet(
+            item: _items.firstWhere((i) => i.id == item.id), // Get fresh item data
+            onQuantityChange: (delta) {
+              _changeQuantity(item, delta);
+              setModalState(() {}); // Update modal state
+            },
+            onQuantitySet: (value) {
+              setState(() {
+                final idx = _items.indexWhere((i) => i.id == item.id);
+                if (idx != -1) {
+                  final safe = value.clamp(0, 999999);
+                  _items[idx] = _items[idx].copyWith(quantity: safe);
+                }
+              });
+              setModalState(() {}); // Update modal state
+            },
+            onDelete: () {
+              setState(() {
+                _items.removeWhere((i) => i.id == item.id);
+              });
+              Navigator.pop(context);
+            },
+            getCategoryColor: _getCategoryColor,
+            getCategoryIcon: _getCategoryIcon,
+          ),
         ),
       ),
     );
