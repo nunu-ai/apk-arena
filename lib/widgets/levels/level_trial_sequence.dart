@@ -126,7 +126,7 @@ class _LevelTrialSequenceState extends State<LevelTrialSequence>
 
       if (isCorrect) {
         if (_currentStep == _totalSteps - 1) {
-          widget.onComplete(true);
+          widget.onComplete(true, metrics: {'attempts': _attempts, 'steps': _totalSteps});
         } else {
           setState(() {
             _currentStep++;

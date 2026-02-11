@@ -149,7 +149,7 @@ class DebugLevelGallery extends StatelessWidget {
                                     child: Theme(
                                       data: AppTheme.darkTheme,
                                       child: Scaffold(
-                                        body: levelEntry.widgetBuilder((_) {}),
+                                        body: levelEntry.widgetBuilder((_, {Map<String, dynamic>? metrics}) {}),
                                       ),
                                     ),
                                   ),

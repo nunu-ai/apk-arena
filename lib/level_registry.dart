@@ -89,7 +89,7 @@ import 'widgets/levels/level_click_button.dart';
 
 class LevelEntry {
   final LevelData data;
-  final LevelWidget Function(Function(bool) onComplete) widgetBuilder;
+  final LevelWidget Function(Function(bool, {Map<String, dynamic>? metrics}) onComplete) widgetBuilder;
 
   LevelEntry({required this.data, required this.widgetBuilder});
 }
@@ -736,4 +736,10 @@ int? findLevelNumberByTitle(String title) {
 
 LevelEntry? getLevel(int levelNumber) {
   return levelsRegistry[levelNumber];
+}
+
+String getDifficultyName(int levelNumber) {
+  if (levelNumber < 100) return 'baby';
+  if (levelNumber < 200) return 'human';
+  return 'agi';
 }

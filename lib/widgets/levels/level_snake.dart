@@ -102,7 +102,10 @@ class _LevelSnakeState extends State<LevelSnake> {
     if (won) HapticFeedback.mediumImpact();
     else HapticFeedback.heavyImpact();
     Future.delayed(const Duration(milliseconds: 600), () {
-      widget.onComplete(won);
+      widget.onComplete(won, metrics: {
+        'snakeLength': _snake.length,
+        'targetLength': _targetLength,
+      });
     });
   }
 

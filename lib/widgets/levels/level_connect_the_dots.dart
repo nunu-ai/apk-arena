@@ -98,7 +98,7 @@ class _LevelConnectTheDotsState extends State<LevelConnectTheDots> {
         if (_connectedDots.length == _totalDots) {
           _isDrawing = false;
           Future.delayed(const Duration(milliseconds: 500), () {
-            widget.onComplete(true);
+            widget.onComplete(true, metrics: {'connectedDots': _connectedDots.length, 'totalDots': _totalDots});
           });
         }
       }

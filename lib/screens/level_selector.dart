@@ -9,6 +9,7 @@ import '../widgets/level_tile.dart';
 import '../level_registry.dart';
 import 'level_screen.dart';
 import 'debug_level_gallery.dart';
+import 'analytics_viewer_screen.dart';
 
 class LevelSelectorScreen extends StatefulWidget {
   const LevelSelectorScreen({Key? key}) : super(key: key);
@@ -112,6 +113,18 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> with RouteAwa
               },
               tooltip: 'debug gallery',
             ),
+          IconButton(
+            icon: const Icon(Icons.bar_chart_rounded, size: 22),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AnalyticsViewerScreen(),
+                ),
+              );
+            },
+            tooltip: 'analytics',
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: resetProgress,

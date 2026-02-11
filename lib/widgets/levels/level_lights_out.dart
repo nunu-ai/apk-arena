@@ -79,7 +79,7 @@ class _LevelLightsOutState extends State<LevelLightsOut> {
         _done = true;
         HapticFeedback.mediumImpact();
         Future.delayed(const Duration(milliseconds: 600), () {
-          widget.onComplete(true);
+          widget.onComplete(true, metrics: {'moves': _moves});
         });
       }
     });

@@ -66,12 +66,12 @@ class _LevelFloodFillState extends State<LevelFloodFill> {
         _done = true;
         HapticFeedback.mediumImpact();
         Future.delayed(const Duration(milliseconds: 500), () {
-          widget.onComplete(true);
+          widget.onComplete(true, metrics: {'moves': _moves, 'maxMoves': _maxMoves});
         });
       } else if (_moves >= _maxMoves) {
         _done = true;
         Future.delayed(const Duration(milliseconds: 500), () {
-          widget.onComplete(false);
+          widget.onComplete(false, metrics: {'moves': _moves, 'maxMoves': _maxMoves});
         });
       }
     });
