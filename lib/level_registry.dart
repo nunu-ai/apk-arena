@@ -78,6 +78,7 @@ import 'package:apk_arena/widgets/levels/level_nonogram.dart';
 import 'package:apk_arena/widgets/levels/level_sokoban.dart';
 import 'package:apk_arena/widgets/levels/level_safe_cracker.dart';
 import 'package:apk_arena/widgets/levels/level_mastermind.dart';
+import 'package:apk_arena/widgets/levels/level_multi_tap_sync.dart';
 
 import 'package:apk_arena/widgets/levels/level_wordle.dart';
 import 'package:apk_arena/widgets/levels/level_rhythm.dart';
@@ -105,6 +106,13 @@ final List<LevelEntry> easyLevels = [
     ),
     widgetBuilder: (onComplete) =>
         LevelAdvancedClickButton(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Sync Chamber",
+      instructions: "Press and hold all 3 pads at once!",
+    ),
+    widgetBuilder: (onComplete) => LevelMultiTapSync(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
