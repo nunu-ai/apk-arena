@@ -1,0 +1,581 @@
+import 'dart:async';
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+
+import '../../theme/app_theme.dart';
+import '../level_widget.dart';
+
+class LevelMultiTapSync extends LevelWidget {
+  const LevelMultiTapSync({super.key, required super.onComplete});
+
+  @override
+  State<LevelMultiTapSync> createState() => _LevelMultiTapSyncState();
+}
+
+class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
+    with TickerProviderStateMixin {
+  static const Duration _syncWindow = Duration(milliseconds: 260);
+  static const Duration _holdWindow = Duration(milliseconds: 340);
+
+  final Set<int> _pressedPads = <int>{};
+  final Map<int, int> _pointerToPad = <int, int>{};
+  DateTime? _firstPressAt;
+  Timer? _holdTimer;
+  late final AnimationController _pulse;
+  late final AnimationController _spin;
+  late final AnimationController _energyFlow;
+  String _status = 'press and hold all 3 pads at once';
+
+  // Neon colors for the reactor
+  static const Color _cyanNeon = Color(0xFF00F5FF);
+  static const Color _magentaNeon = Color(0xFFFF00FF);
+  static const Color _coreGlow = Color(0xFF00FFAA);
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1300),
+    )..repeat(reverse: true);
+    _spin = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 8),
+    )..repeat();
+    _energyFlow = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _holdTimer?.cancel();
+    _pulse.dispose();
+    _spin.dispose();
+    _energyFlow.dispose();
+    super.dispose();
+  }
+
+  void _resetAttempt(String status) {
+    _holdTimer?.cancel();
+    _holdTimer = null;
+    setState(() {
+      _pressedPads.clear();
+      _pointerToPad.clear();
+      _firstPressAt = null;
+      _status = status;
+    });
+  }
+
+  void _startHoldCheck() {
+    _holdTimer?.cancel();
+    _holdTimer = Timer(_holdWindow, () {
+      if (!mounted) return;
+      if (_pressedPads.length == 3) {
+        widget.onComplete(true);
+      }
+    });
+  }
+
+  void _onPadDown(int padId, int pointerId) {
+    final DateTime now = DateTime.now();
+    if (_pressedPads.isEmpty) {
+      _firstPressAt = now;
+    } else if (!_pressedPads.contains(padId) &&
+        _firstPressAt != null &&
+        now.difference(_firstPressAt!) > _syncWindow) {
+      _resetAttempt('desynced. retry the ritual.');
+      _firstPressAt = now;
+    }
+
+    setState(() {
+      _pointerToPad[pointerId] = padId;
+      _pressedPads.add(padId);
+      _status = _pressedPads.length == 3
+          ? 'perfect sync... hold...'
+          : '${_pressedPads.length}/3 channels synced';
+    });
+
+    if (_pressedPads.length == 3) {
+      _startHoldCheck();
+    }
+  }
+
+  void _onPadUp(int pointerId) {
+    final int? padId = _pointerToPad.remove(pointerId);
+    if (padId == null) return;
+
+    final bool padStillPressed = _pointerToPad.containsValue(padId);
+    setState(() {
+      if (!padStillPressed) {
+        _pressedPads.remove(padId);
+      }
+
+      if (_pressedPads.length < 3) {
+        _holdTimer?.cancel();
+        _holdTimer = null;
+      }
+
+      if (_pressedPads.isEmpty) {
+        _firstPressAt = null;
+        _status = 'press and hold all 3 pads at once';
+      } else {
+        _status = '${_pressedPads.length}/3 channels synced';
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool allSynced = _pressedPads.length == 3;
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: RadialGradient(
+          center: Alignment.center,
+          radius: 1.2,
+          colors: [
+            const Color(0xFF0D1B2A),
+            const Color(0xFF020810),
+          ],
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Animated grid background
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _GridPainter(animation: _spin),
+            ),
+          ),
+          // Scanlines overlay
+          Positioned.fill(
+            child: IgnorePointer(
+              child: CustomPaint(
+                painter: _ScanlinePainter(),
+              ),
+            ),
+          ),
+          // Main content
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Title with glow
+                ShaderMask(
+                  shaderCallback: (bounds) => LinearGradient(
+                    colors: [_cyanNeon, _magentaNeon],
+                  ).createShader(bounds),
+                  child: Text(
+                    'SYNC REACTOR',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      letterSpacing: 8,
+                      shadows: [
+                        Shadow(
+                          color: _cyanNeon.withValues(alpha: 0.8),
+                          blurRadius: 20,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Status text
+                AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 200),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: allSynced ? _coreGlow : _cyanNeon.withValues(alpha: 0.7),
+                    letterSpacing: 2,
+                    shadows: allSynced
+                        ? [Shadow(color: _coreGlow, blurRadius: 10)]
+                        : [],
+                  ),
+                  child: Text(
+                    _status.toUpperCase(),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                // Reactor core
+                AnimatedBuilder(
+                  animation: Listenable.merge([_pulse, _spin, _energyFlow]),
+                  builder: (context, child) {
+                    return SizedBox(
+                      width: 340,
+                      height: 340,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // Outer spinning rings
+                          ...List.generate(3, (i) {
+                            return Transform.rotate(
+                              angle: _spin.value * 2 * math.pi * (i.isEven ? 1 : -1),
+                              child: CustomPaint(
+                                size: Size(280 - i * 30, 280 - i * 30),
+                                painter: _RingPainter(
+                                  color: i == 0
+                                      ? _cyanNeon
+                                      : i == 1
+                                          ? _magentaNeon
+                                          : _coreGlow,
+                                  dashCount: 12 + i * 4,
+                                  strokeWidth: 2 - i * 0.3,
+                                  opacity: 0.3 + (_pulse.value * 0.2),
+                                ),
+                              ),
+                            );
+                          }),
+                          // Energy flow lines to pads
+                          CustomPaint(
+                            size: const Size(340, 340),
+                            painter: _EnergyLinesPainter(
+                              activePads: _pressedPads,
+                              flowProgress: _energyFlow.value,
+                              pulseValue: _pulse.value,
+                            ),
+                          ),
+                          // Central core
+                          _buildCore(allSynced),
+                          // Sync pads positioned in triangle
+                          Positioned(
+                            top: 20,
+                            child: _SyncPad(
+                              label: 'A',
+                              sublabel: 'ALPHA',
+                              isActive: _pressedPads.contains(0),
+                              color: _cyanNeon,
+                              onPointerDown: (p) => _onPadDown(0, p),
+                              onPointerUp: _onPadUp,
+                            ),
+                          ),
+                          Positioned(
+                            left: 20,
+                            bottom: 40,
+                            child: _SyncPad(
+                              label: 'B',
+                              sublabel: 'BETA',
+                              isActive: _pressedPads.contains(1),
+                              color: _magentaNeon,
+                              onPointerDown: (p) => _onPadDown(1, p),
+                              onPointerUp: _onPadUp,
+                            ),
+                          ),
+                          Positioned(
+                            right: 20,
+                            bottom: 40,
+                            child: _SyncPad(
+                              label: 'G',
+                              sublabel: 'GAMMA',
+                              isActive: _pressedPads.contains(2),
+                              color: _coreGlow,
+                              onPointerDown: (p) => _onPadDown(2, p),
+                              onPointerUp: _onPadUp,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCore(bool allSynced) {
+    final double pulseScale = 1.0 + (_pulse.value * 0.15);
+    final Color coreColor = allSynced ? _coreGlow : _cyanNeon;
+
+    return Transform.scale(
+      scale: pulseScale,
+      child: Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            colors: [
+              coreColor.withValues(alpha: allSynced ? 0.9 : 0.5),
+              coreColor.withValues(alpha: 0.1),
+              Colors.transparent,
+            ],
+            stops: const [0.0, 0.5, 1.0],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: coreColor.withValues(alpha: allSynced ? 0.8 : 0.4),
+              blurRadius: allSynced ? 40 : 20,
+              spreadRadius: allSynced ? 8 : 2,
+            ),
+          ],
+        ),
+        child: Center(
+          child: Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: coreColor,
+              boxShadow: [
+                BoxShadow(
+                  color: coreColor,
+                  blurRadius: 10,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Grid background painter
+class _GridPainter extends CustomPainter {
+  final Animation<double> animation;
+
+  _GridPainter({required this.animation}) : super(repaint: animation);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF00F5FF).withValues(alpha: 0.05)
+      ..strokeWidth = 0.5;
+
+    const spacing = 40.0;
+    final offset = (animation.value * spacing) % spacing;
+
+    // Vertical lines
+    for (double x = offset; x < size.width; x += spacing) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+    // Horizontal lines
+    for (double y = offset; y < size.height; y += spacing) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _GridPainter oldDelegate) => true;
+}
+
+// Scanline effect
+class _ScanlinePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = Colors.black.withValues(alpha: 0.1);
+
+    for (double y = 0; y < size.height; y += 3) {
+      canvas.drawRect(Rect.fromLTWH(0, y, size.width, 1), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// Spinning ring painter
+class _RingPainter extends CustomPainter {
+  final Color color;
+  final int dashCount;
+  final double strokeWidth;
+  final double opacity;
+
+  _RingPainter({
+    required this.color,
+    required this.dashCount,
+    required this.strokeWidth,
+    required this.opacity,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color.withValues(alpha: opacity)
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+    final dashAngle = (2 * math.pi) / dashCount;
+    final gapAngle = dashAngle * 0.3;
+
+    for (int i = 0; i < dashCount; i++) {
+      final startAngle = i * dashAngle;
+      final sweepAngle = dashAngle - gapAngle;
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        sweepAngle,
+        false,
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _RingPainter oldDelegate) =>
+      opacity != oldDelegate.opacity;
+}
+
+// Energy lines connecting pads to center
+class _EnergyLinesPainter extends CustomPainter {
+  final Set<int> activePads;
+  final double flowProgress;
+  final double pulseValue;
+
+  static const Color _cyanNeon = Color(0xFF00F5FF);
+  static const Color _magentaNeon = Color(0xFFFF00FF);
+  static const Color _coreGlow = Color(0xFF00FFAA);
+
+  _EnergyLinesPainter({
+    required this.activePads,
+    required this.flowProgress,
+    required this.pulseValue,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+
+    // Pad positions (approximate)
+    final padPositions = [
+      Offset(size.width / 2, 65), // Alpha (top)
+      Offset(65, size.height - 85), // Beta (bottom left)
+      Offset(size.width - 65, size.height - 85), // Gamma (bottom right)
+    ];
+
+    final colors = [_cyanNeon, _magentaNeon, _coreGlow];
+
+    for (int i = 0; i < 3; i++) {
+      final isActive = activePads.contains(i);
+      final color = colors[i];
+      final alpha = isActive ? 0.8 : 0.15;
+
+      // Draw line from pad to center
+      final paint = Paint()
+        ..shader = LinearGradient(
+          colors: [
+            color.withValues(alpha: alpha),
+            color.withValues(alpha: alpha * 0.3),
+          ],
+        ).createShader(Rect.fromPoints(padPositions[i], center))
+        ..strokeWidth = isActive ? 3 : 1
+        ..style = PaintingStyle.stroke;
+
+      canvas.drawLine(padPositions[i], center, paint);
+
+      // Draw flowing energy particles when active
+      if (isActive) {
+        final particlePaint = Paint()
+          ..color = color
+          ..style = PaintingStyle.fill;
+
+        for (int p = 0; p < 3; p++) {
+          final t = (flowProgress + p * 0.33) % 1.0;
+          final pos = Offset.lerp(padPositions[i], center, t)!;
+          canvas.drawCircle(pos, 3 - p * 0.5, particlePaint);
+        }
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _EnergyLinesPainter oldDelegate) => true;
+}
+
+class _SyncPad extends StatelessWidget {
+  final String label;
+  final String sublabel;
+  final bool isActive;
+  final Color color;
+  final ValueChanged<int> onPointerDown;
+  final ValueChanged<int> onPointerUp;
+
+  const _SyncPad({
+    required this.label,
+    required this.sublabel,
+    required this.isActive,
+    required this.color,
+    required this.onPointerDown,
+    required this.onPointerUp,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      behavior: HitTestBehavior.opaque,
+      onPointerDown: (event) => onPointerDown(event.pointer),
+      onPointerUp: (event) => onPointerUp(event.pointer),
+      onPointerCancel: (event) => onPointerUp(event.pointer),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        width: 90,
+        height: 90,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isActive
+              ? color.withValues(alpha: 0.2)
+              : const Color(0xFF0D1B2A),
+          border: Border.all(
+            width: isActive ? 3 : 2,
+            color: isActive ? color : color.withValues(alpha: 0.4),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isActive
+                  ? color.withValues(alpha: 0.6)
+                  : color.withValues(alpha: 0.1),
+              blurRadius: isActive ? 30 : 10,
+              spreadRadius: isActive ? 4 : 0,
+            ),
+            if (isActive)
+              BoxShadow(
+                color: color.withValues(alpha: 0.3),
+                blurRadius: 50,
+                spreadRadius: 10,
+              ),
+          ],
+        ),
+        alignment: Alignment.center,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: isActive ? color : color.withValues(alpha: 0.6),
+                fontWeight: FontWeight.w900,
+                fontSize: 28,
+                shadows: isActive
+                    ? [Shadow(color: color, blurRadius: 15)]
+                    : [],
+              ),
+            ),
+            Text(
+              sublabel,
+              style: TextStyle(
+                color: isActive
+                    ? color.withValues(alpha: 0.9)
+                    : color.withValues(alpha: 0.4),
+                fontWeight: FontWeight.w600,
+                fontSize: 8,
+                letterSpacing: 2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
