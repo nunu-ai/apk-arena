@@ -120,7 +120,7 @@ class _LevelSokobanState extends State<LevelSokoban> {
         _done = true;
         HapticFeedback.mediumImpact();
         Future.delayed(const Duration(milliseconds: 500), () {
-          widget.onComplete(true);
+          widget.onComplete(true, metrics: {'moves': _moves});
         });
       }
     });

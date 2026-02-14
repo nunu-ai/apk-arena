@@ -79,6 +79,22 @@ import 'package:apk_arena/widgets/levels/level_sokoban.dart';
 import 'package:apk_arena/widgets/levels/level_safe_cracker.dart';
 import 'package:apk_arena/widgets/levels/level_mastermind.dart';
 import 'package:apk_arena/widgets/levels/level_multi_tap_sync.dart';
+import 'package:apk_arena/widgets/levels/level_sort_shelf.dart';
+import 'package:apk_arena/widgets/levels/level_long_press_menu.dart';
+import 'package:apk_arena/widgets/levels/level_tip_calculator.dart';
+import 'package:apk_arena/widgets/levels/level_color_mixer.dart';
+import 'package:apk_arena/widgets/levels/level_tic_tac_toe.dart';
+import 'package:apk_arena/widgets/levels/level_typing_speed.dart';
+import 'package:apk_arena/widgets/levels/level_math_sprint.dart';
+import 'package:apk_arena/widgets/levels/level_memory_grid.dart';
+import 'package:apk_arena/widgets/levels/level_estimation.dart';
+import 'package:apk_arena/widgets/levels/level_whack_a_mole.dart';
+import 'package:apk_arena/widgets/levels/level_fps_maze.dart';
+import 'package:apk_arena/widgets/levels/level_fps_collector.dart';
+import 'package:apk_arena/widgets/levels/level_link_chain.dart';
+import 'package:apk_arena/widgets/levels/level_eagle_eye.dart';
+import 'package:apk_arena/widgets/levels/level_slingshot.dart';
+import 'package:apk_arena/widgets/levels/level_flappy_bird.dart';
 
 import 'package:apk_arena/widgets/levels/level_wordle.dart';
 import 'package:apk_arena/widgets/levels/level_rhythm.dart';
@@ -89,7 +105,10 @@ import 'widgets/levels/level_click_button.dart';
 
 class LevelEntry {
   final LevelData data;
-  final LevelWidget Function(Function(bool) onComplete) widgetBuilder;
+  final LevelWidget Function(
+    Function(bool, {Map<String, dynamic>? metrics}) onComplete,
+  )
+  widgetBuilder;
 
   LevelEntry({required this.data, required this.widgetBuilder});
 }
@@ -257,13 +276,28 @@ final List<LevelEntry> easyLevels = [
     ),
     widgetBuilder: (onComplete) => LevelGemSocket(onComplete: onComplete),
   ),
+  LevelEntry(
+    data: LevelData(
+      title: "sort the shelf",
+      instructions: "drag the books into ascending order.",
+    ),
+    widgetBuilder: (onComplete) => LevelSortShelf(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "secret menu",
+      instructions: "long press the target file and pick the right action.",
+    ),
+    widgetBuilder: (onComplete) => LevelLongPressMenu(onComplete: onComplete),
+  ),
 ];
 
 final List<LevelEntry> mediumLevels = [
   LevelEntry(
     data: LevelData(
       title: "Spot the Bug",
-      instructions: "Compare the Reference Design with the Production Build. Are they the same or different?",
+      instructions:
+          "Compare the Reference Design with the Production Build. Are they the same or different?",
     ),
     widgetBuilder: (onComplete) => LevelSpotDifference(onComplete: onComplete),
   ),
@@ -464,6 +498,64 @@ final List<LevelEntry> mediumLevels = [
     ),
     widgetBuilder: (onComplete) => LevelWordle(onComplete: onComplete),
   ),
+  LevelEntry(
+    data: LevelData(
+      title: "tip split",
+      instructions: "calculate the tip and split the bill.",
+    ),
+    widgetBuilder: (onComplete) => LevelTipCalculator(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "color lab",
+      instructions: "mix the sliders to match the target color.",
+    ),
+    widgetBuilder: (onComplete) => LevelColorMixer(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "noughts & crosses",
+      instructions: "beat the AI at tic-tac-toe. you are X.",
+    ),
+    widgetBuilder: (onComplete) => LevelTicTacToe(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "keyboard warrior",
+      instructions: "type the passage as fast and accurately as you can.",
+    ),
+    widgetBuilder: (onComplete) => LevelTypingSpeed(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "speed demon",
+      instructions: "solve as many math problems as you can in 60 seconds.",
+    ),
+    widgetBuilder: (onComplete) => LevelMathSprint(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "dot census",
+      instructions: "count the dots before they vanish. 8 rounds.",
+    ),
+    widgetBuilder: (onComplete) => LevelEstimation(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "chain reaction",
+      instructions:
+          "link matching gems by dragging through neighbours. longer chains = more points. reach 50 to pass.",
+    ),
+    widgetBuilder: (onComplete) => LevelLinkChain(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "eagle eye",
+      instructions:
+          "find and tap the difference. 5 rounds, 3 lives.",
+    ),
+    widgetBuilder: (onComplete) => LevelEagleEye(onComplete: onComplete),
+  ),
 ];
 
 final List<LevelEntry> hardLevels = [
@@ -618,7 +710,8 @@ final List<LevelEntry> hardLevels = [
   LevelEntry(
     data: LevelData(
       title: "tower of patience",
-      instructions: "move all discs to the rightmost peg. larger discs can't go on smaller ones.",
+      instructions:
+          "move all discs to the rightmost peg. larger discs can't go on smaller ones.",
     ),
     widgetBuilder: (onComplete) => LevelTowerOfHanoi(onComplete: onComplete),
   ),
@@ -674,30 +767,78 @@ final List<LevelEntry> hardLevels = [
   LevelEntry(
     data: LevelData(
       title: "safe cracker",
-      instructions: "dial each number of the combination. turn the dial and confirm.",
+      instructions:
+          "dial each number of the combination. turn the dial and confirm.",
     ),
     widgetBuilder: (onComplete) => LevelSafeCracker(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
       title: "code breaker",
-      instructions: "guess the 4-color code in 10 tries. red = right color & position. white = right color, wrong position.",
+      instructions:
+          "guess the 4-color code in 10 tries. red = right color & position. white = right color, wrong position.",
     ),
     widgetBuilder: (onComplete) => LevelMastermind(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
       title: "rhythm rush",
-      instructions: "tap the notes as they enter the hit zone. hit 10 out of 16 to pass.",
+      instructions:
+          "tap the notes as they enter the hit zone. hit 10 out of 16 to pass.",
     ),
     widgetBuilder: (onComplete) => LevelRhythm(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
       title: "traffic jam",
-      instructions: "slide cars to unblock the red car and let it reach the exit.",
+      instructions:
+          "slide cars to unblock the red car and let it reach the exit.",
     ),
     widgetBuilder: (onComplete) => LevelRushHour(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "photographic memory",
+      instructions:
+          "memorize the pattern and reproduce it. how far can you go?",
+    ),
+    widgetBuilder: (onComplete) => LevelMemoryGrid(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "reflex arena",
+      instructions: "whack the moles! 30 seconds on the clock.",
+    ),
+    widgetBuilder: (onComplete) => LevelWhackAMole(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "escape the simulation",
+      instructions: "find the exit. you are inside the machine.",
+    ),
+    widgetBuilder: (onComplete) => LevelFpsMaze(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "memory leak",
+      instructions: "collect all the coins.",
+    ),
+    widgetBuilder: (onComplete) => LevelFpsCollector(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "slingshot calibration",
+      instructions:
+          "launch the ball through the gap. 10 shots to nail it.",
+    ),
+    widgetBuilder: (onComplete) => LevelSlingshot(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "pipe dream",
+      instructions: "tap to fly. don't hit the pipes. reach 5 to pass.",
+    ),
+    widgetBuilder: (onComplete) => LevelFlappyBird(onComplete: onComplete),
   ),
 ];
 
@@ -736,4 +877,10 @@ int? findLevelNumberByTitle(String title) {
 
 LevelEntry? getLevel(int levelNumber) {
   return levelsRegistry[levelNumber];
+}
+
+String getDifficultyName(int levelNumber) {
+  if (levelNumber < 100) return 'baby';
+  if (levelNumber < 200) return 'human';
+  return 'agi';
 }

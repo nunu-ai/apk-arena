@@ -2,6 +2,7 @@ import 'package:apk_arena/screens/level_selector.dart';
 import 'package:apk_arena/services/notification_service.dart';
 import 'package:flutter/material.dart';
 import 'services/progress_service.dart';
+import 'services/analytics_service.dart';
 import 'theme/app_theme.dart';
 import 'services/deeplink_service.dart';
 import 'services/navigation.dart';
@@ -11,6 +12,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await ProgressService.instance.initialize();
+  await AnalyticsService.instance.initialize();
 
   await NotificationService().initialize();
   await DeeplinkService.instance.initialize();

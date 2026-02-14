@@ -104,13 +104,13 @@ class _LevelMastermindState extends State<LevelMastermind> {
         _done = true;
         HapticFeedback.mediumImpact();
         Future.delayed(const Duration(milliseconds: 600), () {
-          widget.onComplete(true);
+          widget.onComplete(true, metrics: {'guesses': _guesses.length, 'maxGuesses': _maxGuesses});
         });
       } else if (_guesses.length >= _maxGuesses) {
         _done = true;
         HapticFeedback.heavyImpact();
         Future.delayed(const Duration(milliseconds: 600), () {
-          widget.onComplete(false);
+          widget.onComplete(false, metrics: {'guesses': _guesses.length, 'maxGuesses': _maxGuesses});
         });
       } else {
         HapticFeedback.lightImpact();

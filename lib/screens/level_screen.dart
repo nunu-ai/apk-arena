@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../models/level_status.dart';
+import '../models/attempt_record.dart';
 import '../services/progress_service.dart';
+import '../services/analytics_service.dart';
 import '../theme/app_theme.dart';
 import '../../level_registry.dart';
 import 'level_completion_screen.dart';
@@ -17,6 +19,7 @@ class LevelScreen extends StatefulWidget {
 
 class _LevelScreenState extends State<LevelScreen> {
   final _progressService = ProgressService.instance;
+  final _analyticsService = AnalyticsService.instance;
   late Stopwatch _stopwatch;
   Timer? _timer;
   late LevelEntry levelEntry;
@@ -84,6 +87,14 @@ class _LevelScreenState extends State<LevelScreen> {
                   LevelResult.failed,
                   null, // No completion time for failed attempts
                 );
+                await _analyticsService.recordAttempt(AttemptRecord(
+                  levelNumber: widget.levelNumber,
+                  levelTitle: levelEntry.data.title,
+                  difficulty: getDifficultyName(widget.levelNumber),
+                  timestamp: DateTime.now().toUtc().toIso8601String(),
+                  success: false,
+                  durationMs: _stopwatch.elapsedMilliseconds,
+                ));
               }
               Navigator.popUntil(context, (route) => route.isFirst);
             },
@@ -102,7 +113,7 @@ class _LevelScreenState extends State<LevelScreen> {
     );
   }
 
-  void _onLevelComplete(bool success) async {
+  void _onLevelComplete(bool success, {Map<String, dynamic>? metrics}) async {
     _stopwatch.stop();
     _timer?.cancel();
 
@@ -112,6 +123,16 @@ class _LevelScreenState extends State<LevelScreen> {
       success ? _stopwatch.elapsed : null,
     );
 
+    await _analyticsService.recordAttempt(AttemptRecord(
+      levelNumber: widget.levelNumber,
+      levelTitle: levelEntry.data.title,
+      difficulty: getDifficultyName(widget.levelNumber),
+      timestamp: DateTime.now().toUtc().toIso8601String(),
+      success: success,
+      durationMs: _stopwatch.elapsedMilliseconds,
+      metrics: metrics,
+    ));
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -120,6 +141,7 @@ class _LevelScreenState extends State<LevelScreen> {
           levelName: levelEntry.data.title,
           success: success,
           completionTime: success ? _stopwatch.elapsed : null,
+          metrics: metrics,
         ),
       ),
     );

@@ -245,7 +245,7 @@ class _LevelPipePuzzleState extends State<LevelPipePuzzle> {
         _done = true;
         HapticFeedback.mediumImpact();
         Future.delayed(const Duration(milliseconds: 600), () {
-          widget.onComplete(true);
+          widget.onComplete(true, metrics: {'moves': _moves});
         });
       }
     });

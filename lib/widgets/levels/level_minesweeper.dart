@@ -101,7 +101,11 @@ class _LevelMinesweeperState extends State<LevelMinesweeper> {
         }
         HapticFeedback.heavyImpact();
         Future.delayed(const Duration(milliseconds: 800), () {
-          widget.onComplete(false);
+          widget.onComplete(false, metrics: {
+            'revealedCount': _revealedCount,
+            'flagCount': _flagCount,
+            'safeCount': _safeCount,
+          });
         });
       } else {
         _reveal(r, c);
@@ -110,7 +114,11 @@ class _LevelMinesweeperState extends State<LevelMinesweeper> {
           _gameOver = true;
           HapticFeedback.mediumImpact();
           Future.delayed(const Duration(milliseconds: 500), () {
-            widget.onComplete(true);
+            widget.onComplete(true, metrics: {
+              'revealedCount': _revealedCount,
+              'flagCount': _flagCount,
+              'safeCount': _safeCount,
+            });
           });
         }
       }

@@ -9,6 +9,7 @@ class LevelCompletionScreen extends StatelessWidget {
   final String levelName;
   final Duration? completionTime;
   final bool success;
+  final Map<String, dynamic>? metrics;
 
   const LevelCompletionScreen({
     Key? key,
@@ -16,6 +17,7 @@ class LevelCompletionScreen extends StatelessWidget {
     required this.levelName,
     required this.success,
     this.completionTime,
+    this.metrics,
   }) : super(key: key);
 
   String get formattedTime {
@@ -24,6 +26,57 @@ class LevelCompletionScreen extends StatelessWidget {
     final seconds = (completionTime!.inSeconds % 60).toString().padLeft(2, '0');
     final milliseconds = ((completionTime!.inMilliseconds % 1000) ~/ 100).toString();
     return '$minutes:$seconds.$milliseconds';
+  }
+
+  String _formatMetricKey(String key) {
+    return key.replaceAll('_', ' ').toUpperCase();
+  }
+
+  Widget _buildMetricsGrid() {
+    final entries = metrics!.entries.toList();
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      alignment: WrapAlignment.center,
+      children: entries.map((e) {
+        return Container(
+          width: 130,
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+          decoration: BoxDecoration(
+            color: NunuColors.backgroundPaper,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: NunuColors.primaryDark.withOpacity(0.5),
+            ),
+          ),
+          child: Column(
+            children: [
+              Text(
+                _formatMetricKey(e.key),
+                style: const TextStyle(
+                  color: NunuColors.textSecondary,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${e.value}',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: NunuColors.primaryLight,
+                  fontFamily: 'monospace',
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
   }
 
   int? get nextLevelNumber {
@@ -92,6 +145,10 @@ class LevelCompletionScreen extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (metrics != null && metrics!.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  _buildMetricsGrid(),
+                ],
                 const SizedBox(height: 36),
               ],
               Row(
