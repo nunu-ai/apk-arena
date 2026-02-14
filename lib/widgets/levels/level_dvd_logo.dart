@@ -32,7 +32,7 @@ class _LevelDvdLogoState extends State<LevelDvdLogo> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
-    _logoSize = const Size(120, 60);
+    _logoSize = const Size(120, 64);
 
     _controller = AnimationController(
       vsync: this,

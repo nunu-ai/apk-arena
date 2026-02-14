@@ -31,15 +31,18 @@ class _AnalyticsViewerScreenState extends State<AnalyticsViewerScreen> {
           if (_analytics.filePath != null)
             IconButton(
               icon: const Icon(Icons.copy, size: 20),
-              tooltip: 'copy file path',
-              onPressed: () {
-                Clipboard.setData(ClipboardData(text: _analytics.filePath!));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('file path copied to clipboard'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
+              tooltip: 'copy file content',
+              onPressed: () async {
+                final content = await _analytics.readFileContent();
+                if (content != null && mounted) {
+                  Clipboard.setData(ClipboardData(text: content));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('analytics data copied to clipboard'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
               },
             ),
           IconButton(

@@ -81,6 +81,19 @@ class AnalyticsService {
     return _attempts.where((a) => a.levelNumber == levelNumber).toList();
   }
 
+  Future<String?> readFileContent() async {
+    if (_filePath == null) return null;
+    try {
+      final file = File(_filePath!);
+      if (await file.exists()) {
+        return await file.readAsString();
+      }
+    } catch (e) {
+      print('Error reading analytics file: $e');
+    }
+    return null;
+  }
+
   Future<void> clearAll() async {
     _attempts.clear();
     await _save();
