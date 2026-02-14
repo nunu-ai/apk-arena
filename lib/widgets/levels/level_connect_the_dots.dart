@@ -4,7 +4,8 @@ import '../../theme/app_theme.dart';
 import 'dart:math';
 
 class LevelConnectTheDots extends LevelWidget {
-  const LevelConnectTheDots({Key? key, required super.onComplete}) : super(key: key);
+  const LevelConnectTheDots({Key? key, required super.onComplete})
+    : super(key: key);
 
   @override
   State<LevelConnectTheDots> createState() => _LevelConnectTheDotsState();
@@ -15,7 +16,7 @@ class _LevelConnectTheDotsState extends State<LevelConnectTheDots> {
   final List<int> _connectedDots = [];
   final List<Offset> _linePoints = [];
   bool _isDrawing = false;
-  late int _totalDots;
+  int _totalDots = 0;
   Size _canvasSize = Size.zero;
 
   @override
@@ -39,7 +40,8 @@ class _LevelConnectTheDotsState extends State<LevelConnectTheDots> {
     // Generate dots with more randomization
     for (int i = 0; i < _totalDots; i++) {
       // More random angle distribution
-      final angle = (2 * pi * i) / _totalDots + (random.nextDouble() - 0.5) * 1.2;
+      final angle =
+          (2 * pi * i) / _totalDots + (random.nextDouble() - 0.5) * 1.2;
 
       // More varied radius
       final radius = 60 + random.nextDouble() * 80;
@@ -98,7 +100,13 @@ class _LevelConnectTheDotsState extends State<LevelConnectTheDots> {
         if (_connectedDots.length == _totalDots) {
           _isDrawing = false;
           Future.delayed(const Duration(milliseconds: 500), () {
-            widget.onComplete(true, metrics: {'connectedDots': _connectedDots.length, 'totalDots': _totalDots});
+            widget.onComplete(
+              true,
+              metrics: {
+                'connectedDots': _connectedDots.length,
+                'totalDots': _totalDots,
+              },
+            );
           });
         }
       }
@@ -275,7 +283,12 @@ class ConnectDotsPainter extends CustomPainter {
     _drawStarPath(canvas, center, 8, highlightPaint);
 
     // Draw number
-    _drawNumber(canvas, center, index, isConnected ? Colors.black : Colors.white);
+    _drawNumber(
+      canvas,
+      center,
+      index,
+      isConnected ? Colors.black : Colors.white,
+    );
   }
 
   void _drawStarPath(Canvas canvas, Offset center, double size, Paint paint) {
@@ -346,7 +359,12 @@ class ConnectDotsPainter extends CustomPainter {
     _drawNumber(canvas, center, index, Colors.white);
   }
 
-  void _drawPlanetRings(Canvas canvas, Offset center, Color color, bool isConnected) {
+  void _drawPlanetRings(
+    Canvas canvas,
+    Offset center,
+    Color color,
+    bool isConnected,
+  ) {
     final ringPaint = Paint()
       ..color = color.withValues(alpha: isConnected ? 0.6 : 0.3)
       ..style = PaintingStyle.stroke
