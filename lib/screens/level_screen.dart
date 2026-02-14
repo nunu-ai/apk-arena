@@ -141,6 +141,7 @@ class _LevelScreenState extends State<LevelScreen> {
           levelName: levelEntry.data.title,
           success: success,
           completionTime: success ? _stopwatch.elapsed : null,
+          metrics: metrics,
         ),
       ),
     );

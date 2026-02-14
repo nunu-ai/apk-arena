@@ -79,6 +79,17 @@ import 'package:apk_arena/widgets/levels/level_sokoban.dart';
 import 'package:apk_arena/widgets/levels/level_safe_cracker.dart';
 import 'package:apk_arena/widgets/levels/level_mastermind.dart';
 import 'package:apk_arena/widgets/levels/level_multi_tap_sync.dart';
+import 'package:apk_arena/widgets/levels/level_sort_shelf.dart';
+import 'package:apk_arena/widgets/levels/level_long_press_menu.dart';
+import 'package:apk_arena/widgets/levels/level_tip_calculator.dart';
+import 'package:apk_arena/widgets/levels/level_color_mixer.dart';
+import 'package:apk_arena/widgets/levels/level_tic_tac_toe.dart';
+import 'package:apk_arena/widgets/levels/level_typing_speed.dart';
+import 'package:apk_arena/widgets/levels/level_math_sprint.dart';
+import 'package:apk_arena/widgets/levels/level_memory_grid.dart';
+import 'package:apk_arena/widgets/levels/level_estimation.dart';
+import 'package:apk_arena/widgets/levels/level_whack_a_mole.dart';
+import 'package:apk_arena/widgets/levels/level_fps_maze.dart';
 
 import 'package:apk_arena/widgets/levels/level_wordle.dart';
 import 'package:apk_arena/widgets/levels/level_rhythm.dart';
@@ -256,6 +267,20 @@ final List<LevelEntry> easyLevels = [
       instructions: "place the gem into the socket!",
     ),
     widgetBuilder: (onComplete) => LevelGemSocket(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "sort the shelf",
+      instructions: "drag the books into ascending order.",
+    ),
+    widgetBuilder: (onComplete) => LevelSortShelf(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "secret menu",
+      instructions: "long press the target file and pick the right action.",
+    ),
+    widgetBuilder: (onComplete) => LevelLongPressMenu(onComplete: onComplete),
   ),
 ];
 
@@ -463,6 +488,48 @@ final List<LevelEntry> mediumLevels = [
       instructions: "guess the word in 6 tries.",
     ),
     widgetBuilder: (onComplete) => LevelWordle(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "tip split",
+      instructions: "calculate the tip and split the bill.",
+    ),
+    widgetBuilder: (onComplete) => LevelTipCalculator(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "color lab",
+      instructions: "mix the sliders to match the target color.",
+    ),
+    widgetBuilder: (onComplete) => LevelColorMixer(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "noughts & crosses",
+      instructions: "beat the AI at tic-tac-toe. you are X.",
+    ),
+    widgetBuilder: (onComplete) => LevelTicTacToe(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "keyboard warrior",
+      instructions: "type the passage as fast and accurately as you can.",
+    ),
+    widgetBuilder: (onComplete) => LevelTypingSpeed(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "speed demon",
+      instructions: "solve as many math problems as you can in 60 seconds.",
+    ),
+    widgetBuilder: (onComplete) => LevelMathSprint(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "dot census",
+      instructions: "count the dots before they vanish. 8 rounds.",
+    ),
+    widgetBuilder: (onComplete) => LevelEstimation(onComplete: onComplete),
   ),
 ];
 
@@ -698,6 +765,27 @@ final List<LevelEntry> hardLevels = [
       instructions: "slide cars to unblock the red car and let it reach the exit.",
     ),
     widgetBuilder: (onComplete) => LevelRushHour(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "photographic memory",
+      instructions: "memorize the pattern and reproduce it. how far can you go?",
+    ),
+    widgetBuilder: (onComplete) => LevelMemoryGrid(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "reflex arena",
+      instructions: "whack the moles! 30 seconds on the clock.",
+    ),
+    widgetBuilder: (onComplete) => LevelWhackAMole(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "escape the simulation",
+      instructions: "find the exit. you are inside the machine.",
+    ),
+    widgetBuilder: (onComplete) => LevelFpsMaze(onComplete: onComplete),
   ),
 ];
 
