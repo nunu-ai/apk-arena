@@ -13,6 +13,7 @@ class DeeplinkService {
   Uri? lastUri; // retains most recent link (initial or runtime)
 
   bool _initialized = false;
+  bool _channelUnavailable = false;
 
   Future<void> initialize() async {
     if (_initialized) return;
@@ -32,11 +33,20 @@ class DeeplinkService {
   }
 
   Future<Uri?> getInitialLink() async {
-    final String? s = await _channel.invokeMethod<String>('getInitialLink');
-    if (s == null) return null;
-    final uri = Uri.tryParse(s);
-    if (uri != null) lastUri = uri;
-    return uri;
+    if (_channelUnavailable) return null;
+    try {
+      final String? s = await _channel.invokeMethod<String>('getInitialLink');
+      if (s == null) return null;
+      final uri = Uri.tryParse(s);
+      if (uri != null) lastUri = uri;
+      return uri;
+    } on MissingPluginException {
+      _channelUnavailable = true;
+      return null;
+    } on PlatformException {
+      _channelUnavailable = true;
+      return null;
+    }
   }
 
   // Returns and clears the last stored URI, so it won't be reprocessed.

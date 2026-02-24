@@ -23,22 +23,30 @@ class AnalyticsService {
   List<AttemptRecord> get attempts => List.unmodifiable(_attempts);
 
   Future<void> initialize() async {
-    final dir = await getExternalStorageDirectory();
-    if (dir == null) {
-      // Fallback to app documents directory if external not available
-      final fallback = await getApplicationDocumentsDirectory();
-      _filePath = '${fallback.path}/$_dirName/$_fileName';
-    } else {
-      _filePath = '${dir.path}/$_dirName/$_fileName';
-    }
+    final storageDir = await _resolveStorageDirectory();
+    _filePath = '${storageDir.path}/$_dirName/$_fileName';
 
     await _ensureDirectory();
     await _load();
   }
 
+  Future<Directory> _resolveStorageDirectory() async {
+    if (Platform.isAndroid) {
+      try {
+        final externalDir = await getExternalStorageDirectory();
+        if (externalDir != null) {
+          return externalDir;
+        }
+      } on UnsupportedError {
+        // Fall through to app documents storage.
+      }
+    }
+    return getApplicationDocumentsDirectory();
+  }
+
   Future<void> _ensureDirectory() async {
     if (_filePath == null) return;
-    final dir = Directory(_filePath!.substring(0, _filePath!.lastIndexOf('/')));
+    final dir = File(_filePath!).parent;
     if (!await dir.exists()) {
       await dir.create(recursive: true);
     }
