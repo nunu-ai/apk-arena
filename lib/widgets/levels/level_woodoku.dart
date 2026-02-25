@@ -172,16 +172,6 @@ class _LevelWoodokuState extends State<LevelWoodoku> {
     ],
   ];
 
-  static const List<Color> _palette = [
-    NunuColors.primaryMain,
-    NunuColors.secondaryMain,
-    NunuColors.infoMain,
-    NunuColors.successMain,
-    NunuColors.warningMain,
-    NunuColors.primaryLight,
-    NunuColors.secondaryLight,
-  ];
-
   /// Blocker positions (row, col). Permanently occupied, never cleared.
   /// One per 3x3 box (7 of 9 boxes), spread across different rows/columns.
   static const List<List<int>> _blockerPositions = [
@@ -206,8 +196,10 @@ class _LevelWoodokuState extends State<LevelWoodoku> {
   // hover tracking
   int? _hoverIdx; // flat anchor index
   int? _hoverPi; // piece index 0-2
+  int? _hoverSourceIdx; // flat index of currently hovered board cell
 
   final _rng = Random();
+  final Map<int, Point<int>> _grabbedCellByPiece = {};
 
   // ---- Lifecycle --------------------------------------------------------
   @override
@@ -228,7 +220,7 @@ class _LevelWoodokuState extends State<LevelWoodoku> {
   void _deal() {
     _pieces = List.generate(3, (_) => _shapes[_rng.nextInt(_shapes.length)]);
     _placed = [false, false, false];
-    _colors = List.generate(3, (_) => _palette[_rng.nextInt(_palette.length)]);
+    _colors = List.filled(3, NunuColors.primaryMain);
   }
 
   /// Can [shape] be placed with its anchor at ([ar], [ac])?
@@ -267,6 +259,7 @@ class _LevelWoodokuState extends State<LevelWoodoku> {
       // 2. clear hover
       _hoverIdx = null;
       _hoverPi = null;
+      _hoverSourceIdx = null;
 
       // 3. clear completed rows / cols / boxes
       _clearCompleted();
@@ -377,6 +370,33 @@ class _LevelWoodokuState extends State<LevelWoodoku> {
   bool _hoverOk() {
     if (_hoverIdx == null || _hoverPi == null) return false;
     return _fits(_pieces[_hoverPi!], _hoverIdx! ~/ _n, _hoverIdx! % _n);
+  }
+
+  Point<int> _nearestShapeCell(
+    List<List<int>> shape,
+    Offset local,
+    double cellSize,
+  ) {
+    if (shape.isEmpty) return const Point<int>(0, 0);
+
+    List<int>? best;
+    double bestDist = double.infinity;
+    for (final o in shape) {
+      final cx = (o[1] + 0.5) * cellSize;
+      final cy = (o[0] + 0.5) * cellSize;
+      final d =
+          (cx - local.dx) * (cx - local.dx) + (cy - local.dy) * (cy - local.dy);
+      if (d < bestDist) {
+        bestDist = d;
+        best = o;
+      }
+    }
+    return Point<int>(best![0], best[1]);
+  }
+
+  Point<int> _anchorForHoveredCell(int pi, int hoveredR, int hoveredC) {
+    final grabbed = _grabbedCellByPiece[pi] ?? const Point<int>(0, 0);
+    return Point<int>(hoveredR - grabbed.x, hoveredC - grabbed.y);
   }
 
   // ---- Build ------------------------------------------------------------
@@ -554,18 +574,24 @@ class _LevelWoodokuState extends State<LevelWoodoku> {
     return DragTarget<int>(
       onWillAcceptWithDetails: (d) {
         if (_placed[d.data]) return false;
+        final anchor = _anchorForHoveredCell(d.data, r, c);
         setState(() {
-          _hoverIdx = i;
+          _hoverSourceIdx = i;
+          _hoverIdx = anchor.x * _n + anchor.y;
           _hoverPi = d.data;
         });
-        return _fits(_pieces[d.data], r, c);
+        return _fits(_pieces[d.data], anchor.x, anchor.y);
       },
-      onAcceptWithDetails: (d) => _place(d.data, r, c),
+      onAcceptWithDetails: (d) {
+        final anchor = _anchorForHoveredCell(d.data, r, c);
+        _place(d.data, anchor.x, anchor.y);
+      },
       onLeave: (_) {
-        if (_hoverIdx == i) {
+        if (_hoverSourceIdx == i) {
           setState(() {
             _hoverIdx = null;
             _hoverPi = null;
+            _hoverSourceIdx = null;
           });
         }
       },
@@ -665,12 +691,22 @@ class _LevelWoodokuState extends State<LevelWoodoku> {
     return Draggable<int>(
       data: pi,
       maxSimultaneousDrags: _done ? 0 : 1,
+      dragAnchorStrategy: (draggable, context, position) {
+        final ro = context.findRenderObject();
+        if (ro is! RenderBox) {
+          return const Offset(0, 0);
+        }
+        final local = ro.globalToLocal(position);
+        final grabbed = _nearestShapeCell(shape, local, pcs);
+        _grabbedCellByPiece[pi] = grabbed;
+
+        // Feedback is rendered with gcs-sized cells, so anchor pointer to the
+        // grabbed feedback-cell center to avoid snap/offset artifacts.
+        return Offset((grabbed.y + 0.5) * gcs, (grabbed.x + 0.5) * gcs);
+      },
       feedback: Material(
         color: Colors.transparent,
-        child: Opacity(
-          opacity: 0.75,
-          child: _buildShape(shape, color, gcs * 0.85),
-        ),
+        child: Opacity(opacity: 0.75, child: _buildShape(shape, color, gcs)),
       ),
       childWhenDragging: Opacity(
         opacity: 0.15,
@@ -680,6 +716,7 @@ class _LevelWoodokuState extends State<LevelWoodoku> {
         setState(() {
           _hoverIdx = null;
           _hoverPi = null;
+          _hoverSourceIdx = null;
         });
       },
       child: _buildShape(shape, color, pcs),
