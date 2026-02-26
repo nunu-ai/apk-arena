@@ -29,6 +29,7 @@ migrate_working_dir/
 **/doc/api/
 **/ios/Flutter/.last_build_id
 ios/Podfile
+!ios/Podfile
 macos/Podfile
 .dart_tool/
 .dart-tool/
