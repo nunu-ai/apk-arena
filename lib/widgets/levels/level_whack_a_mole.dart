@@ -136,9 +136,10 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
     final avgReaction = _hits > 0 ? (_totalReactionMs / _hits).round() : 0;
     final accuracy =
         _totalSpawned > 0 ? (_hits / _totalSpawned * 100) : 0.0;
+    final success = _hits >= 1;
 
     Future.delayed(const Duration(milliseconds: 400), () {
-      widget.onComplete(true, metrics: {
+      widget.onComplete(success, metrics: {
         'score': _hits,
         'accuracy': '${accuracy.toStringAsFixed(1)}%',
         'avg_reaction': '${avgReaction}ms',

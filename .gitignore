@@ -29,6 +29,8 @@ migrate_working_dir/
 ios/Podfile
 macos/Podfile
 .dart_tool/
+.dart-tool/
+.dartServer/
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/

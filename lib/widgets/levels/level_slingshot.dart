@@ -45,6 +45,7 @@ class _LevelSlingshotState extends State<LevelSlingshot>
   int _shotsUsed = 0;
   int _hits = 0;
   bool _completed = false;
+  bool _wentThroughGap = false;
 
   @override
   void initState() {
@@ -103,6 +104,7 @@ class _LevelSlingshotState extends State<LevelSlingshot>
     _currentPath
       ..clear()
       ..add(Offset(_bx, _by));
+    _wentThroughGap = false;
     _isDragging = false;
     _dragPos = null;
     _isFiring = true;
@@ -113,45 +115,76 @@ class _LevelSlingshotState extends State<LevelSlingshot>
 
   // ---------- physics ----------
 
+  bool _isCenterInsideGap(double y) {
+    return y >= _gapTop + _ballRadius && y <= _gapBot - _ballRadius;
+  }
+
+  bool _resolveWallInteraction({
+    required double prevX,
+    required double prevY,
+    required double nextX,
+    required double nextY,
+  }) {
+    if (_wentThroughGap || nextX <= prevX) {
+      return true;
+    }
+
+    final left = _wallX - _ballRadius;
+    final right = _wallX + 14 + _ballRadius;
+    if (nextX < left || prevX > right) {
+      return true;
+    }
+
+    final dx = nextX - prevX;
+    if (dx == 0) {
+      return true;
+    }
+
+    final enterT = ((left - prevX) / dx).clamp(0.0, 1.0);
+    final exitT = ((right - prevX) / dx).clamp(0.0, 1.0);
+    final tMin = enterT < exitT ? enterT : exitT;
+    final tMax = enterT > exitT ? enterT : exitT;
+    final yEnter = prevY + (nextY - prevY) * tMin;
+    final yExit = prevY + (nextY - prevY) * tMax;
+
+    final throughGap = _isCenterInsideGap(yEnter) && _isCenterInsideGap(yExit);
+    if (!throughGap) {
+      _finishShot(false);
+      return false;
+    }
+
+    _wentThroughGap = true;
+    return true;
+  }
+
   void _tick() {
     if (!_isFiring) return;
     final now = DateTime.now();
-    final dt =
-        (now.difference(_lastFrame).inMicroseconds / 1e6).clamp(0.0, 0.04);
+    final dt = (now.difference(_lastFrame).inMicroseconds / 1e6).clamp(
+      0.0,
+      0.04,
+    );
     _lastFrame = now;
 
+    final prevX = _bx;
+    final prevY = _by;
     _bx += _vx * dt;
     _vy += _gravity * dt;
     _by += _vy * dt;
 
     _currentPath.add(Offset(_bx, _by));
 
-    // check wall hit
-    if (_bx + _ballRadius >= _wallX && _bx - _ballRadius <= _wallX + 14) {
-      final throughGap = _by - _ballRadius >= _gapTop && _by + _ballRadius <= _gapBot;
-      if (throughGap) {
-        // continue past wall (score later when off screen)
-      } else {
-        _finishShot(false);
-        return;
-      }
-    }
-
-    // off screen → success if it passed the wall
-    if (_bx > _w + 20 || _by > _groundY || _by < -40) {
-      final passedWall = _currentPath.any((p) => p.dx > _wallX + 14);
-      final wentThroughGap = passedWall &&
-          _currentPath.where((p) => p.dx >= _wallX).every(
-                (p) => p.dy >= _gapTop - _ballRadius && p.dy <= _gapBot + _ballRadius,
-              );
-      // simpler check: if any point is past the wall and the ball wasn't blocked
-      _finishShot(wentThroughGap);
+    if (!_resolveWallInteraction(
+      prevX: prevX,
+      prevY: prevY,
+      nextX: _bx,
+      nextY: _by,
+    )) {
       return;
     }
 
-    // hit ground
-    if (_by >= _groundY) {
-      _finishShot(false);
+    if (_bx > _w + 20 || _by >= _groundY || _by < -40) {
+      _finishShot(_wentThroughGap);
       return;
     }
 
@@ -169,20 +202,26 @@ class _LevelSlingshotState extends State<LevelSlingshot>
     if (_hits >= 1 && !_completed) {
       _completed = true;
       Future.delayed(const Duration(milliseconds: 500), () {
-        widget.onComplete(true, metrics: {
-          'hits': _hits,
-          'shotsUsed': _shotsUsed,
-          'totalShots': _maxShots,
-        });
+        widget.onComplete(
+          true,
+          metrics: {
+            'hits': _hits,
+            'shotsUsed': _shotsUsed,
+            'totalShots': _maxShots,
+          },
+        );
       });
     } else if (_shotsUsed >= _maxShots && !_completed) {
       _completed = true;
       Future.delayed(const Duration(milliseconds: 500), () {
-        widget.onComplete(false, metrics: {
-          'hits': _hits,
-          'shotsUsed': _shotsUsed,
-          'totalShots': _maxShots,
-        });
+        widget.onComplete(
+          false,
+          metrics: {
+            'hits': _hits,
+            'shotsUsed': _shotsUsed,
+            'totalShots': _maxShots,
+          },
+        );
       });
     }
 
@@ -283,10 +322,7 @@ class _SlingshotPainter extends CustomPainter {
 
     // wall
     final wallPaint = Paint()..color = const Color(0xFF3A3A5A);
-    canvas.drawRect(
-      Rect.fromLTWH(wallX, 0, 14, gapTop),
-      wallPaint,
-    );
+    canvas.drawRect(Rect.fromLTWH(wallX, 0, 14, gapTop), wallPaint);
     canvas.drawRect(
       Rect.fromLTWH(wallX, gapBot, 14, groundY - gapBot),
       wallPaint,
@@ -378,8 +414,7 @@ class _SlingshotPainter extends CustomPainter {
 
     // current trajectory
     if (currentPath != null && currentPath!.length >= 2) {
-      final path = Path()
-        ..moveTo(currentPath!.first.dx, currentPath!.first.dy);
+      final path = Path()..moveTo(currentPath!.first.dx, currentPath!.first.dy);
       for (int i = 1; i < currentPath!.length; i++) {
         path.lineTo(currentPath![i].dx, currentPath![i].dy);
       }
@@ -421,10 +456,7 @@ class _SlingshotPainter extends CustomPainter {
     final tp1 = TextPainter(
       text: TextSpan(
         text: 'shots: $shotsLeft',
-        style: const TextStyle(
-          color: NunuColors.textSecondary,
-          fontSize: 14,
-        ),
+        style: const TextStyle(color: NunuColors.textSecondary, fontSize: 14),
       ),
       textDirection: TextDirection.ltr,
     )..layout();
