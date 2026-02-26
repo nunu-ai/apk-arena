@@ -85,6 +85,8 @@ jobs:
             <string>manual</string>
             <key>teamID</key>
             <string>${IOS_TEAM_ID}</string>
+            <key>signingCertificate</key>
+            <string>Apple Development</string>
             <key>provisioningProfiles</key>
             <dict>
               <key>${IOS_BUNDLE_ID}</key>
@@ -98,8 +100,21 @@ jobs:
           </plist>
           EOF
 
-      - name: Build iOS IPA
-        run: flutter build ipa --release --flavor ApkArena --export-options-plist=ios/ExportOptions.plist
+      - name: Build iOS archive (no codesign)
+        run: flutter build ipa --release --flavor ApkArena --no-codesign
+
+      - name: Export signed IPA
+        run: |
+          ARCHIVE_PATH="$(find build/ios/archive -maxdepth 1 -name '*.xcarchive' -print -quit)"
+          if [ -z "$ARCHIVE_PATH" ]; then
+            echo "No archive found in build/ios/archive" >&2
+            exit 1
+          fi
+          mkdir -p build/ios/ipa
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportPath build/ios/ipa \
+            -exportOptionsPlist ios/ExportOptions.plist
 
       - name: Collect IPA
         id: collect
