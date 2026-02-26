@@ -1,4 +1,4 @@
-name: Build and Upload to nunu.ai
+name: Build Android and Upload to nunu.ai
 
 on:
   push:
