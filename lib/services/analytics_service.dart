@@ -42,7 +42,7 @@ class AnalyticsService {
       }
     }
     if (Platform.isIOS) {
-      return getApplicationCacheDirectory();
+      return getApplicationDocumentsDirectory();
     }
     return getApplicationDocumentsDirectory();
   }
