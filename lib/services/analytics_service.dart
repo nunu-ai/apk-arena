@@ -41,6 +41,9 @@ class AnalyticsService {
         // Fall through to app documents storage.
       }
     }
+    if (Platform.isIOS) {
+      return getApplicationCacheDirectory();
+    }
     return getApplicationDocumentsDirectory();
   }
 
