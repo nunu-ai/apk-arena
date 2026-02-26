@@ -10,6 +10,9 @@ on:
 jobs:
   build-ios:
     runs-on: macos-latest
+    env:
+      IOS_BUNDLE_ID: com.nunuai.apkarena
+      IOS_TEAM_ID: 933AM24427
 
     steps:
       - name: Checkout repository
@@ -28,8 +31,75 @@ jobs:
         run: pod install
         working-directory: ios
 
+      - name: Validate iOS signing secrets
+        env:
+          IOS_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_MOBILEPROVISION_BASE64: ${{ secrets.IOS_MOBILEPROVISION_BASE64 }}
+          IOS_KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
+        run: |
+          test -n "$IOS_CERTIFICATE_P12_BASE64" || { echo "Missing IOS_CERTIFICATE_P12_BASE64"; exit 1; }
+          test -n "$IOS_CERTIFICATE_PASSWORD" || { echo "Missing IOS_CERTIFICATE_PASSWORD"; exit 1; }
+          test -n "$IOS_MOBILEPROVISION_BASE64" || { echo "Missing IOS_MOBILEPROVISION_BASE64"; exit 1; }
+          test -n "$IOS_KEYCHAIN_PASSWORD" || { echo "Missing IOS_KEYCHAIN_PASSWORD"; exit 1; }
+
+      - name: Install signing certificate and provisioning profile
+        env:
+          IOS_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_MOBILEPROVISION_BASE64: ${{ secrets.IOS_MOBILEPROVISION_BASE64 }}
+          IOS_KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
+        run: |
+          CERT_PATH="$RUNNER_TEMP/build_certificate.p12"
+          PROFILE_PATH="$RUNNER_TEMP/build_profile.mobileprovision"
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+
+          echo -n "$IOS_CERTIFICATE_P12_BASE64" | base64 --decode > "$CERT_PATH" || echo -n "$IOS_CERTIFICATE_P12_BASE64" | base64 -D > "$CERT_PATH"
+          echo -n "$IOS_MOBILEPROVISION_BASE64" | base64 --decode > "$PROFILE_PATH" || echo -n "$IOS_MOBILEPROVISION_BASE64" | base64 -D > "$PROFILE_PATH"
+
+          security create-keychain -p "$IOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$IOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$IOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | sed s/\"//g)
+          security set-key-partition-list -S apple-tool:,apple: -k "$IOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          PROFILE_PLIST="$RUNNER_TEMP/profile.plist"
+          security cms -D -i "$PROFILE_PATH" > "$PROFILE_PLIST"
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" "$PROFILE_PLIST")
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print Name" "$PROFILE_PLIST")
+          cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+          echo "IOS_PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
+
+      - name: Generate export options
+        run: |
+          cat > ios/ExportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>development</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>teamID</key>
+            <string>${IOS_TEAM_ID}</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>${IOS_BUNDLE_ID}</key>
+              <string>${IOS_PROFILE_NAME}</string>
+            </dict>
+            <key>stripSwiftSymbols</key>
+            <true/>
+            <key>compileBitcode</key>
+            <false/>
+          </dict>
+          </plist>
+          EOF
+
       - name: Build iOS IPA
-        run: flutter build ipa --release --export-method development --flavor ApkArena
+        run: flutter build ipa --release --flavor ApkArena --export-options-plist=ios/ExportOptions.plist
 
       - name: Collect IPA
         id: collect
@@ -56,3 +126,9 @@ jobs:
         with:
           name: apk-arena-ios-${{ github.run_number }}
           path: ${{ steps.collect.outputs.artifact_file }}
+
+      - name: Cleanup signing assets
+        if: ${{ always() }}
+        run: |
+          security delete-keychain "$RUNNER_TEMP/build.keychain-db" || true
+          rm -f "$RUNNER_TEMP/build_certificate.p12" "$RUNNER_TEMP/build_profile.mobileprovision" "$RUNNER_TEMP/profile.plist" ios/ExportOptions.plist
