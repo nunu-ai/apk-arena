@@ -1,0 +1,58 @@
+name: Build iOS and Upload to nunu.ai
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Install iOS pods
+        run: pod install
+        working-directory: ios
+
+      - name: Build iOS IPA
+        run: flutter build ipa --release --export-method development --flavor ApkArena
+
+      - name: Collect IPA
+        id: collect
+        run: |
+          mkdir -p build/upload
+          ipa_path="$(find build/ios/ipa -maxdepth 1 -name '*.ipa' -print -quit)"
+          if [ -z "$ipa_path" ]; then
+            echo "No IPA found in build/ios/ipa" >&2
+            exit 1
+          fi
+          cp "$ipa_path" build/upload/apk_arena_ios.ipa
+          echo "artifact_file=build/upload/apk_arena_ios.ipa" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to nunu.ai
+        uses: nunu-ai/upload-build-action@v1
+        with:
+          api-token: ${{ secrets.NUNU_API_TOKEN }}
+          project-id: ${{ secrets.NUNU_PROJECT_ID }}
+          file: ${{ steps.collect.outputs.artifact_file }}
+          name: "APK Arena iOS ${{ github.run_number }}"
+
+      - name: Upload iOS artifact to GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-arena-ios-${{ github.run_number }}
+          path: ${{ steps.collect.outputs.artifact_file }}

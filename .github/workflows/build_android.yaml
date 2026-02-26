@@ -44,7 +44,7 @@ jobs:
           api-token: ${{ secrets.NUNU_API_TOKEN }}
           project-id: ${{ secrets.NUNU_PROJECT_ID }}
           file: "build/upload/apk_arena.apk"
-          name: "APK Arena ${{ github.run_number }}"
+          name: "APK Arena Android ${{ github.run_number }}"
 
       - name: Upload APK artifact to GitHub
         uses: actions/upload-artifact@v4
