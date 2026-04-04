@@ -11,9 +11,12 @@ class DebugLevelGallery extends StatelessWidget {
     final allLevels = levelsRegistry.entries.toList()
       ..sort((a, b) => a.key.compareTo(b.key));
 
-    final easyLevels = allLevels.where((e) => e.key < 100).toList();
-    final mediumLevels = allLevels.where((e) => e.key >= 100 && e.key < 200).toList();
-    final hardLevels = allLevels.where((e) => e.key >= 200).toList();
+    final primitives = allLevels.where((e) => e.key < 100).toList();
+    final visual = allLevels.where((e) => e.key >= 100 && e.key < 200).toList();
+    final dailys = allLevels.where((e) => e.key >= 200 && e.key < 300).toList();
+    final challenges =
+        allLevels.where((e) => e.key >= 300 && e.key < 400).toList();
+    final agi = allLevels.where((e) => e.key >= 400).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -21,17 +24,25 @@ class DebugLevelGallery extends StatelessWidget {
       ),
       body: CustomScrollView(
         slivers: [
-          if (easyLevels.isNotEmpty) ...[
-            _buildHeader('EASY LEVELS (0-99)', NunuColors.successMain),
-            _buildGrid(context, easyLevels),
+          if (primitives.isNotEmpty) ...[
+            _buildHeader('PRIMITIVES (0-99)', NunuColors.successMain),
+            _buildGrid(context, primitives),
           ],
-          if (mediumLevels.isNotEmpty) ...[
-            _buildHeader('MEDIUM LEVELS (100-199)', NunuColors.warningMain),
-            _buildGrid(context, mediumLevels),
+          if (visual.isNotEmpty) ...[
+            _buildHeader('VISUAL (100-199)', NunuColors.secondaryLight),
+            _buildGrid(context, visual),
           ],
-          if (hardLevels.isNotEmpty) ...[
-            _buildHeader('HARD LEVELS (200+)', NunuColors.errorMain),
-            _buildGrid(context, hardLevels),
+          if (dailys.isNotEmpty) ...[
+            _buildHeader('DAILYS (200-299)', NunuColors.warningMain),
+            _buildGrid(context, dailys),
+          ],
+          if (challenges.isNotEmpty) ...[
+            _buildHeader('CHALLENGES (300-399)', NunuColors.primaryLight),
+            _buildGrid(context, challenges),
+          ],
+          if (agi.isNotEmpty) ...[
+            _buildHeader('AGI (400+)', NunuColors.errorMain),
+            _buildGrid(context, agi),
           ],
           const SliverPadding(padding: EdgeInsets.only(bottom: 32)),
         ],

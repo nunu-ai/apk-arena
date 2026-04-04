@@ -12,41 +12,44 @@ class LevelConnectTheDots extends LevelWidget {
 }
 
 class _LevelConnectTheDotsState extends State<LevelConnectTheDots> {
+  static const List<int> _stageDotCounts = [3, 5, 7, 9, 12];
+  static const int maxAttempts = 20;
+  static const double _snapRadius = 68;
+
   final List<Offset> _dotPositions = [];
   final List<int> _connectedDots = [];
   final List<Offset> _linePoints = [];
   bool _isDrawing = false;
   int _totalDots = 0;
   Size _canvasSize = Size.zero;
+  int _stageIndex = 0;
+  int _attempts = 0;
+
+  int get _dotsThisStage => _stageDotCounts[_stageIndex];
 
   @override
   void initState() {
     super.initState();
-    // Dots will be generated after we know the canvas size
   }
 
-  void _generateDots(Size size) {
-    if (_dotPositions.isNotEmpty) return; // Already generated
+  void _generateDots(Size size, {bool force = false}) {
+    if (!force && _dotPositions.isNotEmpty) return;
 
     final random = Random();
     _dotPositions.clear();
+    _connectedDots.clear();
+    _linePoints.clear();
+    _isDrawing = false;
 
-    // Randomize number of dots between 4 and 8
-    _totalDots = 4 + random.nextInt(5);
+    _totalDots = _dotsThisStage;
 
     final centerX = size.width / 2;
     final centerY = size.height / 2;
 
-    // Generate dots with more randomization
     for (int i = 0; i < _totalDots; i++) {
-      // More random angle distribution
       final angle =
           (2 * pi * i) / _totalDots + (random.nextDouble() - 0.5) * 1.2;
-
-      // More varied radius
-      final radius = 60 + random.nextDouble() * 80;
-
-      // Add some extra random offset
+      final radius = 50 + random.nextDouble() * min(70.0, size.shortestSide / 4);
       final randomOffsetX = (random.nextDouble() - 0.5) * 40;
       final randomOffsetY = (random.nextDouble() - 0.5) * 40;
 
@@ -57,11 +60,49 @@ class _LevelConnectTheDotsState extends State<LevelConnectTheDots> {
     }
   }
 
-  int? _getDotAtPosition(Offset position) {
+  void _fail() {
+    widget.onComplete(
+      false,
+      metrics: {
+        'total_attempts': _attempts,
+        'stages_cleared': _stageIndex,
+      },
+    );
+  }
+
+  void _advanceStageOrWin() {
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (!mounted) return;
+      if (_stageIndex >= _stageDotCounts.length - 1) {
+        widget.onComplete(
+          true,
+          metrics: {
+            'total_attempts': _attempts,
+            'stages_cleared': _stageDotCounts.length,
+          },
+        );
+        return;
+      }
+      setState(() {
+        _stageIndex++;
+        _generateDots(_canvasSize, force: true);
+      });
+    });
+  }
+
+  /// Nearest dot center within [_snapRadius], else null.
+  Offset? _snapToDot(Offset position) {
+    for (final dot in _dotPositions) {
+      if ((position - dot).distance <= _snapRadius) {
+        return dot;
+      }
+    }
+    return null;
+  }
+
+  int? _dotIndexAt(Offset position) {
     for (int i = 0; i < _dotPositions.length; i++) {
-      final dot = _dotPositions[i];
-      final distance = (position - dot).distance;
-      if (distance < 40) {
+      if ((position - _dotPositions[i]).distance <= _snapRadius) {
         return i;
       }
     }
@@ -72,7 +113,8 @@ class _LevelConnectTheDotsState extends State<LevelConnectTheDots> {
     if (_dotPositions.isEmpty) return;
 
     final localPosition = details.localPosition;
-    final dotIndex = _getDotAtPosition(localPosition);
+    final snapped = _snapToDot(localPosition) ?? localPosition;
+    final dotIndex = _dotIndexAt(snapped);
 
     if (dotIndex != null && !_connectedDots.contains(dotIndex)) {
       setState(() {
@@ -86,27 +128,27 @@ class _LevelConnectTheDotsState extends State<LevelConnectTheDots> {
   void _onPanUpdate(DragUpdateDetails details) {
     if (!_isDrawing) return;
 
-    final localPosition = details.localPosition;
-    final dotIndex = _getDotAtPosition(localPosition);
+    final raw = details.localPosition;
+    final snapped = _snapToDot(raw) ?? raw;
 
     setState(() {
-      _linePoints.add(localPosition);
+      if (_linePoints.length >= 2) {
+        _linePoints[_linePoints.length - 1] = snapped;
+      } else if (_linePoints.length == 1) {
+        _linePoints.add(snapped);
+      }
+
+      final dotIndex = _dotIndexAt(snapped);
 
       if (dotIndex != null && !_connectedDots.contains(dotIndex)) {
         _connectedDots.add(dotIndex);
+        _linePoints[_linePoints.length - 1] = _dotPositions[dotIndex];
         _linePoints.add(_dotPositions[dotIndex]);
 
-        // Check if all dots are connected
         if (_connectedDots.length == _totalDots) {
           _isDrawing = false;
-          Future.delayed(const Duration(milliseconds: 500), () {
-            widget.onComplete(
-              true,
-              metrics: {
-                'connectedDots': _connectedDots.length,
-                'totalDots': _totalDots,
-              },
-            );
+          Future.delayed(const Duration(milliseconds: 400), () {
+            _advanceStageOrWin();
           });
         }
       }
@@ -115,12 +157,15 @@ class _LevelConnectTheDotsState extends State<LevelConnectTheDots> {
 
   void _onPanEnd(DragEndDetails details) {
     if (_connectedDots.length < _totalDots) {
-      // Reset if not all dots connected
       setState(() {
         _isDrawing = false;
         _connectedDots.clear();
         _linePoints.clear();
       });
+      _attempts++;
+      if (_attempts >= maxAttempts) {
+        _fail();
+      }
     }
   }
 
@@ -135,49 +180,28 @@ class _LevelConnectTheDotsState extends State<LevelConnectTheDots> {
           _canvasSize = size;
           WidgetsBinding.instance.addPostFrameCallback((_) {
             setState(() {
-              _generateDots(size);
+              _generateDots(size, force: true);
             });
           });
         }
 
         return GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onPanStart: _onPanStart,
           onPanUpdate: _onPanUpdate,
           onPanEnd: _onPanEnd,
-          child: Container(
-            color: Colors.transparent,
-            width: double.infinity,
-            height: double.infinity,
-            child: Stack(
-              children: [
-                // Progress indicator
-                Positioned(
-                  top: 20,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: Text(
-                      '${_connectedDots.length} / $_totalDots',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: NunuColors.textSecondary,
-                      ),
-                    ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (_dotPositions.isNotEmpty)
+                CustomPaint(
+                  painter: ConnectDotsPainter(
+                    dotPositions: _dotPositions,
+                    connectedDots: _connectedDots,
+                    linePoints: _linePoints,
                   ),
                 ),
-                // Canvas for drawing
-                if (_dotPositions.isNotEmpty)
-                  CustomPaint(
-                    size: size,
-                    painter: ConnectDotsPainter(
-                      dotPositions: _dotPositions,
-                      connectedDots: _connectedDots,
-                      linePoints: _linePoints,
-                    ),
-                  ),
-              ],
-            ),
+            ],
           ),
         );
       },

@@ -440,10 +440,14 @@ class _AnalyticsViewerScreenState extends State<AnalyticsViewerScreen> {
 
   Color _difficultyColor(String difficulty) {
     switch (difficulty) {
-      case 'baby':
+      case 'primitives':
         return NunuColors.successMain;
-      case 'human':
+      case 'visual':
+        return NunuColors.secondaryLight;
+      case 'dailys':
         return NunuColors.warningMain;
+      case 'challenges':
+        return NunuColors.primaryLight;
       case 'agi':
         return NunuColors.errorMain;
       default:

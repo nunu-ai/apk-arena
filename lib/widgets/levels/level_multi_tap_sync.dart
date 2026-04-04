@@ -22,6 +22,9 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
   final Map<int, int> _pointerToPad = <int, int>{};
   DateTime? _firstPressAt;
   Timer? _holdTimer;
+  /// 0 = hold three pads, 1 = swipe up on three lanes together
+  int _phase = 0;
+  final List<double> _laneUpAccum = [0, 0, 0];
   late final AnimationController _pulse;
   late final AnimationController _spin;
   late final AnimationController _energyFlow;
@@ -69,14 +72,36 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
     });
   }
 
+  static const double _laneUpNeeded = 56;
+
   void _startHoldCheck() {
     _holdTimer?.cancel();
     _holdTimer = Timer(_holdWindow, () {
       if (!mounted) return;
       if (_pressedPads.length == 3) {
-        widget.onComplete(true);
+        setState(() {
+          _phase = 1;
+          _pressedPads.clear();
+          _pointerToPad.clear();
+          _firstPressAt = null;
+          _laneUpAccum[0] = _laneUpAccum[1] = _laneUpAccum[2] = 0;
+          _status = 'swipe up on all three lanes at the same time';
+        });
       }
     });
+  }
+
+  void _onLanePointerMove(int lane, Offset delta) {
+    if (_phase != 1) return;
+    if (delta.dy >= 0) return;
+    setState(() {
+      _laneUpAccum[lane] += -delta.dy;
+    });
+    if (_laneUpAccum[0] >= _laneUpNeeded &&
+        _laneUpAccum[1] >= _laneUpNeeded &&
+        _laneUpAccum[2] >= _laneUpNeeded) {
+      widget.onComplete(true);
+    }
   }
 
   void _onPadDown(int padId, int pointerId) {
@@ -129,6 +154,10 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
 
   @override
   Widget build(BuildContext context) {
+    if (_phase == 1) {
+      return _buildTripleSwipePhase();
+    }
+
     final bool allSynced = _pressedPads.length == 3;
 
     return Container(
@@ -288,6 +317,98 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTripleSwipePhase() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: RadialGradient(
+          center: Alignment.center,
+          radius: 1.1,
+          colors: [
+            const Color(0xFF0D1B2A),
+            const Color(0xFF020810),
+          ],
+        ),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Text(
+                'TRIPLE LIFT',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  color: _cyanNeon,
+                  letterSpacing: 4,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                _status.toUpperCase(),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: _cyanNeon.withValues(alpha: 0.85),
+                  letterSpacing: 1,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: List.generate(3, (i) {
+                    const labels = ['I', 'II', 'III'];
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: Listener(
+                          behavior: HitTestBehavior.opaque,
+                          onPointerMove: (e) =>
+                              _onLanePointerMove(i, e.delta),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: _laneUpAccum[i] >= _laneUpNeeded
+                                    ? _coreGlow
+                                    : _cyanNeon.withValues(alpha: 0.5),
+                                width: 2,
+                              ),
+                              color: const Color(0xFF0D1B2A),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.arrow_upward_rounded,
+                                  size: 40,
+                                  color: _magentaNeon.withValues(alpha: 0.9),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  labels[i],
+                                  style: TextStyle(
+                                    color: _cyanNeon.withValues(alpha: 0.7),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

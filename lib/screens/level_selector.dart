@@ -1,7 +1,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import '../models/level_status.dart';
 import '../services/progress_service.dart';
 import '../services/navigation.dart';
 import '../theme/app_theme.dart';
@@ -24,9 +23,11 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> with RouteAwa
   int selectedDifficulty = 0;
 
   final Map<int, String> difficultyNames = {
-    0: 'baby',
-    1: 'human',
-    2: 'agi',
+    0: 'primitives',
+    1: 'visual',
+    2: 'dailys',
+    3: 'challenges',
+    4: 'agi',
   };
 
   List<int> get visibleLevels {
