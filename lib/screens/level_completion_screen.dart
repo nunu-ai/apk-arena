@@ -86,7 +86,7 @@ class LevelCompletionScreen extends StatelessWidget {
 
   String get _emoji {
     if (score >= 0.85) return '🎉';
-    if (score >= 0.5) return '📊';
+    if (score >= 0.5) return '✨';
     return '💔';
   }
 

@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../level_widget.dart';
 
-/// Cardinals, then pac-man gap swipes only; gap shrinks each round.
+/// Cardinals (lives + ramping min distance), then pac-man gap swipes.
 class LevelSwipeDirections extends LevelWidget {
   const LevelSwipeDirections({super.key, required super.onComplete});
 
@@ -17,21 +17,28 @@ class LevelSwipeDirections extends LevelWidget {
 enum _Phase { cardinal, pacman }
 
 class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
-  static const int maxWrongSwipes = 15;
+  static const int maxLives = 5;
+  static const int totalSteps = 4 + 5; // cardinals + pac rounds
 
   _Phase _phase = _Phase.cardinal;
   int _idxInStage = 0;
-  int _pacRound = 0; // 0.._pacMouthHalf.length-1
+  int _pacRound = 0;
   int _totalSwipes = 0;
   int _correctSwipes = 0;
   int _wrongSwipes = 0;
+  int _stepsCompleted = 0;
+  int _lives = maxLives;
   Offset? _dragStart;
 
   final Random _rng = Random();
-
   late List<String> _cardinalSeq;
+
+  /// Min swipe length (px); rises each cardinal so later steps need a fuller swipe.
+  static const List<double> _cardinalMinDist = [26, 34, 44, 58];
+
   /// Mouth half-angle (radians); smaller = narrower gap, harder.
   static const List<double> _pacMouthHalf = [0.5, 0.38, 0.28, 0.2, 0.14];
+
   late double _pacOpeningRad;
 
   @override
@@ -49,13 +56,21 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
   int get _cardinalLen => _cardinalSeq.length;
   int get _pacLen => _pacMouthHalf.length;
 
+  double _failScore() {
+    if (totalSteps <= 0) return 0;
+    return ((_stepsCompleted / totalSteps) * 0.92).clamp(0.0, 1.0);
+  }
+
   void _fail() {
     widget.onComplete(LevelOutcome(
-      score: 0,
+      score: _failScore(),
       metrics: {
         'total_swipes': _totalSwipes,
         'accuracy_pct': _accuracyPct,
-        'stages_cleared': _phase == _Phase.cardinal ? 0 : 1,
+        'wrong_swipes': _wrongSwipes,
+        'lives_remaining': _lives,
+        'steps_completed': _stepsCompleted,
+        'phase': _phase.name,
       },
     ));
   }
@@ -65,11 +80,29 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
     return ((_correctSwipes / _totalSwipes) * 100).round();
   }
 
+  void _onWrong() {
+    _wrongSwipes++;
+    _lives--;
+    if (_lives <= 0) {
+      _fail();
+      return;
+    }
+    if (_phase == _Phase.cardinal) {
+      _idxInStage = 0;
+      _cardinalSeq.shuffle(_rng);
+    } else {
+      _idxInStage = 0;
+      _pacOpeningRad = _rng.nextDouble() * 2 * pi;
+    }
+    setState(() {});
+  }
+
   void _registerSwipe(bool ok) {
     _totalSwipes++;
     if (ok) {
       _correctSwipes++;
       _idxInStage++;
+      _stepsCompleted++;
       if (_phase == _Phase.cardinal) {
         if (_idxInStage >= _cardinalLen) {
           _phase = _Phase.pacman;
@@ -77,7 +110,7 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
           _pacRound = 0;
           _pacOpeningRad = _rng.nextDouble() * 2 * pi;
         }
-      } else {
+      } else if (_phase == _Phase.pacman) {
         if (_idxInStage >= 1) {
           _idxInStage = 0;
           _pacRound++;
@@ -87,7 +120,9 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
               metrics: {
                 'total_swipes': _totalSwipes,
                 'accuracy_pct': _accuracyPct,
-                'stages_cleared': 2,
+                'wrong_swipes': _wrongSwipes,
+                'lives_remaining': _lives,
+                'steps_completed': _stepsCompleted,
               },
             ));
             return;
@@ -96,18 +131,8 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
         }
       }
     } else {
-      _wrongSwipes++;
-      if (_wrongSwipes >= maxWrongSwipes) {
-        _fail();
-        return;
-      }
-      if (_phase == _Phase.cardinal) {
-        _idxInStage = 0;
-        _cardinalSeq.shuffle(_rng);
-      } else {
-        _idxInStage = 0;
-        _pacOpeningRad = _rng.nextDouble() * 2 * pi;
-      }
+      _onWrong();
+      return;
     }
     setState(() {});
   }
@@ -137,34 +162,117 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
     return dy > 0 ? 'DOWN' : 'UP';
   }
 
+  String _dirToWord(String dir) {
+    switch (dir) {
+      case 'UP':
+        return 'up';
+      case 'DOWN':
+        return 'down';
+      case 'LEFT':
+        return 'left';
+      case 'RIGHT':
+        return 'right';
+      default:
+        return dir.toLowerCase();
+    }
+  }
+
+  bool _checkCardinalSwipe(double dx, double dy, double dist) {
+    final minD = _cardinalMinDist[_idxInStage.clamp(0, _cardinalMinDist.length - 1)];
+    if (dist < minD) return false;
+    final got = _cardinalFromVector(dx, dy);
+    return got == _cardinalSeq[_idxInStage];
+  }
+
   void _onPanEnd(DragEndDetails details) {
     if (_dragStart == null) return;
     final end = details.globalPosition;
     final dx = end.dx - _dragStart!.dx;
     final dy = end.dy - _dragStart!.dy;
     final dist = sqrt(dx * dx + dy * dy);
-    if (dist < 20) {
-      _dragStart = null;
-      return;
-    }
 
     if (_phase == _Phase.cardinal) {
-      final got = _cardinalFromVector(dx, dy);
-      _registerSwipe(got == _cardinalSeq[_idxInStage]);
-    } else {
+      if (dist < 12) {
+        _dragStart = null;
+        return;
+      }
+      _registerSwipe(_checkCardinalSwipe(dx, dy, dist));
+    } else if (_phase == _Phase.pacman) {
+      if (dist < 20) {
+        _dragStart = null;
+        return;
+      }
       _registerSwipe(_checkPacmanSwipe(dx, dy, dist));
     }
     _dragStart = null;
   }
 
-  String get _prompt {
+  String get _topHint {
     if (_phase == _Phase.cardinal) {
-      return 'swipe ${_cardinalSeq[_idxInStage]}';
+      return 'round ${_idxInStage + 1}/$_cardinalLen';
     }
-    return 'swipe out through the gap (${_pacRound + 1}/$_pacLen)';
+    if (_phase == _Phase.pacman) {
+      return 'gap ${_pacRound + 1}/$_pacLen';
+    }
+    return '';
   }
 
   double get _currentMouthHalf => _pacMouthHalf[_pacRound];
+
+  Widget _livesHeartsRow() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(maxLives, (i) {
+        final alive = i < _lives;
+        return Padding(
+          padding: EdgeInsets.only(left: i == 0 ? 0 : 1),
+          child: Icon(
+            alive ? Icons.favorite : Icons.favorite_border,
+            size: 14,
+            color: alive
+                ? NunuColors.primaryMain
+                : NunuColors.primaryLight.withValues(alpha: 0.28),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _cardinalPanel() {
+    final dir = _cardinalSeq[_idxInStage];
+    final word = _dirToWord(dir);
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 22),
+        decoration: BoxDecoration(
+          color: NunuColors.backgroundPaper,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: NunuColors.primaryMain.withValues(alpha: 0.45),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: NunuColors.primaryDark.withValues(alpha: 0.25),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Text(
+          'swipe $word',
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 20,
+            height: 1.2,
+            color: NunuColors.textPrimary,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -179,17 +287,36 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               color: NunuColors.backgroundPaper,
-              child: Text(
-                _prompt,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 13,
-                  height: 1.25,
-                  color: NunuColors.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
+              child: Row(
+                children: [
+                  Text(
+                    _topHint,
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.25,
+                      color: NunuColors.primaryLight.withValues(alpha: 0.9),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  _livesHeartsRow(),
+                ],
               ),
             ),
+            if (_phase == _Phase.pacman)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
+                child: Text(
+                  'swipe out through the gap',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    height: 1.25,
+                    color: NunuColors.textSecondary.withValues(alpha: 0.95),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
             Expanded(
               child: _phase == _Phase.pacman
                   ? Padding(
@@ -204,7 +331,7 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
                     )
                   : ColoredBox(
                       color: Colors.transparent,
-                      child: SizedBox.expand(),
+                      child: _cardinalPanel(),
                     ),
             ),
           ],

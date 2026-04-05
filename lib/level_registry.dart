@@ -126,7 +126,7 @@ final List<LevelEntry> primitiveLevels = [
     data: LevelData(
       title: "Swipe Lab",
       instructions:
-          "Four direction swipes, then escape through a shrinking gap — too many misses and you fail.",
+          "Follow the card, then escape through the shrinking gap. Five hearts — wrong swipes cost one.",
     ),
     widgetBuilder: (onComplete) => LevelSwipeDirections(onComplete: onComplete),
   ),
@@ -141,7 +141,7 @@ final List<LevelEntry> primitiveLevels = [
     data: LevelData(
       title: "Slider Gauntlet",
       instructions:
-          "Set the age, then two precise decimal targets. Limited wrong submits!",
+          "Set the age and decimal targets. Ten lives — wrong submits cost one.",
     ),
     widgetBuilder: (onComplete) => LevelSliderSkills(onComplete: onComplete),
   ),
