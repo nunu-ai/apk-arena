@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -132,7 +133,7 @@ class _LevelRhythmState extends State<LevelRhythm> {
     final won = _hits >= _requiredHits;
     if (won) HapticFeedback.mediumImpact();
     Future.delayed(const Duration(milliseconds: 600), () {
-      widget.onComplete(won);
+      widget.onComplete(LevelOutcome(score: won ? 1 : 0));
     });
   }
 

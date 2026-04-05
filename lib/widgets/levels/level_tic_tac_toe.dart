@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 import 'dart:math';
@@ -163,10 +164,10 @@ class _LevelTicTacToeState extends State<LevelTicTacToe>
       // player won — complete the level
       setState(() => _isComplete = true);
       Future.delayed(const Duration(milliseconds: 800), () {
-        widget.onComplete(true, metrics: {
+        widget.onComplete(LevelOutcome(score: 1, metrics: {
           'moves': _moveCount,
           'games_played': _gamesPlayed,
-        });
+        }));
       });
     } else {
       // draw or loss — just let them play again, no failure reported

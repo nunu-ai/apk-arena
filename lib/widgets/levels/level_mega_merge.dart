@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -503,7 +504,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
 
         // Check win
         if (_tutorialComplete && _orders.every((o) => o.isCompleted)) {
-          widget.onComplete(true);
+          widget.onComplete(LevelOutcome(score: 1));
         }
 
         if (!_tutorialComplete && _tutorialStep == 5 && orderIndex == 3) {

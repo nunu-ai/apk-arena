@@ -132,6 +132,7 @@ Create `lib/widgets/levels/level_your_name.dart`:
 
 ```dart
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 
@@ -148,7 +149,7 @@ class _LevelYourNameState extends State {
   
   void _checkCompletion() {
     if (/* completion criteria */) {
-      widget.onComplete(true);  // Success!
+      widget.onComplete(LevelOutcome(score: 1));  // perfect run
     }
   }
   
@@ -166,10 +167,11 @@ class _LevelYourNameState extends State {
 
 **Critical Rules:**
 1. ✅ **MUST** extend `LevelWidget`
-2. ✅ **MUST** call `widget.onComplete(true)` for success
-3. ✅ **MUST** call `widget.onComplete(false)` for failure (optional, but good for wrong answers)
-4. ✅ File **MUST** start with `level_` prefix
-5. ✅ Use `NunuColors.*` for theming (unless recreating specific UI)
+2. ✅ **MUST** call `widget.onComplete(LevelOutcome(...))` when the run ends. Use `score` in **\[0, 1\]** (clamped by `LevelOutcome`): `1` = perfect, `0` = total failure. Optional `metrics` map for extra numbers (moves, guesses, etc.).
+3. ✅ File **MUST** start with `level_` prefix
+4. ✅ Use `NunuColors.*` for theming (unless recreating specific UI)
+
+**Time limit:** In `LevelData`, set `timeLimit: Duration(minutes: 5)` to override the shell default (**60 minutes** when `timeLimit` is null). When time expires, the shell finishes the run with score `0` and `timed_out` in metrics.
 
 ### Step 2: Register in Registry
 
@@ -188,6 +190,7 @@ final List hardLevels = [    // 200-299
     data: LevelData(
       title: "Clever Title",              // DON'T spoil the solution!
       instructions: "Clear objective!",    // Be specific about goal
+      // timeLimit: Duration(minutes: 10), // optional; default is 60m in LevelScreen
     ),
     widgetBuilder: (onComplete) => LevelYourName(onComplete: onComplete),
   ),
@@ -264,11 +267,9 @@ import '../../services/progress_service.dart';
 
 final _progressService = ProgressService.instance;
 
-// Check if level completed
+// Best score seen for this level (0–1), or null if no run has finished yet
 final status = _progressService.getLevelStatus(levelNumber);
-if (status?.result == LevelResult.success) {
-  // Level was completed
-}
+final best = status?.bestScore;
 ```
 
 ### Using Notifications

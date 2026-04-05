@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
@@ -100,7 +101,7 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
         if (_completedSequences >= _sequencesToWin) {
           // Won the level
           setState(() => _isComplete = true);
-          widget.onComplete(true);
+          widget.onComplete(LevelOutcome(score: 1));
         } else {
           // Start next sequence
           _startNewSequence();

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 
@@ -76,7 +77,7 @@ class _LevelChessPuzzleState extends State<LevelChessPuzzle> {
       
       // Short delay to show the final position
       Future.delayed(const Duration(milliseconds: 500), () {
-        widget.onComplete(true);
+        widget.onComplete(LevelOutcome(score: 1));
       });
       return;
     }
@@ -108,7 +109,7 @@ class _LevelChessPuzzleState extends State<LevelChessPuzzle> {
       ),
     );
     // Don't fail the level immediately, let them retry
-    // widget.onComplete(false); 
+    // widget.onComplete(LevelOutcome(score: 0)); 
   }
 
   @override

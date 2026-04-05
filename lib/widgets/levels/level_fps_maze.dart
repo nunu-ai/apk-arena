@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -149,7 +150,7 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
       _completed = true;
       _controller.stop();
       Future.delayed(const Duration(milliseconds: 300), () {
-        widget.onComplete(true);
+        widget.onComplete(LevelOutcome(score: 1));
       });
     }
 

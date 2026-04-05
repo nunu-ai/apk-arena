@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../level_widget.dart';
@@ -66,12 +67,12 @@ class _LevelFloodFillState extends State<LevelFloodFill> {
         _done = true;
         HapticFeedback.mediumImpact();
         Future.delayed(const Duration(milliseconds: 500), () {
-          widget.onComplete(true, metrics: {'moves': _moves, 'maxMoves': _maxMoves});
+          widget.onComplete(LevelOutcome(score: 1, metrics: {'moves': _moves, 'maxMoves': _maxMoves}));
         });
       } else if (_moves >= _maxMoves) {
         _done = true;
         Future.delayed(const Duration(milliseconds: 500), () {
-          widget.onComplete(false, metrics: {'moves': _moves, 'maxMoves': _maxMoves});
+          widget.onComplete(LevelOutcome(score: 0, metrics: {'moves': _moves, 'maxMoves': _maxMoves}));
         });
       }
     });

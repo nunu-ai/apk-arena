@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -135,7 +136,7 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
 
   void _attemptOrder() {
     final success = _isTargetOrder();
-    widget.onComplete(success);
+    widget.onComplete(LevelOutcome(score: success ? 1 : 0));
   }
 
   void _handlePlaceOrderPressed() {

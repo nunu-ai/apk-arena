@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 
@@ -202,26 +203,26 @@ class _LevelSlingshotState extends State<LevelSlingshot>
     if (_hits >= 1 && !_completed) {
       _completed = true;
       Future.delayed(const Duration(milliseconds: 500), () {
-        widget.onComplete(
-          true,
+        widget.onComplete(LevelOutcome(
+          score: 1,
           metrics: {
             'hits': _hits,
             'shotsUsed': _shotsUsed,
             'totalShots': _maxShots,
           },
-        );
+        ));
       });
     } else if (_shotsUsed >= _maxShots && !_completed) {
       _completed = true;
       Future.delayed(const Duration(milliseconds: 500), () {
-        widget.onComplete(
-          false,
+        widget.onComplete(LevelOutcome(
+          score: 0,
           metrics: {
             'hits': _hits,
             'shotsUsed': _shotsUsed,
             'totalShots': _maxShots,
           },
-        );
+        ));
       });
     }
 

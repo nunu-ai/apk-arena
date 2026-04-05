@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 import '../level_components/settings/settings_app_state.dart';
@@ -394,7 +395,7 @@ class _LevelSettingsQAState extends State<LevelSettingsQA> {
           const SizedBox(height: 12),
           ElevatedButton(
             onPressed: _allAnswered
-                ? () => widget.onComplete(_allCorrect)
+                ? () => widget.onComplete(LevelOutcome(score: _allCorrect ? 1 : 0))
                 : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: NunuColors.primaryMain,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 import 'dart:math';
@@ -89,7 +90,7 @@ class _LevelCarSteeringState extends State<LevelCarSteering>
       if (_checkCollision()) {
         _gameOver = true;
         _controller.stop();
-        widget.onComplete(false);
+        widget.onComplete(LevelOutcome(score: 0));
         return;
       }
 
@@ -100,7 +101,7 @@ class _LevelCarSteeringState extends State<LevelCarSteering>
       if (_distance >= _targetDistance) {
         _gameOver = true;
         _controller.stop();
-        widget.onComplete(true);
+        widget.onComplete(LevelOutcome(score: 1));
       }
     });
   }

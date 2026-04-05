@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 
@@ -298,7 +299,7 @@ class _LevelArcAgi3State extends State<LevelArcAgi3>
       _flashCtrl.forward(from: 0);
       Future.delayed(const Duration(milliseconds: 1200), () {
         if (!mounted) return;
-        widget.onComplete(true);
+        widget.onComplete(LevelOutcome(score: 1));
       });
       return;
     }
@@ -324,7 +325,7 @@ class _LevelArcAgi3State extends State<LevelArcAgi3>
     if (_lives <= 0) {
       Future.delayed(const Duration(milliseconds: 800), () {
         if (!mounted) return;
-        widget.onComplete(false);
+        widget.onComplete(LevelOutcome(score: 0));
       });
     } else {
       Future.delayed(const Duration(milliseconds: 800), () {

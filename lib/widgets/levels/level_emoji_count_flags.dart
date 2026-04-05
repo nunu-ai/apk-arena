@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../level_widget.dart';
@@ -91,7 +92,7 @@ class _LevelEmojiCountFlagsState extends State<LevelEmojiCountFlags> {
     if (value == _totalCount) {
       // correct for this round
       if (_roundIndex + 1 >= _totalRounds) {
-        widget.onComplete(true);
+        widget.onComplete(LevelOutcome(score: 1));
         return;
       }
       // advance to next round
@@ -103,7 +104,7 @@ class _LevelEmojiCountFlagsState extends State<LevelEmojiCountFlags> {
     } else {
       _showSnack('wrong number');
       Future.delayed(const Duration(milliseconds: 900), () {
-        if (mounted) widget.onComplete(false);
+        if (mounted) widget.onComplete(LevelOutcome(score: 0));
       });
     }
   }

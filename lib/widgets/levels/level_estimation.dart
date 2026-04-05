@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -98,11 +99,11 @@ class _LevelEstimationState extends State<LevelEstimation> {
     final avgAccuracy = _totalAccuracy / _totalRounds;
 
     Future.delayed(const Duration(milliseconds: 400), () {
-      widget.onComplete(true, metrics: {
+      widget.onComplete(LevelOutcome(score: 1, metrics: {
         'avg_accuracy': '${avgAccuracy.toStringAsFixed(1)}%',
         'perfect': '$_perfectGuesses / $_totalRounds',
         'best_round': '${_results.map((r) => r.accuracy).reduce(max).toStringAsFixed(0)}%',
-      });
+      }));
     });
   }
 

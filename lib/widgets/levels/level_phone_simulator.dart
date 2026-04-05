@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 import '../level_components/phone_sim/phone_homescreen.dart';
@@ -623,7 +624,7 @@ class _LevelPhoneSimulatorState extends State<LevelPhoneSimulator> {
   void _onChecklistSubmit(bool allCorrect) {
     if (allCorrect) {
       // Level complete!
-      widget.onComplete(true);
+      widget.onComplete(LevelOutcome(score: 1));
     }
   }
 

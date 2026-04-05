@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
 
@@ -146,7 +147,7 @@ class _LevelWarpMazeState extends State<LevelWarpMaze> {
 
   void _checkWin() {
     if (_playerX == _goalX && _playerY == _goalY) {
-      widget.onComplete(true);
+      widget.onComplete(LevelOutcome(score: 1));
     }
   }
 

@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
@@ -44,24 +45,24 @@ class _LevelSliderSkillsState extends State<LevelSliderSkills> {
   }
 
   void _fail() {
-    widget.onComplete(
-      false,
+    widget.onComplete(LevelOutcome(
+      score: 0,
       metrics: {
         'submit_attempts': _submitAttempts,
         'stages_cleared': _stage,
       },
-    );
+    ));
   }
 
   void _advanceOrWin() {
     if (_stage >= 2) {
-      widget.onComplete(
-        true,
+      widget.onComplete(LevelOutcome(
+        score: 1,
         metrics: {
           'submit_attempts': _submitAttempts,
           'stages_cleared': 3,
         },
-      );
+      ));
       return;
     }
     setState(() => _stage++);

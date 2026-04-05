@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -115,11 +116,11 @@ class _LevelMemoryGridState extends State<LevelMemoryGrid> {
     _done = true;
 
     Future.delayed(const Duration(milliseconds: 300), () {
-      widget.onComplete(true, metrics: {
+      widget.onComplete(LevelOutcome(score: 1, metrics: {
         'rounds': _round - 1,
         'max_cells': _cellsToRemember - 1,
         'correct_cells': _totalCorrectCells,
-      });
+      }));
     });
   }
 

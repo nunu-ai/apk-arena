@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
@@ -221,10 +222,10 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
     if (_imgSelected.length == _imgCorrect.length &&
         _imgSelected.containsAll(_imgCorrect)) {
       _playSw.stop();
-      widget.onComplete(
-        true,
+      widget.onComplete(LevelOutcome(
+        score: 1,
         metrics: {'duration_ms': _playSw.elapsedMilliseconds},
-      );
+      ));
     } else {
       setState(() {
         _imgSelected.clear();

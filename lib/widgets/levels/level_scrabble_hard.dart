@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 
@@ -192,16 +193,16 @@ class _LevelScrabbleHardState extends State<LevelScrabbleHard> {
           formedWord += placed;
         } else {
           // Empty cell in the target word
-          widget.onComplete(false);
+          widget.onComplete(LevelOutcome(score: 0));
           return;
         }
       }
     }
 
     if (formedWord == _targetWord) {
-      widget.onComplete(true);
+      widget.onComplete(LevelOutcome(score: 1));
     } else {
-      widget.onComplete(false);
+      widget.onComplete(LevelOutcome(score: 0));
     }
   }
 

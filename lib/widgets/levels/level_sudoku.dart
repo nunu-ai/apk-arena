@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 
@@ -72,12 +73,12 @@ class _LevelSudokuState extends State<LevelSudoku> {
       for (int c = 3; c <= 5; c++) {
         final expected = _solution[r][c].toString();
         if (_values[r][c] != expected) {
-          widget.onComplete(false);
+          widget.onComplete(LevelOutcome(score: 0));
           return;
         }
       }
     }
-    widget.onComplete(true);
+    widget.onComplete(LevelOutcome(score: 1));
   }
 
   @override

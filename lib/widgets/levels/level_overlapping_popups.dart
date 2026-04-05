@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 
@@ -30,7 +31,7 @@ class _LevelOverlappingPopupsState extends State<LevelOverlappingPopups> {
       });
       // All popups closed!
       Future.delayed(const Duration(milliseconds: 300), () {
-        widget.onComplete(true);
+        widget.onComplete(LevelOutcome(score: 1));
       });
     }
     // If wrong order, silently ignore the click

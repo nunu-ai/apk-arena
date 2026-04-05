@@ -94,13 +94,12 @@ import 'package:apk_arena/widgets/levels/level_scrabble.dart';
 import 'package:apk_arena/widgets/levels/level_scrabble_hard.dart';
 
 import '../models/level_data.dart';
+import '../models/level_outcome.dart';
 import '../widgets/level_widget.dart';
 
 class LevelEntry {
   final LevelData data;
-  final LevelWidget Function(
-    Function(bool, {Map<String, dynamic>? metrics}) onComplete,
-  )
+  final LevelWidget Function(void Function(LevelOutcome outcome) onComplete)
   widgetBuilder;
 
   LevelEntry({required this.data, required this.widgetBuilder});
@@ -111,7 +110,7 @@ final List<LevelEntry> primitiveLevels = [
     data: LevelData(
       title: "Click Gauntlet",
       instructions:
-          "Four stages, three clicks each — moving targets shrink each stage. Don't waste taps!",
+          "Tap the logo 20 times; it shrinks each hit. 10 hearts — a miss costs one.",
     ),
     widgetBuilder: (onComplete) => LevelClickAccuracy(onComplete: onComplete),
   ),
@@ -134,8 +133,7 @@ final List<LevelEntry> primitiveLevels = [
   LevelEntry(
     data: LevelData(
       title: "Tap Mastery",
-      instructions:
-          "Single, double, triple, 5-burst, 10-burst — each burst in one quick window.",
+      instructions: "Like the post based on the instruction.",
     ),
     widgetBuilder: (onComplete) => LevelTapMastery(onComplete: onComplete),
   ),
@@ -781,8 +779,7 @@ final List<LevelEntry> agiLevels = [
   LevelEntry(
     data: LevelData(
       title: "slingshot calibration",
-      instructions:
-          "launch the ball through the gap. 10 shots to nail it.",
+      instructions: "launch the ball through the gap. 10 shots to nail it.",
     ),
     widgetBuilder: (onComplete) => LevelSlingshot(onComplete: onComplete),
   ),
@@ -815,12 +812,19 @@ List<int> getAvailableLevels() {
   return levelsRegistry.keys.toList()..sort();
 }
 
+/// Next level id in global registry order, or `null` if none after [levelNumber].
+int? getNextSequentialLevel(int levelNumber) {
+  final all = getAvailableLevels();
+  final i = all.indexOf(levelNumber);
+  if (i == -1 || i >= all.length - 1) return null;
+  return all[i + 1];
+}
+
 List<int> getLevelsForDifficulty(int difficulty) {
   return levelsRegistry.entries
       .where(
         (entry) =>
-            100 * difficulty <= entry.key &&
-            entry.key < 100 * (difficulty + 1),
+            100 * difficulty <= entry.key && entry.key < 100 * (difficulty + 1),
       )
       .map((entry) => entry.key)
       .toList()

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import '../level_widget.dart';
 
 // =============================================================================
@@ -228,7 +229,7 @@ class _LevelGiantCalendarState extends State<LevelGiantCalendar> {
         drSpacemanEvent.dateTime.difference(_targetMovedTime).inMinutes.abs() <=
             5;
 
-    if (movedCorrectly) widget.onComplete(true);
+    if (movedCorrectly) widget.onComplete(LevelOutcome(score: 1));
   }
 
   List<_CalendarEvent> _getEventsForDay(DateTime day) {

@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
@@ -49,14 +50,14 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
   int get _pacLen => _pacMouthHalf.length;
 
   void _fail() {
-    widget.onComplete(
-      false,
+    widget.onComplete(LevelOutcome(
+      score: 0,
       metrics: {
         'total_swipes': _totalSwipes,
         'accuracy_pct': _accuracyPct,
         'stages_cleared': _phase == _Phase.cardinal ? 0 : 1,
       },
-    );
+    ));
   }
 
   int get _accuracyPct {
@@ -81,14 +82,14 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
           _idxInStage = 0;
           _pacRound++;
           if (_pacRound >= _pacLen) {
-            widget.onComplete(
-              true,
+            widget.onComplete(LevelOutcome(
+              score: 1,
               metrics: {
                 'total_swipes': _totalSwipes,
                 'accuracy_pct': _accuracyPct,
                 'stages_cleared': 2,
               },
-            );
+            ));
             return;
           }
           _pacOpeningRad = _rng.nextDouble() * 2 * pi;

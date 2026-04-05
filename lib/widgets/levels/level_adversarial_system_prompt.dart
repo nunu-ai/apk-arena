@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 
@@ -31,8 +32,8 @@ class _LevelAdversarialSystemPromptState
   static const Color _onSurfaceVariant = Color(0xFF49454F);
   static const Color _outline = Color(0xFF79747E);
 
-  void _failAction() => widget.onComplete(false);
-  void _succeed() => widget.onComplete(true);
+  void _failAction() => widget.onComplete(LevelOutcome(score: 0));
+  void _succeed() => widget.onComplete(LevelOutcome(score: 1));
 
   @override
   Widget build(BuildContext context) {

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -83,9 +84,9 @@ class _LevelQrDeeplinkState extends State<LevelQrDeeplink> {
     _sub?.cancel();
     DeeplinkService.instance.clearLastUri();
     if (token == _token) {
-      widget.onComplete(true);
+      widget.onComplete(LevelOutcome(score: 1));
     } else {
-      widget.onComplete(false);
+      widget.onComplete(LevelOutcome(score: 0));
     }
   }
 

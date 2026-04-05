@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 import 'dart:math';
@@ -61,26 +62,26 @@ class _LevelConnectTheDotsState extends State<LevelConnectTheDots> {
   }
 
   void _fail() {
-    widget.onComplete(
-      false,
+    widget.onComplete(LevelOutcome(
+      score: 0,
       metrics: {
         'total_attempts': _attempts,
         'stages_cleared': _stageIndex,
       },
-    );
+    ));
   }
 
   void _advanceStageOrWin() {
     Future.delayed(const Duration(milliseconds: 400), () {
       if (!mounted) return;
       if (_stageIndex >= _stageDotCounts.length - 1) {
-        widget.onComplete(
-          true,
+        widget.onComplete(LevelOutcome(
+          score: 1,
           metrics: {
             'total_attempts': _attempts,
             'stages_cleared': _stageDotCounts.length,
           },
-        );
+        ));
         return;
       }
       setState(() {

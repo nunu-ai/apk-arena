@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'dart:math';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -51,10 +52,10 @@ class _LevelHoldState extends State<LevelHold> with SingleTickerProviderStateMix
       final difference = (holdDuration - _targetDuration).abs();
 
       if (difference <= _tolerance) {
-        widget.onComplete(
-          true,
+        widget.onComplete(LevelOutcome(
+          score: 1,
           metrics: {'tries': _failedTries},
-        );
+        ));
       } else {
         // Failed - generate new target
         _showFailure(holdDuration);

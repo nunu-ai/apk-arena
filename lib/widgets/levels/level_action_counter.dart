@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
@@ -58,21 +59,21 @@ class _LevelActionCounterState extends State<LevelActionCounter> {
 
   void _onSubmit() {
     if (_pressedTarget == _targetCount) {
-      widget.onComplete(
-        true,
+      widget.onComplete(LevelOutcome(
+        score: 1,
         metrics: {
           'target_presses': _pressedTarget,
           'expected': _targetCount,
         },
-      );
+      ));
     } else {
-      widget.onComplete(
-        false,
+      widget.onComplete(LevelOutcome(
+        score: 0,
         metrics: {
           'target_presses': _pressedTarget,
           'expected': _targetCount,
         },
-      );
+      ));
     }
   }
 

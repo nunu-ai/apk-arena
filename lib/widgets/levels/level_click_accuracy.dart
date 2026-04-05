@@ -1,11 +1,12 @@
 import 'dart:math';
 
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
 import '../level_widget.dart';
 
-/// Four stages × 3 hits; targets move each hit; smooth shrink (no easy opener).
+/// 20 rounds, one hit each; target shrinks each round; 10 hearts, a miss costs one; nunu logo target.
 class LevelClickAccuracy extends LevelWidget {
   const LevelClickAccuracy({super.key, required super.onComplete});
 
@@ -14,32 +15,43 @@ class LevelClickAccuracy extends LevelWidget {
 }
 
 class _LevelClickAccuracyState extends State<LevelClickAccuracy> {
-  static const int maxTotalTaps = 40;
-  static const int stageCount = 4;
-  static const int hitsPerStage = 3;
+  static const int roundCount = 20;
+  static const int maxLives = 10;
+
+  // Hardcoded hitbox sizes for each round, computed using previous curve settings.
+  // These values should be updated if the original curve is changed.
+  // They represent logical pixels (width & height), indexed by round index (0..19).
+  static const List<double> _hitboxSizes = [
+    200, // round 1
+    120, // round 2
+    80, // round 3
+    65, // round 4
+    52, // round 5
+    44, // round 6
+    37, // round 7
+    31, // round 8
+    26, // round 9
+    22, // round 10
+    18, // round 11
+    15, // round 12
+    12, // round 13
+    10, // round 14
+    8, // round 15
+    6, // round 16
+    5, // round 17
+    4, // round 18
+    3, // round 19
+    2, // round 20
+  ];
 
   final Random _rng = Random();
-  int _stageIndex = 0;
-  int _hitsInStage = 0;
-  int _totalTaps = 0;
+
+  /// Successful hits so far (0 … roundCount); size uses this index clamped to roundCount - 1.
+  int _roundIndex = 0;
+  int _lives = maxLives;
+  int _misses = 0;
   int _hitsTotal = 0;
   Alignment _targetAlign = Alignment.center;
-
-  /// Horizontal padding — smooth ramp (was old stages 1→4, smaller final).
-  double get _buttonHorizontalPadding {
-    const p = [30.0, 22.0, 14.0, 5.0];
-    return p[_stageIndex.clamp(0, stageCount - 1)];
-  }
-
-  double get _verticalPadding {
-    const p = [13.0, 11.0, 8.0, 5.0];
-    return p[_stageIndex.clamp(0, stageCount - 1)];
-  }
-
-  double get _fontSize {
-    const f = [16.0, 14.0, 12.0, 10.0];
-    return f[_stageIndex.clamp(0, stageCount - 1)];
-  }
 
   @override
   void initState() {
@@ -53,69 +65,113 @@ class _LevelClickAccuracyState extends State<LevelClickAccuracy> {
     return Alignment(x, y);
   }
 
-  void _fail() {
-    widget.onComplete(
-      false,
-      metrics: {
-        'total_taps': _totalTaps,
-        'accuracy_pct': _accuracyPct,
-        'stages_cleared': _stageIndex,
-      },
-    );
+  /// 90% of the score from clearing rounds (linear up to 20); the last 10% only
+  /// after all rounds, from lives remaining / maxLives.
+  static const double _scoreWeightStages = 0.9;
+  static const double _scoreWeightLives = 0.1;
+
+  static double scoreForRun({
+    required int roundsCleared,
+    required int livesRemaining,
+    required bool clearedAllRounds,
+  }) {
+    final stageFraction = (roundsCleared / roundCount).clamp(0.0, 1.0);
+    if (!clearedAllRounds || roundsCleared < roundCount) {
+      return (_scoreWeightStages * stageFraction).clamp(0.0, 1.0);
+    }
+    final livesFraction = (livesRemaining / maxLives).clamp(0.0, 1.0);
+    return (_scoreWeightStages + _scoreWeightLives * livesFraction)
+        .clamp(0.0, 1.0);
   }
 
-  int get _accuracyPct {
-    if (_totalTaps == 0) return 0;
-    return ((_hitsTotal / _totalTaps) * 100).round();
+  void _fail() {
+    final roundsCleared = _roundIndex;
+    final s = scoreForRun(
+      roundsCleared: roundsCleared,
+      livesRemaining: _lives,
+      clearedAllRounds: false,
+    );
+    widget.onComplete(LevelOutcome(
+      score: s,
+      metrics: {
+        'rounds_cleared': roundsCleared,
+        'lives_remaining': _lives,
+        'misses': _misses,
+        'hits': _hitsTotal,
+      },
+    ));
   }
 
   void _onTargetHit() {
-    _totalTaps++;
     _hitsTotal++;
-    _hitsInStage++;
-    if (_hitsInStage >= hitsPerStage) {
-      if (_stageIndex >= stageCount - 1) {
-        widget.onComplete(
-          true,
-          metrics: {
-            'total_taps': _totalTaps,
-            'accuracy_pct': _accuracyPct,
-            'stages_cleared': stageCount,
-          },
-        );
-        return;
-      }
-      setState(() {
-        _stageIndex++;
-        _hitsInStage = 0;
-        _targetAlign = _randomAlign();
-      });
-    } else {
-      setState(() {
-        _targetAlign = _randomAlign();
-      });
+    if (_roundIndex >= roundCount - 1) {
+      final s = scoreForRun(
+        roundsCleared: roundCount,
+        livesRemaining: _lives,
+        clearedAllRounds: true,
+      );
+      widget.onComplete(LevelOutcome(
+        score: s,
+        metrics: {
+          'rounds_cleared': roundCount,
+          'lives_remaining': _lives,
+          'misses': _misses,
+          'hits': _hitsTotal,
+        },
+      ));
+      return;
     }
-    if (_totalTaps > maxTotalTaps) {
-      _fail();
-    }
+    setState(() {
+      _roundIndex++;
+      _targetAlign = _randomAlign();
+    });
   }
 
   void _onMiss() {
-    _totalTaps++;
-    if (_totalTaps > maxTotalTaps) {
+    _misses++;
+    if (_lives <= 1) {
+      _lives = 0;
       _fail();
       return;
     }
     setState(() {
+      _lives--;
       _targetAlign = _randomAlign();
-      if (_stageIndex >= 2) {
-        _hitsInStage = 0;
-      }
     });
+  }
+
+  double get _currentHitboxSize {
+    int idx = _roundIndex.clamp(0, _hitboxSizes.length - 1);
+    return _hitboxSizes[idx];
+  }
+
+  static const String _nunuLogoAsset =
+      'assets/icon/nunu-icon-transparent@4x.png';
+
+  Widget _livesHeartsRow() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(maxLives, (i) {
+        final alive = i < _lives;
+        return Padding(
+          padding: EdgeInsets.only(left: i == 0 ? 0 : 1),
+          child: Icon(
+            alive ? Icons.favorite : Icons.favorite_border,
+            size: 14,
+            color: alive
+                ? NunuColors.primaryMain
+                : NunuColors.primaryLight.withValues(alpha: 0.28),
+          ),
+        );
+      }),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final side = _currentHitboxSize;
+    final logoPad = (side * 0.1).clamp(1.0, 12.0);
+
     return Stack(
       children: [
         Positioned.fill(
@@ -124,30 +180,52 @@ class _LevelClickAccuracyState extends State<LevelClickAccuracy> {
             onTap: _onMiss,
           ),
         ),
+        Positioned(
+          left: 12,
+          top: 8,
+          right: 12,
+          child: Row(
+            children: [
+              Text(
+                'round ${_roundIndex + 1}/$roundCount',
+                style: TextStyle(
+                  color: NunuColors.primaryLight.withValues(alpha: 0.85),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Spacer(),
+              _livesHeartsRow(),
+            ],
+          ),
+        ),
         Align(
           alignment: _targetAlign,
-          child: FilledButton(
-            onPressed: _onTargetHit,
-            style: FilledButton.styleFrom(
-              padding: EdgeInsets.symmetric(
-                horizontal: _buttonHorizontalPadding,
-                vertical: _verticalPadding,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _onTargetHit,
+            child: Container(
+              width: side,
+              height: side,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: NunuColors.primaryMain.withValues(
+                  alpha: side <= 4 ? 1.0 : 0.55,
+                ),
+                borderRadius: BorderRadius.circular(side > 8 ? 8 : 0),
               ),
-              backgroundColor:
-                  NunuColors.primaryMain.withValues(alpha: 0.45),
-              foregroundColor: NunuColors.primaryLight,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              visualDensity: VisualDensity.compact,
-            ),
-            child: Text(
-              'click',
-              style: TextStyle(
-                fontSize: _fontSize,
-                fontWeight: FontWeight.bold,
+              child: Padding(
+                padding: EdgeInsets.all(logoPad),
+                child: Image.asset(
+                  _nunuLogoAsset,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.medium,
+                  errorBuilder: (_, __, ___) => Icon(
+                    Icons.touch_app,
+                    size: (side * 0.45).clamp(4.0, 28.0),
+                    color: NunuColors.primaryLight,
+                  ),
+                ),
               ),
             ),
           ),

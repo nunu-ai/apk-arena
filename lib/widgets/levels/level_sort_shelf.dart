@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 import 'dart:math';
@@ -93,7 +94,7 @@ class _LevelSortShelfState extends State<LevelSortShelf>
         _isComplete = true;
       });
       Future.delayed(const Duration(milliseconds: 600), () {
-        widget.onComplete(true, metrics: {'moves': _moveCount});
+        widget.onComplete(LevelOutcome(score: 1, metrics: {'moves': _moveCount}));
       });
     }
   }

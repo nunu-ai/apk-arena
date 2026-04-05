@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'dart:math';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -99,7 +100,7 @@ class _LevelOddOneOutState extends State<LevelOddOneOut> {
       if (!mounted) return;
       if (isCorrect) {
         if (_currentRound + 1 >= _totalRounds) {
-          widget.onComplete(true);
+          widget.onComplete(LevelOutcome(score: 1));
         } else {
           setState(() {
             _currentRound++;
@@ -109,7 +110,7 @@ class _LevelOddOneOutState extends State<LevelOddOneOut> {
           });
         }
       } else {
-        widget.onComplete(false);
+        widget.onComplete(LevelOutcome(score: 0));
       }
     });
   }

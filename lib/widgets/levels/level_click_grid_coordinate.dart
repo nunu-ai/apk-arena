@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -46,7 +47,7 @@ class _LevelClickGridCoordinateState extends State<LevelClickGridCoordinate> {
     if (row1 == _targetRow1 && col1 == _targetCol1) {
       // Correct
       if (_currentRound + 1 >= _requiredStreak) {
-        widget.onComplete(true);
+        widget.onComplete(LevelOutcome(score: 1));
         return;
       }
       setState(() {

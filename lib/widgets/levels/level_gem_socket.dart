@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -178,13 +179,13 @@ class _LevelGemSocketState extends State<LevelGemSocket>
       _successController.forward().then((_) {
         if (!mounted) return;
         if (_socketStage >= _totalSockets - 1) {
-          widget.onComplete(
-            true,
+          widget.onComplete(LevelOutcome(
+            score: 1,
             metrics: {
               'socket_stages': _totalSockets,
               'incorrect_drags': _incorrectDrags,
             },
-          );
+          ));
         } else {
           setState(() {
             _socketStage++;

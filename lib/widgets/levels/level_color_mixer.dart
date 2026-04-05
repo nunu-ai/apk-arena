@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 import 'dart:math';
@@ -84,10 +85,10 @@ class _LevelColorMixerState extends State<LevelColorMixer> {
         _feedback = null;
       });
       Future.delayed(const Duration(milliseconds: 500), () {
-        widget.onComplete(true, metrics: {
+        widget.onComplete(LevelOutcome(score: 1, metrics: {
           'attempts': _attempts,
           'accuracy': (_accuracy * 100).round(),
-        });
+        }));
       });
     } else {
       // give directional hints

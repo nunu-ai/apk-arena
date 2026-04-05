@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../level_widget.dart';
@@ -395,7 +396,7 @@ class _LevelHardwareMergeState extends State<LevelHardwareMerge> {
 
         // Check win
         if (_orders.every((o) => o.isCompleted)) {
-          widget.onComplete(true);
+          widget.onComplete(LevelOutcome(score: 1));
         }
       });
     }

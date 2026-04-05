@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -118,7 +119,7 @@ class _LevelCoinMapState extends State<LevelCoinMap> {
   void _checkAnswer() {
     final input = int.tryParse(_controller.text);
     if (input == _targetCoinCount) {
-      widget.onComplete(true);
+      widget.onComplete(LevelOutcome(score: 1));
     } else {
       // Shake or show error? For now just wrong answer logic
       ScaffoldMessenger.of(context).showSnackBar(
@@ -128,7 +129,7 @@ class _LevelCoinMapState extends State<LevelCoinMap> {
           duration: const Duration(seconds: 1),
         ),
       );
-      widget.onComplete(false);
+      widget.onComplete(LevelOutcome(score: 0));
     }
   }
 

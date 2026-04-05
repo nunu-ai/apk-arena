@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -100,7 +101,7 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
     if (_laneUpAccum[0] >= _laneUpNeeded &&
         _laneUpAccum[1] >= _laneUpNeeded &&
         _laneUpAccum[2] >= _laneUpNeeded) {
-      widget.onComplete(true);
+      widget.onComplete(LevelOutcome(score: 1));
     }
   }
 

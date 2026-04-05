@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -131,7 +132,7 @@ class _LevelCoinCollectorState extends State<LevelCoinCollector> {
   void _checkAnswer() {
     final input = int.tryParse(_controller.text);
     if (input == _targetCoinCount) {
-      widget.onComplete(true);
+      widget.onComplete(LevelOutcome(score: 1));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -140,7 +141,7 @@ class _LevelCoinCollectorState extends State<LevelCoinCollector> {
           duration: const Duration(seconds: 1),
         ),
       );
-      widget.onComplete(false);
+      widget.onComplete(LevelOutcome(score: 0));
     }
   }
 

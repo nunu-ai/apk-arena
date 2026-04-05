@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
@@ -126,26 +127,26 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
   }
 
   void _fail() {
-    widget.onComplete(
-      false,
+    widget.onComplete(LevelOutcome(
+      score: 0,
       metrics: {
         'total_taps': _totalTaps,
         'time_ms': _sw.elapsedMilliseconds,
         'stages_cleared': _stage,
       },
-    );
+    ));
   }
 
   void _nextStage() {
     if (_stage >= 4) {
-      widget.onComplete(
-        true,
+      widget.onComplete(LevelOutcome(
+        score: 1,
         metrics: {
           'total_taps': _totalTaps,
           'time_ms': _sw.elapsedMilliseconds,
           'stages_cleared': 5,
         },
-      );
+      ));
       return;
     }
     setState(() {

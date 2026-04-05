@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -139,12 +140,12 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
     final success = _hits >= 1;
 
     Future.delayed(const Duration(milliseconds: 400), () {
-      widget.onComplete(success, metrics: {
+      widget.onComplete(LevelOutcome(score: success ? 1 : 0, metrics: {
         'score': _hits,
         'accuracy': '${accuracy.toStringAsFixed(1)}%',
         'avg_reaction': '${avgReaction}ms',
         'total_moles': _totalSpawned,
-      });
+      }));
     });
   }
 

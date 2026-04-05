@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -62,7 +63,7 @@ class _LevelReactorStabilizationState extends State<LevelReactorStabilization> {
         if (_stability >= 1.0) {
           _isComplete = true;
           _stabilityTimer?.cancel();
-          widget.onComplete(true);
+          widget.onComplete(LevelOutcome(score: 1));
         }
       });
     });

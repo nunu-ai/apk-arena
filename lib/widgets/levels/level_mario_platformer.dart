@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 
@@ -199,7 +200,7 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
       if (_checkFlagCollision()) {
         _gameOver = true;
         _controller.stop();
-        widget.onComplete(true);
+        widget.onComplete(LevelOutcome(score: 1));
         return;
       }
     });

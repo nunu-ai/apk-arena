@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -154,7 +155,7 @@ class _LevelMatch3State extends State<LevelMatch3> {
     if (createsMatch) {
       // Successful move: increase streak and grid size, regenerate board
       if (_currentRound + 1 >= _requiredStreak) {
-        widget.onComplete(true);
+        widget.onComplete(LevelOutcome(score: 1));
         return;
       }
       setState(() {

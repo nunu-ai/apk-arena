@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'dart:math';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -224,7 +225,7 @@ class _LevelPokemonMazeState extends State<LevelPokemonMaze>
         // Check win condition
         if (_playerX == _endX && _playerY == _endY) {
           Future.delayed(const Duration(milliseconds: 300), () {
-            widget.onComplete(true);
+            widget.onComplete(LevelOutcome(score: 1));
           });
         }
       });
