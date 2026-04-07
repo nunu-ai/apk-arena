@@ -149,7 +149,7 @@ final List<LevelEntry> primitiveLevels = [
     data: LevelData(
       title: "Connect the Stars",
       instructions:
-          "Five constellations: 3→5→7→9→12 dots. Broken lines cost attempts.",
+          "Six constellations — the last three scramble the numbers. Connect in order and protect your 10 lives.",
     ),
     widgetBuilder: (onComplete) => LevelConnectTheDots(onComplete: onComplete),
   ),
@@ -180,7 +180,7 @@ final List<LevelEntry> primitiveLevels = [
     data: LevelData(
       title: "Count & Submit",
       instructions:
-          "Press the named color the exact number of times — layout shuffles after every tap. No on-screen tally; submit when you believe you're done.",
+          "Three counting stages — buttons shuffle after every tap, no tallies. Track your presses and prove it.",
     ),
     widgetBuilder: (onComplete) => LevelActionCounter(onComplete: onComplete),
   ),
@@ -194,7 +194,8 @@ final List<LevelEntry> primitiveLevels = [
   LevelEntry(
     data: LevelData(
       title: "enchanted socket",
-      instructions: "three sockets — layout changes after every try!",
+      instructions:
+          "four enchantments — each more treacherous than the last. 10 lives.",
     ),
     widgetBuilder: (onComplete) => LevelGemSocket(onComplete: onComplete),
   ),

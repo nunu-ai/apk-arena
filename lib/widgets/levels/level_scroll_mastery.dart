@@ -19,7 +19,6 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
   static const int maxWrongTaps = 12;
   int _stage = 0;
   int _wrongTaps = 0;
-  int _totalTaps = 0;
   final Stopwatch _sw = Stopwatch();
 
   // Stage 0: contacts
@@ -59,7 +58,10 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
 
   void _initContacts() {
     final rng = Random();
-    const firstNames = ['Alex', 'Sam', 'Jordan', 'Taylor', 'Casey'];
+    const firstNames = [
+      'Alex', 'Casey', 'Jordan', 'Sam', 'Taylor',
+      'Uma', 'Victor', 'Wesley', 'Xavier', 'Yara', 'Zane',
+    ];
     const lastNames = ['Smith', 'Lee', 'Kim', 'Brown', 'Davis'];
     _contacts = [];
     for (var i = 0; i < 80; i++) {
@@ -69,12 +71,12 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
         'phone': '(555) ${rng.nextInt(900) + 100}-${rng.nextInt(9000) + 1000}',
       });
     }
-    _contacts.sort((a, b) => a['name']!.compareTo(b['name']!));
-    _saulIndex = 35 + rng.nextInt(25);
-    _contacts.insert(_saulIndex, {
+    _contacts.add({
       'name': 'Saul Goodman',
       'phone': '(505) CALL-SAUL',
     });
+    _contacts.sort((a, b) => a['name']!.compareTo(b['name']!));
+    _saulIndex = _contacts.indexWhere((c) => c['name'] == 'Saul Goodman');
   }
 
   void _initSpeed() {
@@ -86,10 +88,10 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
   void _initCarousel() {
     final rng = Random();
     _carousel = List.generate(
-      24,
+      30,
       (i) => 'item ${String.fromCharCode(65 + (i % 26))}-$i',
     )..shuffle(rng);
-    _carouselTarget = 5 + rng.nextInt(14);
+    _carouselTarget = 10 + rng.nextInt(_carousel.length - 10);
   }
 
   void _initGrid() {
@@ -120,7 +122,6 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
 
   void _bumpWrong() {
     _wrongTaps++;
-    _totalTaps++;
     if (_wrongTaps >= maxWrongTaps) {
       _fail();
     }
@@ -130,7 +131,6 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
     widget.onComplete(LevelOutcome(
       score: 0,
       metrics: {
-        'total_taps': _totalTaps,
         'time_ms': _sw.elapsedMilliseconds,
         'stages_cleared': _stage,
       },
@@ -142,7 +142,6 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
       widget.onComplete(LevelOutcome(
         score: 1,
         metrics: {
-          'total_taps': _totalTaps,
           'time_ms': _sw.elapsedMilliseconds,
           'stages_cleared': 5,
         },
@@ -155,7 +154,6 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
   }
 
   void _onContactTap(int i) {
-    _totalTaps++;
     if (i == _saulIndex) {
       _nextStage();
     } else {
@@ -235,7 +233,7 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: List.generate(
-                          12,
+                          36,
                           (i) => Padding(
                             padding: const EdgeInsets.only(bottom: 12),
                             child: Text(
@@ -318,7 +316,6 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
                   ),
                 ),
                 onTap: () {
-                  _totalTaps++;
                   if (isTarget) {
                     _nextStage();
                   } else {
@@ -353,7 +350,6 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
                   borderRadius: BorderRadius.circular(12),
                   child: InkWell(
                     onTap: () {
-                      _totalTaps++;
                       if (i == _carouselTarget) {
                         _nextStage();
                       } else {
@@ -412,7 +408,6 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
                           final here = x == _gx && y == _gy;
                           return GestureDetector(
                             onTap: () {
-                              _totalTaps++;
                               if (here) {
                                 _nextStage();
                               } else {

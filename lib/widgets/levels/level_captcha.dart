@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../level_widget.dart';
 
-/// Multi-step captcha flow: emoji grid, distorted text, slider align, rotate, 4x4 pick.
 class LevelCaptcha extends LevelWidget {
   const LevelCaptcha({super.key, required super.onComplete});
 
@@ -16,11 +15,11 @@ class LevelCaptcha extends LevelWidget {
 
 enum _CaptchaStep {
   gate,
-  emojiGrid,
-  distortedText,
+  textCaptcha1,
+  imageGrid,
+  textCaptcha2,
   sliderAlign,
   rotateAlign,
-  imageGrid,
 }
 
 class _LevelCaptchaState extends State<LevelCaptcha> {
@@ -30,46 +29,25 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
   final Random _rng = Random();
   final Stopwatch _playSw = Stopwatch();
 
-  // Emoji grid (cars)
-  final List<String> _allEmojis = [
-    '🚗', '🚕', '🚙', '🚌',
-    '🚦', '🚥',
-    '🚲', '🛴', '🛵',
-    '🌳', '🌲', '🌴',
-    '🏠', '🏢', '🏪',
-    '🔥', '💧', '⚡',
-  ];
-  final Set<String> _carEmojis = {'🚗', '🚕', '🚙', '🚌'};
-  final Set<int> _selectedIndices = {};
-  late List<String> _gridItems;
-  late Set<int> _correctIndices;
-
-  // Distorted text
-  late String _textChallenge;
-  late List<String> _textNoiseTop;
-  late List<String> _textNoiseBottom;
+  // --- Text CAPTCHAs ---
   final TextEditingController _textCtrl = TextEditingController();
 
-  // Slider align
+  // --- Image grid (taxis) ---
+  // Correct tiles: top-left (0), middle-left (3), middle-center (4)
+  static const Set<int> _gridCorrect = {0, 3, 4};
+  final Set<int> _gridSelected = {};
+
+  // --- Slider align ---
   double _sliderX = 0.5;
 
-  // Rotate
+  // --- Rotate ---
   double _rotateTurns = 0;
   late double _targetTurns;
-
-  // 4x4 image grid (emoji “trees”)
-  final Set<String> _treeEmojis = {'🌳', '🌲', '🌴'};
-  final Set<int> _imgSelected = {};
-  late List<String> _imgGrid;
-  late Set<int> _imgCorrect;
 
   @override
   void initState() {
     super.initState();
-    _initEmojiGrid();
-    _initTextChallenge();
     _targetTurns = _rng.nextInt(3) / 4.0;
-    _initImageGrid();
   }
 
   @override
@@ -78,91 +56,28 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
     super.dispose();
   }
 
-  void _initEmojiGrid() {
-    _gridItems = [];
-    _correctIndices = {};
-    final numCars = 3 + _rng.nextInt(2);
-    final carList = _carEmojis.toList()..shuffle(_rng);
-    for (var i = 0; i < numCars; i++) {
-      _gridItems.add(carList[i]);
-    }
-    final nonCars = _allEmojis.where((e) => !_carEmojis.contains(e)).toList()
-      ..shuffle(_rng);
-    for (var i = 0; i < 9 - numCars; i++) {
-      _gridItems.add(nonCars[i]);
-    }
-    _gridItems.shuffle(_rng);
-    for (var i = 0; i < _gridItems.length; i++) {
-      if (_carEmojis.contains(_gridItems[i])) _correctIndices.add(i);
-    }
-  }
-
-  void _initTextChallenge() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    _textChallenge = String.fromCharCodes(
-      List.generate(5, (_) => chars.codeUnitAt(_rng.nextInt(chars.length))),
-    );
-    _textNoiseTop = List.generate(
-      36,
-      (i) =>
-          'noise line ${i + 1}: the quick brown fox jumps over lazy CAPTCHA bytes '
-          '${String.fromCharCodes(List.generate(8, (_) => 65 + _rng.nextInt(26)))}',
-    );
-    _textNoiseBottom = List.generate(
-      14,
-      (i) => 'footer clutter ${i + 1}: verify human presence module v2',
-    );
-  }
-
-  void _initImageGrid() {
-    _imgGrid = [];
-    _imgCorrect = {};
-    final trees = _treeEmojis.toList()..shuffle(_rng);
-    final others = _allEmojis.where((e) => !_treeEmojis.contains(e)).toList()
-      ..shuffle(_rng);
-    const cols = 6;
-    const rows = 9;
-    const total = cols * rows;
-    final nTree = 10 + _rng.nextInt(8);
-    for (var i = 0; i < nTree; i++) {
-      _imgGrid.add(trees[i % trees.length]);
-    }
-    while (_imgGrid.length < total) {
-      _imgGrid.add(others[_rng.nextInt(others.length)]);
-    }
-    _imgGrid.shuffle(_rng);
-    for (var i = 0; i < _imgGrid.length; i++) {
-      if (_treeEmojis.contains(_imgGrid[i])) _imgCorrect.add(i);
-    }
-  }
+  // ─── FLOW ──────────────────────────────────────────────
 
   void _nextStep() {
-    if (_step == _CaptchaStep.gate) {
-      setState(() => _step = _CaptchaStep.emojiGrid);
-      return;
-    }
-    if (_step == _CaptchaStep.emojiGrid) {
-      setState(() {
-        _step = _CaptchaStep.distortedText;
-        _textCtrl.clear();
-      });
-      return;
-    }
-    if (_step == _CaptchaStep.distortedText) {
-      setState(() => _step = _CaptchaStep.sliderAlign);
-      return;
-    }
-    if (_step == _CaptchaStep.sliderAlign) {
-      setState(() => _step = _CaptchaStep.rotateAlign);
-      return;
-    }
-    if (_step == _CaptchaStep.rotateAlign) {
-      setState(() {
-        _step = _CaptchaStep.imageGrid;
-        _imgSelected.clear();
-        _initImageGrid();
-      });
-      return;
+    switch (_step) {
+      case _CaptchaStep.gate:
+        setState(() => _step = _CaptchaStep.textCaptcha1);
+      case _CaptchaStep.textCaptcha1:
+        setState(() {
+          _textCtrl.clear();
+          _step = _CaptchaStep.imageGrid;
+        });
+      case _CaptchaStep.imageGrid:
+        setState(() {
+          _textCtrl.clear();
+          _step = _CaptchaStep.textCaptcha2;
+        });
+      case _CaptchaStep.textCaptcha2:
+        setState(() => _step = _CaptchaStep.sliderAlign);
+      case _CaptchaStep.sliderAlign:
+        setState(() => _step = _CaptchaStep.rotateAlign);
+      case _CaptchaStep.rotateAlign:
+        break;
     }
   }
 
@@ -179,24 +94,29 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
     });
   }
 
-  void _verifyEmoji() {
-    if (_selectedIndices.length == _correctIndices.length &&
-        _selectedIndices.containsAll(_correctIndices)) {
-      _nextStep();
-    } else {
-      setState(() {
-        _selectedIndices.clear();
-        _initEmojiGrid();
-      });
-      _snack('try again');
-    }
-  }
-
-  void _verifyText() {
-    if (_textCtrl.text.trim().toUpperCase() == _textChallenge) {
+  void _verifyText1() {
+    if (_textCtrl.text.trim().toLowerCase() == '2pfpn') {
       _nextStep();
     } else {
       _snack('text does not match');
+    }
+  }
+
+  void _verifyText2() {
+    if (_textCtrl.text.trim().toUpperCase() == 'HAPK3') {
+      _nextStep();
+    } else {
+      _snack('text does not match');
+    }
+  }
+
+  void _verifyGrid() {
+    if (_gridSelected.length == _gridCorrect.length &&
+        _gridSelected.containsAll(_gridCorrect)) {
+      _nextStep();
+    } else {
+      setState(() => _gridSelected.clear());
+      _snack('try again');
     }
   }
 
@@ -212,26 +132,13 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
     final d = (_rotateTurns - _targetTurns + 10) % 1.0;
     final err = d > 0.5 ? 1.0 - d : d;
     if (err <= 0.08) {
-      _nextStep();
-    } else {
-      _snack('rotate to upright');
-    }
-  }
-
-  void _verifyImageGrid() {
-    if (_imgSelected.length == _imgCorrect.length &&
-        _imgSelected.containsAll(_imgCorrect)) {
       _playSw.stop();
       widget.onComplete(LevelOutcome(
         score: 1,
         metrics: {'duration_ms': _playSw.elapsedMilliseconds},
       ));
     } else {
-      setState(() {
-        _imgSelected.clear();
-        _initImageGrid();
-      });
-      _snack('incorrect selection');
+      _snack('rotate to upright');
     }
   }
 
@@ -244,6 +151,8 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
       ),
     );
   }
+
+  // ─── BUILD ─────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -260,12 +169,6 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
           padding: const EdgeInsets.all(20),
           child: Container(
             constraints: const BoxConstraints(maxWidth: 420),
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade800.withValues(alpha: 0.35),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade700),
-            ),
             child: _buildStep(),
           ),
         ),
@@ -276,19 +179,39 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
   Widget _buildStep() {
     switch (_step) {
       case _CaptchaStep.gate:
-        return _buildGate();
-      case _CaptchaStep.emojiGrid:
-        return _buildEmoji();
-      case _CaptchaStep.distortedText:
-        return _buildText();
-      case _CaptchaStep.sliderAlign:
-        return _buildSlider();
-      case _CaptchaStep.rotateAlign:
-        return _buildRotate();
+        return _wrapCard(_buildGate());
+      case _CaptchaStep.textCaptcha1:
+        return _wrapCard(_buildTextCaptcha(
+          assetPath: 'assets/captcha/text_1.png',
+          onVerify: _verifyText1,
+        ));
       case _CaptchaStep.imageGrid:
-        return _buildImgGrid();
+        return _buildImageGrid();
+      case _CaptchaStep.textCaptcha2:
+        return _wrapCard(_buildTextCaptcha(
+          assetPath: 'assets/captcha/text_2.png',
+          onVerify: _verifyText2,
+        ));
+      case _CaptchaStep.sliderAlign:
+        return _wrapCard(_buildSlider());
+      case _CaptchaStep.rotateAlign:
+        return _wrapCard(_buildRotate());
     }
   }
+
+  Widget _wrapCard(Widget child) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade800.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade700),
+      ),
+      child: child,
+    );
+  }
+
+  // ─── GATE ──────────────────────────────────────────────
 
   Widget _buildGate() {
     return Column(
@@ -345,166 +268,189 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
     );
   }
 
-  Widget _buildEmoji() {
+  // ─── TEXT CAPTCHA (uses actual images) ─────────────────
+
+  Widget _buildTextCaptcha({
+    required String assetPath,
+    required VoidCallback onVerify,
+  }) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         const Text(
-          'select all squares with cars',
+          'type the characters you see',
           style: TextStyle(color: Colors.white70, fontSize: 14),
         ),
         const SizedBox(height: 12),
-        AspectRatio(
-          aspectRatio: 1,
-          child: GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 4,
-              mainAxisSpacing: 4,
-            ),
-            itemCount: 9,
-            itemBuilder: (context, index) {
-              final sel = _selectedIndices.contains(index);
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    if (sel) {
-                      _selectedIndices.remove(index);
-                    } else {
-                      _selectedIndices.add(index);
-                    }
-                  });
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade700,
-                    border: Border.all(
-                      color: sel ? NunuColors.primaryMain : Colors.grey.shade600,
-                      width: sel ? 3 : 1,
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(_gridItems[index], style: const TextStyle(fontSize: 36)),
-                  ),
-                ),
-              );
-            },
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: Colors.grey.shade600),
           ),
-        ),
-        const SizedBox(height: 12),
-        FilledButton(
-          onPressed: _selectedIndices.isEmpty ? null : _verifyEmoji,
-          child: const Text('verify'),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildText() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Text(
-          'scroll, then type the characters you see',
-          style: TextStyle(color: Colors.white70),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 200,
-          child: Scrollbar(
-            thumbVisibility: true,
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ...List.generate(
-                    _textNoiseTop.length,
-                    (i) => Padding(
-                      padding: const EdgeInsets.only(bottom: 14),
-                      child: Text(
-                        _textNoiseTop[i],
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.22),
-                          fontSize: 11,
-                          height: 1.35,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Transform(
-                    transform: Matrix4.identity()
-                      ..rotateZ(-0.12)
-                      ..scaleByDouble(1.05, 0.92, 1.0, 1.0),
-                    alignment: Alignment.center,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: Colors.black45, width: 2),
-                      ),
-                      child: Text(
-                        _textChallenge,
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 6,
-                          color: Colors.blueGrey.shade900,
-                          shadows: [
-                            Shadow(
-                              offset: const Offset(2, 1),
-                              blurRadius: 0,
-                              color: Colors.red.shade300,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 120),
-                  ...List.generate(
-                    _textNoiseBottom.length,
-                    (i) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Text(
-                        _textNoiseBottom[i],
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          fontSize: 10,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: Image.asset(
+              assetPath,
+              fit: BoxFit.contain,
+              width: double.infinity,
             ),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         TextField(
           controller: _textCtrl,
-          style: const TextStyle(color: Colors.white),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            letterSpacing: 2,
+          ),
+          textCapitalization: TextCapitalization.none,
+          autocorrect: false,
           decoration: InputDecoration(
             hintText: 'type here',
             hintStyle: TextStyle(color: Colors.grey.shade500),
             filled: true,
             fillColor: Colors.black38,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
         ),
         const SizedBox(height: 12),
-        FilledButton(
-          onPressed: _verifyText,
-          child: const Text('submit text'),
+        Align(
+          alignment: Alignment.centerRight,
+          child: FilledButton(
+            onPressed: onVerify,
+            child: const Text('submit'),
+          ),
         ),
       ],
     );
   }
+
+  // ─── IMAGE GRID (reCAPTCHA overlay on actual photo) ───
+
+  // Fractional positions of the 3x3 grid within the 546×818 image.
+  static const double _gridTopFrac = 0.160;
+  static const double _gridBottomFrac = 0.860;
+  static const double _gridLeftFrac = 0.004;
+  static const double _gridRightFrac = 0.996;
+  // VERIFY button area
+  static const double _verifyTopFrac = 0.905;
+  static const double _verifyBottomFrac = 0.975;
+  static const double _verifyLeftFrac = 0.62;
+  static const double _verifyRightFrac = 0.97;
+  static const double _imageAspect = 546 / 818;
+
+  Widget _buildImageGrid() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final w = constraints.maxWidth;
+        final h = w / _imageAspect;
+
+        final gridTop = h * _gridTopFrac;
+        final gridHeight = h * (_gridBottomFrac - _gridTopFrac);
+        final gridLeft = w * _gridLeftFrac;
+        final gridWidth = w * (_gridRightFrac - _gridLeftFrac);
+
+        final cellW = gridWidth / 3;
+        final cellH = gridHeight / 3;
+
+        return SizedBox(
+          width: w,
+          height: h,
+          child: Stack(
+            children: [
+              // Full reCAPTCHA image
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: Image.asset(
+                    'assets/captcha/grid_taxis.png',
+                    fit: BoxFit.fill,
+                  ),
+                ),
+              ),
+              // Selection overlays + tap targets for each tile
+              for (var row = 0; row < 3; row++)
+                for (var col = 0; col < 3; col++)
+                  _buildTileTap(
+                    index: row * 3 + col,
+                    left: gridLeft + col * cellW,
+                    top: gridTop + row * cellH,
+                    width: cellW,
+                    height: cellH,
+                  ),
+              // Transparent VERIFY tap target over the image's VERIFY button
+              Positioned(
+                top: h * _verifyTopFrac,
+                left: w * _verifyLeftFrac,
+                width: w * (_verifyRightFrac - _verifyLeftFrac),
+                height: h * (_verifyBottomFrac - _verifyTopFrac),
+                child: GestureDetector(
+                  onTap: _gridSelected.isEmpty ? null : _verifyGrid,
+                  child: Container(color: Colors.transparent),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTileTap({
+    required int index,
+    required double left,
+    required double top,
+    required double width,
+    required double height,
+  }) {
+    final selected = _gridSelected.contains(index);
+    return Positioned(
+      left: left,
+      top: top,
+      width: width,
+      height: height,
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            if (selected) {
+              _gridSelected.remove(index);
+            } else {
+              _gridSelected.add(index);
+            }
+          });
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          decoration: BoxDecoration(
+            color: selected
+                ? const Color(0xFF4285F4).withValues(alpha: 0.4)
+                : Colors.transparent,
+            border: selected
+                ? Border.all(color: const Color(0xFF4285F4), width: 3)
+                : null,
+          ),
+          child: selected
+              ? const Align(
+                  alignment: Alignment.bottomRight,
+                  child: Padding(
+                    padding: EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.check_circle,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                )
+              : null,
+        ),
+      ),
+    );
+  }
+
+  // ─── SLIDER ────────────────────────────────────────────
 
   Widget _buildSlider() {
     return Column(
@@ -524,19 +470,19 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
                 children: [
                   Expanded(
                     flex: (_sliderX * 100).round().clamp(1, 99),
-                    child: Container(color: NunuColors.secondaryMain.withValues(alpha: 0.6)),
+                    child: Container(
+                      color: NunuColors.secondaryMain.withValues(alpha: 0.6),
+                    ),
                   ),
                   Expanded(
                     flex: ((1 - _sliderX) * 100).round().clamp(1, 99),
-                    child: Container(color: NunuColors.primaryDark.withValues(alpha: 0.5)),
+                    child: Container(
+                      color: NunuColors.primaryDark.withValues(alpha: 0.5),
+                    ),
                   ),
                 ],
               ),
-              Container(
-                width: 4,
-                height: 56,
-                color: Colors.white,
-              ),
+              Container(width: 4, height: 56, color: Colors.white),
             ],
           ),
         ),
@@ -544,10 +490,15 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
           value: _sliderX,
           onChanged: (v) => setState(() => _sliderX = v),
         ),
-        FilledButton(onPressed: _verifySlider, child: const Text('lock in')),
+        FilledButton(
+          onPressed: _verifySlider,
+          child: const Text('lock in'),
+        ),
       ],
     );
   }
+
+  // ─── ROTATE ────────────────────────────────────────────
 
   Widget _buildRotate() {
     return Column(
@@ -575,66 +526,9 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
           label: _rotateTurns.toStringAsFixed(2),
           onChanged: (v) => setState(() => _rotateTurns = v),
         ),
-        FilledButton(onPressed: _verifyRotate, child: const Text('confirm rotation')),
-      ],
-    );
-  }
-
-  Widget _buildImgGrid() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Text(
-          'select every tile with a tree (scroll to see all)',
-          style: TextStyle(color: Colors.white70),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 420,
-          child: GridView.builder(
-            physics: const AlwaysScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 6,
-              crossAxisSpacing: 4,
-              mainAxisSpacing: 4,
-              childAspectRatio: 1,
-            ),
-            itemCount: _imgGrid.length,
-            itemBuilder: (context, i) {
-              final sel = _imgSelected.contains(i);
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    if (sel) {
-                      _imgSelected.remove(i);
-                    } else {
-                      _imgSelected.add(i);
-                    }
-                  });
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade700,
-                    border: Border.all(
-                      color: sel ? NunuColors.primaryMain : Colors.grey.shade600,
-                      width: sel ? 2 : 1,
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      _imgGrid[i],
-                      style: const TextStyle(fontSize: 26),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 12),
         FilledButton(
-          onPressed: _imgSelected.isEmpty ? null : _verifyImageGrid,
-          child: const Text('verify'),
+          onPressed: _verifyRotate,
+          child: const Text('confirm rotation'),
         ),
       ],
     );

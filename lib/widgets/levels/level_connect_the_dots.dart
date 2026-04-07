@@ -5,169 +5,241 @@ import '../../theme/app_theme.dart';
 import 'dart:math';
 
 class LevelConnectTheDots extends LevelWidget {
-  const LevelConnectTheDots({Key? key, required super.onComplete})
-    : super(key: key);
+  const LevelConnectTheDots({super.key, required super.onComplete});
 
   @override
   State<LevelConnectTheDots> createState() => _LevelConnectTheDotsState();
 }
 
 class _LevelConnectTheDotsState extends State<LevelConnectTheDots> {
-  static const List<int> _stageDotCounts = [3, 5, 7, 9, 12];
-  static const int maxAttempts = 20;
-  static const double _snapRadius = 68;
+  static const List<int> _stageDotCounts = [5, 7, 12, 7, 9, 14];
+  static const List<bool> _stageShuffled = [false, false, false, true, true, true];
+  static const int _maxLives = 10;
+  static const double _dotHitRadius = 40;
+  static const double _minDotSpacing = _dotHitRadius * 2;
 
   final List<Offset> _dotPositions = [];
-  final List<int> _connectedDots = [];
+  final List<int> _connectedPositions = [];
   final List<Offset> _linePoints = [];
+
+  /// Maps position index → display number (0-based).
+  /// For normal stages this is identity; for the last stage it's shuffled.
+  List<int> _displayNumbers = [];
+
+  /// Reverse: maps display number → position index.
+  List<int> _positionForNumber = [];
+
   bool _isDrawing = false;
+  bool _levelFinished = false;
   int _totalDots = 0;
   Size _canvasSize = Size.zero;
   int _stageIndex = 0;
-  int _attempts = 0;
+  int _stagesCleared = 0;
+  int _lives = _maxLives;
+  int _failedTraces = 0;
+  int _nextExpectedNumber = 0;
 
   int get _dotsThisStage => _stageDotCounts[_stageIndex];
-
-  @override
-  void initState() {
-    super.initState();
-  }
+  bool get _isShuffledStage => _stageShuffled[_stageIndex];
 
   void _generateDots(Size size, {bool force = false}) {
     if (!force && _dotPositions.isNotEmpty) return;
 
     final random = Random();
     _dotPositions.clear();
-    _connectedDots.clear();
+    _connectedPositions.clear();
     _linePoints.clear();
     _isDrawing = false;
+    _nextExpectedNumber = 0;
 
     _totalDots = _dotsThisStage;
 
     final centerX = size.width / 2;
     final centerY = size.height / 2;
+    final radiusX = (size.width / 2) - 50;
+    final radiusY = (size.height / 2) - 60;
 
     for (int i = 0; i < _totalDots; i++) {
-      final angle =
-          (2 * pi * i) / _totalDots + (random.nextDouble() - 0.5) * 1.2;
-      final radius = 50 + random.nextDouble() * min(70.0, size.shortestSide / 4);
-      final randomOffsetX = (random.nextDouble() - 0.5) * 40;
-      final randomOffsetY = (random.nextDouble() - 0.5) * 40;
+      Offset? candidate;
+      for (int attempt = 0; attempt < 200; attempt++) {
+        final angle =
+            (2 * pi * i) / _totalDots + (random.nextDouble() - 0.5) * 1.2;
+        final rFactor = 0.35 + random.nextDouble() * 0.65;
+        final x = centerX + cos(angle) * radiusX * rFactor;
+        final y = centerY + sin(angle) * radiusY * rFactor;
 
-      final x = centerX + cos(angle) * radius + randomOffsetX;
-      final y = centerY + sin(angle) * radius + randomOffsetY;
+        final clamped = Offset(
+          x.clamp(40.0, size.width - 40.0),
+          y.clamp(60.0, size.height - 40.0),
+        );
 
-      _dotPositions.add(Offset(x, y));
+        final tooClose = _dotPositions.any(
+          (existing) => (existing - clamped).distance < _minDotSpacing,
+        );
+
+        if (!tooClose) {
+          candidate = clamped;
+          break;
+        }
+      }
+      _dotPositions.add(
+        candidate ??
+            Offset(
+              (centerX + cos(2 * pi * i / _totalDots) * radiusX * 0.8)
+                  .clamp(40.0, size.width - 40.0),
+              (centerY + sin(2 * pi * i / _totalDots) * radiusY * 0.8)
+                  .clamp(60.0, size.height - 40.0),
+            ),
+      );
+    }
+
+    if (_isShuffledStage) {
+      _displayNumbers = List.generate(_totalDots, (i) => i)..shuffle(random);
+    } else {
+      _displayNumbers = List.generate(_totalDots, (i) => i);
+    }
+
+    _positionForNumber = List.filled(_totalDots, 0);
+    for (int pos = 0; pos < _totalDots; pos++) {
+      _positionForNumber[_displayNumbers[pos]] = pos;
     }
   }
 
-  void _fail() {
+  int? _getDotAtPosition(Offset position) {
+    int? closest;
+    double closestDist = double.infinity;
+    for (int i = 0; i < _dotPositions.length; i++) {
+      final d = (position - _dotPositions[i]).distance;
+      if (d < _dotHitRadius && d < closestDist) {
+        closest = i;
+        closestDist = d;
+      }
+    }
+    return closest;
+  }
+
+  double _calculateScore() {
+    return (_stagesCleared * 0.15) + (_lives * 0.02);
+  }
+
+  void _finishLevel() {
+    if (_levelFinished) return;
+    _levelFinished = true;
     widget.onComplete(LevelOutcome(
-      score: 0,
+      score: _calculateScore(),
       metrics: {
-        'total_attempts': _attempts,
-        'stages_cleared': _stageIndex,
+        'stages_cleared': _stagesCleared,
+        'lives_remaining': _lives,
+        'max_lives': _maxLives,
+        'failed_traces': _failedTraces,
       },
     ));
   }
 
+  void _loseLife() {
+    if (_levelFinished) return;
+
+    setState(() {
+      _failedTraces++;
+      _lives = max(0, _lives - 1);
+      _connectedPositions.clear();
+      _linePoints.clear();
+      _isDrawing = false;
+      _nextExpectedNumber = 0;
+    });
+
+    if (_lives == 0) {
+      _finishLevel();
+    }
+  }
+
   void _advanceStageOrWin() {
-    Future.delayed(const Duration(milliseconds: 400), () {
+    Future.delayed(const Duration(milliseconds: 500), () {
       if (!mounted) return;
-      if (_stageIndex >= _stageDotCounts.length - 1) {
-        widget.onComplete(LevelOutcome(
-          score: 1,
-          metrics: {
-            'total_attempts': _attempts,
-            'stages_cleared': _stageDotCounts.length,
-          },
-        ));
+      if (_stagesCleared >= _stageDotCounts.length) {
+        _finishLevel();
         return;
       }
       setState(() {
-        _stageIndex++;
+        _stageIndex = _stagesCleared;
         _generateDots(_canvasSize, force: true);
       });
     });
   }
 
-  /// Nearest dot center within [_snapRadius], else null.
-  Offset? _snapToDot(Offset position) {
-    for (final dot in _dotPositions) {
-      if ((position - dot).distance <= _snapRadius) {
-        return dot;
-      }
-    }
-    return null;
-  }
-
-  int? _dotIndexAt(Offset position) {
-    for (int i = 0; i < _dotPositions.length; i++) {
-      if ((position - _dotPositions[i]).distance <= _snapRadius) {
-        return i;
-      }
-    }
-    return null;
-  }
-
   void _onPanStart(DragStartDetails details) {
-    if (_dotPositions.isEmpty) return;
+    if (_dotPositions.isEmpty || _levelFinished) return;
 
     final localPosition = details.localPosition;
-    final snapped = _snapToDot(localPosition) ?? localPosition;
-    final dotIndex = _dotIndexAt(snapped);
+    final posIndex = _getDotAtPosition(localPosition);
+    if (posIndex == null) return;
 
-    if (dotIndex != null && !_connectedDots.contains(dotIndex)) {
+    final startPosition = _positionForNumber[0];
+    if (posIndex == startPosition && !_connectedPositions.contains(posIndex)) {
       setState(() {
         _isDrawing = true;
-        _connectedDots.add(dotIndex);
-        _linePoints.add(_dotPositions[dotIndex]);
+        _connectedPositions.add(posIndex);
+        _linePoints.add(_dotPositions[posIndex]);
+        _nextExpectedNumber = 1;
       });
     }
   }
 
   void _onPanUpdate(DragUpdateDetails details) {
-    if (!_isDrawing) return;
+    if (!_isDrawing || _levelFinished) return;
 
-    final raw = details.localPosition;
-    final snapped = _snapToDot(raw) ?? raw;
+    final localPosition = details.localPosition;
+    final posIndex = _getDotAtPosition(localPosition);
+
+    if (posIndex != null && !_connectedPositions.contains(posIndex)) {
+      final displayNum = _displayNumbers[posIndex];
+      if (displayNum == _nextExpectedNumber) {
+        setState(() {
+          _linePoints.add(localPosition);
+          _connectedPositions.add(posIndex);
+          _linePoints.add(_dotPositions[posIndex]);
+          _nextExpectedNumber++;
+
+          if (_connectedPositions.length == _totalDots) {
+            _isDrawing = false;
+            _stagesCleared++;
+            _advanceStageOrWin();
+          }
+        });
+      } else {
+        _loseLife();
+      }
+      return;
+    }
 
     setState(() {
-      if (_linePoints.length >= 2) {
-        _linePoints[_linePoints.length - 1] = snapped;
-      } else if (_linePoints.length == 1) {
-        _linePoints.add(snapped);
-      }
-
-      final dotIndex = _dotIndexAt(snapped);
-
-      if (dotIndex != null && !_connectedDots.contains(dotIndex)) {
-        _connectedDots.add(dotIndex);
-        _linePoints[_linePoints.length - 1] = _dotPositions[dotIndex];
-        _linePoints.add(_dotPositions[dotIndex]);
-
-        if (_connectedDots.length == _totalDots) {
-          _isDrawing = false;
-          Future.delayed(const Duration(milliseconds: 400), () {
-            _advanceStageOrWin();
-          });
-        }
-      }
+      _linePoints.add(localPosition);
     });
   }
 
   void _onPanEnd(DragEndDetails details) {
-    if (_connectedDots.length < _totalDots) {
-      setState(() {
-        _isDrawing = false;
-        _connectedDots.clear();
-        _linePoints.clear();
-      });
-      _attempts++;
-      if (_attempts >= maxAttempts) {
-        _fail();
-      }
+    if (_connectedPositions.length < _totalDots && _isDrawing) {
+      _loseLife();
     }
+  }
+
+  Widget _livesRow() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(_maxLives, (i) {
+        final alive = i < _lives;
+        return Padding(
+          padding: EdgeInsets.only(left: i == 0 ? 0 : 1),
+          child: Icon(
+            alive ? Icons.favorite : Icons.favorite_border,
+            size: 14,
+            color: alive
+                ? NunuColors.primaryMain
+                : NunuColors.primaryLight.withValues(alpha: 0.28),
+          ),
+        );
+      }),
+    );
   }
 
   @override
@@ -176,7 +248,6 @@ class _LevelConnectTheDotsState extends State<LevelConnectTheDots> {
       builder: (context, constraints) {
         final size = Size(constraints.maxWidth, constraints.maxHeight);
 
-        // Generate dots once we have the size
         if (_canvasSize != size) {
           _canvasSize = size;
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -196,12 +267,21 @@ class _LevelConnectTheDotsState extends State<LevelConnectTheDots> {
             children: [
               if (_dotPositions.isNotEmpty)
                 CustomPaint(
+                  size: size,
                   painter: ConnectDotsPainter(
                     dotPositions: _dotPositions,
-                    connectedDots: _connectedDots,
+                    connectedPositions: _connectedPositions,
                     linePoints: _linePoints,
+                    displayNumbers: _displayNumbers,
                   ),
                 ),
+              Positioned(
+                right: 12,
+                top: 8,
+                child: IgnorePointer(
+                  child: _livesRow(),
+                ),
+              ),
             ],
           ),
         );
@@ -212,20 +292,20 @@ class _LevelConnectTheDotsState extends State<LevelConnectTheDots> {
 
 class ConnectDotsPainter extends CustomPainter {
   final List<Offset> dotPositions;
-  final List<int> connectedDots;
+  final List<int> connectedPositions;
   final List<Offset> linePoints;
+  final List<int> displayNumbers;
 
   ConnectDotsPainter({
     required this.dotPositions,
-    required this.connectedDots,
+    required this.connectedPositions,
     required this.linePoints,
+    required this.displayNumbers,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Draw the line path with a glowing effect
     if (linePoints.length > 1) {
-      // Outer glow
       final glowPaint = Paint()
         ..color = NunuColors.primaryMain.withValues(alpha: 0.3)
         ..strokeWidth = 8
@@ -240,7 +320,6 @@ class ConnectDotsPainter extends CustomPainter {
       }
       canvas.drawPath(path, glowPaint);
 
-      // Main line
       final linePaint = Paint()
         ..color = NunuColors.primaryMain.withValues(alpha: 0.8)
         ..strokeWidth = 4
@@ -249,27 +328,22 @@ class ConnectDotsPainter extends CustomPainter {
       canvas.drawPath(path, linePaint);
     }
 
-    // Draw all dots as stars or planets
     for (int i = 0; i < dotPositions.length; i++) {
-      final isConnected = connectedDots.contains(i);
+      final isConnected = connectedPositions.contains(i);
+      final displayNum = i < displayNumbers.length ? displayNumbers[i] : i;
 
-      // Alternate between stars and planets
-      final isEven = i % 2 == 0;
-
-      if (isEven) {
-        // Draw a star
-        _drawStar(canvas, dotPositions[i], isConnected, i);
+      if (i % 2 == 0) {
+        _drawStar(canvas, dotPositions[i], isConnected, displayNum);
       } else {
-        // Draw a planet
-        _drawPlanet(canvas, dotPositions[i], isConnected, i);
+        _drawPlanet(canvas, dotPositions[i], isConnected, displayNum);
       }
     }
 
-    // Draw constellation name when all connected
-    if (connectedDots.length == dotPositions.length) {
+    if (connectedPositions.length == dotPositions.length &&
+        dotPositions.isNotEmpty) {
       final textPainter = TextPainter(
         text: const TextSpan(
-          text: '✨ Constellation Complete! ✨',
+          text: 'constellation complete!',
           style: TextStyle(
             color: NunuColors.primaryLight,
             fontSize: 20,
@@ -286,32 +360,33 @@ class ConnectDotsPainter extends CustomPainter {
     }
   }
 
-  void _drawStar(Canvas canvas, Offset center, bool isConnected, int index) {
+  void _drawStar(
+    Canvas canvas,
+    Offset center,
+    bool isConnected,
+    int displayNum,
+  ) {
     final color = isConnected ? const Color(0xFFFFD700) : Colors.grey.shade600;
 
-    // Outer glow
     final glowPaint = Paint()
-      ..color = color.withValues(alpha: 0.4)
+      ..color = color.withValues(alpha: 0.45)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15);
     _drawStarPath(canvas, center, 25, glowPaint);
 
-    // Main star
     final starPaint = Paint()
       ..color = color
       ..style = PaintingStyle.fill;
     _drawStarPath(canvas, center, 18, starPaint);
 
-    // Inner highlight
     final highlightPaint = Paint()
       ..color = Colors.white.withValues(alpha: isConnected ? 0.8 : 0.3)
       ..style = PaintingStyle.fill;
     _drawStarPath(canvas, center, 8, highlightPaint);
 
-    // Draw number
     _drawNumber(
       canvas,
       center,
-      index,
+      displayNum,
       isConnected ? Colors.black : Colors.white,
     );
   }
@@ -320,7 +395,7 @@ class ConnectDotsPainter extends CustomPainter {
     final path = Path();
     final outerRadius = size;
     final innerRadius = size * 0.4;
-    final numPoints = 5;
+    const numPoints = 5;
 
     for (int i = 0; i < numPoints * 2; i++) {
       final angle = (pi * i / numPoints) - pi / 2;
@@ -338,50 +413,48 @@ class ConnectDotsPainter extends CustomPainter {
     canvas.drawPath(path, paint);
   }
 
-  void _drawPlanet(Canvas canvas, Offset center, bool isConnected, int index) {
-    // Planet colors - different for each planet
+  void _drawPlanet(
+    Canvas canvas,
+    Offset center,
+    bool isConnected,
+    int displayNum,
+  ) {
     final planetColors = [
-      const Color(0xFF4169E1), // Blue
-      const Color(0xFFFF6347), // Red/Mars
-      const Color(0xFF9370DB), // Purple
-      const Color(0xFF20B2AA), // Teal
-      const Color(0xFFFF8C00), // Orange
+      const Color(0xFF4169E1),
+      const Color(0xFFFF6347),
+      const Color(0xFF9370DB),
+      const Color(0xFF20B2AA),
+      const Color(0xFFFF8C00),
     ];
 
-    final baseColor = planetColors[index % planetColors.length];
+    final baseColor = planetColors[displayNum % planetColors.length];
     final color = isConnected ? baseColor : Colors.grey.shade600;
 
-    // Outer glow/atmosphere
     final glowPaint = Paint()
-      ..color = color.withValues(alpha: 0.3)
+      ..color = color.withValues(alpha: 0.35)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
     canvas.drawCircle(center, 25, glowPaint);
 
-    // Planet body
     final planetPaint = Paint()
       ..color = color
       ..style = PaintingStyle.fill;
     canvas.drawCircle(center, 18, planetPaint);
 
-    // Shadow/dimension
     final shadowPaint = Paint()
       ..color = Colors.black.withValues(alpha: 0.3)
       ..style = PaintingStyle.fill;
     canvas.drawCircle(center + const Offset(4, 4), 16, shadowPaint);
 
-    // Highlight
     final highlightPaint = Paint()
       ..color = Colors.white.withValues(alpha: isConnected ? 0.6 : 0.2)
       ..style = PaintingStyle.fill;
     canvas.drawCircle(center - const Offset(5, 5), 6, highlightPaint);
 
-    // Planet rings (for some planets)
-    if (index % 3 == 1) {
+    if (displayNum % 3 == 1) {
       _drawPlanetRings(canvas, center, color, isConnected);
     }
 
-    // Draw number
-    _drawNumber(canvas, center, index, Colors.white);
+    _drawNumber(canvas, center, displayNum, Colors.white);
   }
 
   void _drawPlanetRings(
@@ -395,19 +468,22 @@ class ConnectDotsPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3;
 
-    // Draw elliptical ring
     final rect = Rect.fromCenter(center: center, width: 50, height: 15);
     canvas.drawOval(rect, ringPaint);
 
-    // Inner ring
     final innerRect = Rect.fromCenter(center: center, width: 44, height: 12);
     canvas.drawOval(innerRect, ringPaint);
   }
 
-  void _drawNumber(Canvas canvas, Offset center, int index, Color textColor) {
+  void _drawNumber(
+    Canvas canvas,
+    Offset center,
+    int displayNum,
+    Color textColor,
+  ) {
     final textPainter = TextPainter(
       text: TextSpan(
-        text: '${index + 1}',
+        text: '${displayNum + 1}',
         style: TextStyle(
           color: textColor,
           fontSize: 12,
@@ -424,7 +500,5 @@ class ConnectDotsPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(ConnectDotsPainter oldDelegate) {
-    return true;
-  }
+  bool shouldRepaint(ConnectDotsPainter oldDelegate) => true;
 }
