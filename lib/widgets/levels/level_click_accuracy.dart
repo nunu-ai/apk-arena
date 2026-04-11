@@ -23,25 +23,25 @@ class _LevelClickAccuracyState extends State<LevelClickAccuracy> {
   // They represent logical pixels (width & height), indexed by round index (0..19).
   static const List<double> _hitboxSizes = [
     120, // round 1
-    80,  // round 2
-    65,  // round 3
-    52,  // round 4
-    44,  // round 5
-    37,  // round 6
-    31,  // round 7
-    26,  // round 8
-    22,  // round 9
-    18,  // round 10
-    15,  // round 11
-    12,  // round 12
-    10,  // round 13
-    8,   // round 14
-    6,   // round 15
-    5,   // round 16
-    4,   // round 17
-    3,   // round 18
-    2,   // round 19
-    1,   // round 20
+    80, // round 2
+    65, // round 3
+    52, // round 4
+    44, // round 5
+    37, // round 6
+    31, // round 7
+    26, // round 8
+    22, // round 9
+    18, // round 10
+    15, // round 11
+    12, // round 12
+    10, // round 13
+    8, // round 14
+    6, // round 15
+    5, // round 16
+    4, // round 17
+    3, // round 18
+    2, // round 19
+    1, // round 20
   ];
 
   final Random _rng = Random();
@@ -78,8 +78,10 @@ class _LevelClickAccuracyState extends State<LevelClickAccuracy> {
       return (_scoreWeightStages * stageFraction).clamp(0.0, 1.0);
     }
     final livesFraction = (livesRemaining / maxLives).clamp(0.0, 1.0);
-    return (_scoreWeightStages + _scoreWeightLives * livesFraction)
-        .clamp(0.0, 1.0);
+    return (_scoreWeightStages + _scoreWeightLives * livesFraction).clamp(
+      0.0,
+      1.0,
+    );
   }
 
   void _fail() {

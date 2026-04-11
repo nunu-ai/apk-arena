@@ -16,6 +16,7 @@ import 'package:apk_arena/widgets/levels/level_click_grid_coordinate.dart';
 import 'package:apk_arena/widgets/levels/level_closing_drawer.dart';
 import 'package:apk_arena/widgets/levels/level_coin_collector.dart';
 import 'package:apk_arena/widgets/levels/level_coin_map.dart';
+import 'package:apk_arena/widgets/levels/level_connect_the_dots.dart';
 import 'package:apk_arena/widgets/levels/level_dice_recognition.dart';
 import 'package:apk_arena/widgets/levels/level_do_not_click.dart';
 import 'package:apk_arena/widgets/levels/level_dvd_logo.dart';
@@ -113,6 +114,14 @@ final List<LevelEntry> primitivesLevels = [
           "tap the logo 20 times; it shrinks each hit. 10 hearts — a miss costs one.",
     ),
     widgetBuilder: (onComplete) => LevelClickAccuracy(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "star lanes",
+      instructions:
+          "start on 1 and drag through every number in order in one stroke; wrong first touch, wrong next body, or lifting early costs a life.",
+    ),
+    widgetBuilder: (onComplete) => LevelConnectTheDots(onComplete: onComplete),
   ),
 ];
 final List<LevelEntry> visionLevels = [];
@@ -800,7 +809,8 @@ final Map<int, LevelEntry> levelsRegistry = {
   for (var i = 0; i < visionLevels.length; i++) 100 + i: visionLevels[i],
   for (var i = 0; i < memoryLevels.length; i++) 200 + i: memoryLevels[i],
   for (var i = 0; i < iqLevels.length; i++) 300 + i: iqLevels[i],
-  for (var i = 0; i < tempospatialLevels.length; i++) 400 + i: tempospatialLevels[i],
+  for (var i = 0; i < tempospatialLevels.length; i++)
+    400 + i: tempospatialLevels[i],
   for (var i = 0; i < gamesLevels.length; i++) 500 + i: gamesLevels[i],
   for (var i = 0; i < tasksLevels.length; i++) 600 + i: tasksLevels[i],
   for (var i = 0; i < unsortedLevels.length; i++) 700 + i: unsortedLevels[i],
