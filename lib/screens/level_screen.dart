@@ -13,7 +13,11 @@ class LevelScreen extends StatefulWidget {
   final int levelNumber;
   final bool randomMode;
 
-  const LevelScreen({Key? key, required this.levelNumber, this.randomMode = false}) : super(key: key);
+  const LevelScreen({
+    Key? key,
+    required this.levelNumber,
+    this.randomMode = false,
+  }) : super(key: key);
 
   @override
   State<LevelScreen> createState() => _LevelScreenState();

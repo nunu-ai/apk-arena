@@ -290,7 +290,7 @@ final List<LevelEntry> unsortedLevels = [
     data: LevelData(
       title: "Click Gauntlet",
       instructions:
-          "stage 1: tap the logo 20 times; it shrinks each hit. 10 hearts — a miss costs one. stage 2: six constellations — the last three scramble the numbers. connect in order and protect your 10 lives.",
+          "tap the logo 20 times; it shrinks each hit. 10 hearts — a miss costs one.",
     ),
     widgetBuilder: (onComplete) => LevelClickAccuracy(onComplete: onComplete),
   ),

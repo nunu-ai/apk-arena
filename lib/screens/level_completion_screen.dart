@@ -209,11 +209,10 @@ class LevelCompletionScreen extends StatelessWidget {
                             Navigator.pushAndRemoveUntil(
                               context,
                               MaterialPageRoute(
-                                builder: (context) =>
-                                    LevelScreen(
-                                      levelNumber: nextLevelNumber!,
-                                      randomMode: randomMode,
-                                    ),
+                                builder: (context) => LevelScreen(
+                                  levelNumber: nextLevelNumber!,
+                                  randomMode: randomMode,
+                                ),
                               ),
                               (route) => route.isFirst,
                             );
