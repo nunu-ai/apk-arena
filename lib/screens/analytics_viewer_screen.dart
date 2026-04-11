@@ -448,14 +448,20 @@ class _AnalyticsViewerScreenState extends State<AnalyticsViewerScreen> {
     switch (difficulty) {
       case 'primitives':
         return NunuColors.successMain;
-      case 'visual':
+      case 'vision':
         return NunuColors.secondaryLight;
-      case 'dailys':
+      case 'memory':
+        return Colors.cyanAccent;
+      case 'iq':
         return NunuColors.warningMain;
-      case 'challenges':
+      case 'tempospatial':
         return NunuColors.primaryLight;
-      case 'agi':
+      case 'games':
         return NunuColors.errorMain;
+      case 'tasks':
+        return Colors.orangeAccent;
+      case 'unsorted':
+        return NunuColors.textSecondary;
       default:
         return NunuColors.textSecondary;
     }

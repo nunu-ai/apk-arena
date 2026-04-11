@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../../level_registry.dart';
@@ -9,6 +10,7 @@ class LevelCompletionScreen extends StatelessWidget {
   final Duration completionTime;
   final double score;
   final Map<String, dynamic>? metrics;
+  final bool randomMode;
 
   const LevelCompletionScreen({
     Key? key,
@@ -17,6 +19,7 @@ class LevelCompletionScreen extends StatelessWidget {
     required this.score,
     required this.completionTime,
     this.metrics,
+    this.randomMode = false,
   }) : super(key: key);
 
   String get formattedTime {
@@ -76,7 +79,14 @@ class LevelCompletionScreen extends StatelessWidget {
     );
   }
 
-  int? get nextLevelNumber => getNextSequentialLevel(levelNumber);
+  int? get nextLevelNumber {
+    if (randomMode) {
+      final all = getAvailableLevels();
+      if (all.isEmpty) return null;
+      return all[Random().nextInt(all.length)];
+    }
+    return getNextSequentialLevel(levelNumber);
+  }
 
   Color get _accentColor {
     if (score >= 0.85) return NunuColors.successMain;
@@ -200,7 +210,10 @@ class LevelCompletionScreen extends StatelessWidget {
                               context,
                               MaterialPageRoute(
                                 builder: (context) =>
-                                    LevelScreen(levelNumber: nextLevelNumber!),
+                                    LevelScreen(
+                                      levelNumber: nextLevelNumber!,
+                                      randomMode: randomMode,
+                                    ),
                               ),
                               (route) => route.isFirst,
                             );
@@ -219,9 +232,9 @@ class LevelCompletionScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: const Text(
-                      'NEXT LEVEL',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    child: Text(
+                      randomMode ? 'RANDOM LEVEL' : 'NEXT LEVEL',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],

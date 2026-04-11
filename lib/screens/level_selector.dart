@@ -1,14 +1,40 @@
 
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../services/progress_service.dart';
 import '../services/navigation.dart';
 import '../theme/app_theme.dart';
-import '../widgets/level_tile.dart';
 import '../level_registry.dart';
 import 'level_screen.dart';
+import 'category_levels_screen.dart';
 import 'debug_level_gallery.dart';
 import 'analytics_viewer_screen.dart';
+
+class _CategoryInfo {
+  final int index;
+  final String name;
+  final IconData icon;
+  final Color color;
+
+  const _CategoryInfo({
+    required this.index,
+    required this.name,
+    required this.icon,
+    required this.color,
+  });
+}
+
+const _categories = [
+  _CategoryInfo(index: 0, name: 'primitives', icon: Icons.touch_app_rounded, color: NunuColors.secondaryLight),
+  _CategoryInfo(index: 1, name: 'vision', icon: Icons.visibility_rounded, color: NunuColors.secondaryLight),
+  _CategoryInfo(index: 2, name: 'memory', icon: Icons.psychology_rounded, color: NunuColors.secondaryLight),
+  _CategoryInfo(index: 3, name: 'iq', icon: Icons.lightbulb_rounded, color: NunuColors.secondaryLight),
+  _CategoryInfo(index: 4, name: 'tempospatial', icon: Icons.speed_rounded, color: NunuColors.secondaryLight),
+  _CategoryInfo(index: 5, name: 'games', icon: Icons.sports_esports_rounded, color: NunuColors.secondaryLight),
+  _CategoryInfo(index: 6, name: 'tasks', icon: Icons.checklist_rounded, color: NunuColors.secondaryLight),
+  _CategoryInfo(index: 7, name: 'unsorted', icon: Icons.shuffle_rounded, color: NunuColors.secondaryLight),
+];
 
 class LevelSelectorScreen extends StatefulWidget {
   const LevelSelectorScreen({Key? key}) : super(key: key);
@@ -20,26 +46,12 @@ class LevelSelectorScreen extends StatefulWidget {
 class _LevelSelectorScreenState extends State<LevelSelectorScreen> with RouteAware {
   final _progressService = ProgressService.instance;
 
-  int selectedDifficulty = 0;
-
-  final Map<int, String> difficultyNames = {
-    0: 'primitives',
-    1: 'visual',
-    2: 'dailys',
-    3: 'challenges',
-    4: 'agi',
-  };
-
-  List<int> get visibleLevels {
-    return getLevelsForDifficulty(selectedDifficulty);
-  }
-
   void resetProgress() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('RESET ALL LEVELS', style: TextStyle(fontWeight: FontWeight.bold),),
-        content: const Text('are you sure you want to reset all progress?', style: TextStyle(color: NunuColors.textSecondary),),
+        title: const Text('RESET ALL LEVELS', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text('are you sure you want to reset all progress?', style: TextStyle(color: NunuColors.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -54,25 +66,41 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> with RouteAwa
             style: FilledButton.styleFrom(
               backgroundColor: NunuColors.primaryMain.withValues(alpha: 0.2),
               foregroundColor: NunuColors.primaryLight,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('RESET', style: TextStyle(fontWeight: FontWeight.bold),),
+            child: const Text('RESET', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
     );
   }
 
-  void openLevel(int levelNumber) async {
+  void openCategory(_CategoryInfo cat) async {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => LevelScreen(levelNumber: levelNumber),
-      )
+        builder: (context) => CategoryLevelsScreen(
+          categoryIndex: cat.index,
+          categoryName: cat.name,
+          categoryColor: cat.color,
+          categoryIcon: cat.icon,
+        ),
+      ),
     );
-    setState(() { });
+    setState(() {});
+  }
+
+  void openRandomLevel() async {
+    final all = getAvailableLevels();
+    if (all.isEmpty) return;
+    final levelNumber = all[Random().nextInt(all.length)];
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LevelScreen(levelNumber: levelNumber, randomMode: true),
+      ),
+    );
+    setState(() {});
   }
 
   @override
@@ -95,34 +123,41 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> with RouteAwa
     setState(() {});
   }
 
+  String _levelRange(int catIndex) {
+    final levels = getLevelsForDifficulty(catIndex);
+    if (levels.isEmpty) return 'empty';
+    return '${levels.first}–${levels.last}';
+  }
+
+  double _categoryProgress(int catIndex) {
+    final levels = getLevelsForDifficulty(catIndex);
+    if (levels.isEmpty) return 0;
+    int completed = 0;
+    for (final l in levels) {
+      final s = _progressService.getLevelStatus(l);
+      if (s != null && (s.bestScore ?? 0) > 0) completed++;
+    }
+    return completed / levels.length;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('APK ARENA', style: TextStyle(fontWeight: FontWeight.bold),),
+        title: const Text('APK ARENA', style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           if (kDebugMode)
             IconButton(
               icon: const Icon(Icons.grid_view),
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const DebugLevelGallery(),
-                  ),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const DebugLevelGallery()));
               },
               tooltip: 'debug gallery',
             ),
           IconButton(
             icon: const Icon(Icons.bar_chart_rounded, size: 22),
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const AnalyticsViewerScreen(),
-                ),
-              );
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const AnalyticsViewerScreen()));
             },
             tooltip: 'analytics',
           ),
@@ -135,60 +170,107 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> with RouteAwa
       ),
       body: Column(
         children: [
-          // Difficulty chips at the top
-          Container(
-            padding: const EdgeInsets.all(16),
-            child: Wrap(
-              spacing: 8,
-              children: difficultyNames.entries.map((entry) {
-                final isSelected = selectedDifficulty == entry.key;
-                return ChoiceChip(
-                  surfaceTintColor: Colors.transparent,
-                  label: Text(entry.value),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    if (selected) {
-                      setState(() {
-                        selectedDifficulty = entry.key;
-                      });
-                    }
-                  },
-                  showCheckmark: false,
-                  backgroundColor: NunuColors.backgroundPaper,
-                  selectedColor: NunuColors.backgroundPaper,
-                  labelStyle: TextStyle(
-                    color: isSelected ? NunuColors.textPrimary : NunuColors.textSecondary
-                  ),
-                  side: BorderSide(
-                    color: isSelected ? NunuColors.primaryMain : NunuColors.textPrimary.withValues(alpha: 0.2),
-                    width: 2,
-                  )
-                );
-              }).toList(),
-            ),
-          ),
-          
-          // Grid of levels
           Expanded(
             child: GridView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 5, // 5 levels per row
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 8,
-                childAspectRatio: 1, // Square tiles
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.6,
               ),
-              itemCount: visibleLevels.length,
+              itemCount: _categories.length,
               itemBuilder: (context, index) {
-                final levelNumber = visibleLevels[index];
-                final status = _progressService.getLevelStatus(levelNumber);
+                final cat = _categories[index];
+                final levels = getLevelsForDifficulty(cat.index);
+                final progress = _categoryProgress(cat.index);
 
-                return LevelTile(
-                  levelNumber: levelNumber,
-                  status: status,
-                  onTap: () => openLevel(levelNumber),
+                return InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: levels.isEmpty ? null : () => openCategory(cat),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: NunuColors.backgroundPaper,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: levels.isEmpty
+                            ? cat.color.withValues(alpha: 0.15)
+                            : cat.color.withValues(alpha: 0.5),
+                        width: 2,
+                      ),
+                    ),
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(cat.icon, color: cat.color, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                cat.name.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: levels.isEmpty
+                                      ? NunuColors.textSecondary.withValues(alpha: 0.4)
+                                      : NunuColors.secondaryLight,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _levelRange(cat.index),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: levels.isEmpty
+                                    ? NunuColors.textSecondary.withValues(alpha: 0.3)
+                                    : NunuColors.textSecondary,
+                              ),
+                            ),
+                            if (levels.isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(2),
+                                child: LinearProgressIndicator(
+                                  value: progress,
+                                  backgroundColor: cat.color.withValues(alpha: 0.1),
+                                  valueColor: AlwaysStoppedAnimation(cat.color),
+                                  minHeight: 4,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 );
               },
+            ),
+          ),
+          // random level button
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            child: SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: FilledButton.icon(
+                onPressed: openRandomLevel,
+                icon: const Icon(Icons.casino_rounded),
+                label: const Text('random level', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                style: FilledButton.styleFrom(
+                  backgroundColor: NunuColors.primaryMain.withValues(alpha: 0.15),
+                  foregroundColor: NunuColors.primaryLight,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
             ),
           ),
         ],
