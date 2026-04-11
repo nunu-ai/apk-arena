@@ -49,8 +49,6 @@ class _LevelClickAccuracyState extends State<LevelClickAccuracy> {
   /// Successful hits so far (0 … roundCount); size uses this index clamped to roundCount - 1.
   int _roundIndex = 0;
   int _lives = maxLives;
-  int _misses = 0;
-  int _hitsTotal = 0;
   Alignment _targetAlign = Alignment.center;
 
   @override
@@ -91,34 +89,17 @@ class _LevelClickAccuracyState extends State<LevelClickAccuracy> {
       livesRemaining: _lives,
       clearedAllRounds: false,
     );
-    widget.onComplete(LevelOutcome(
-      score: s,
-      metrics: {
-        'rounds_cleared': roundsCleared,
-        'lives_remaining': _lives,
-        'misses': _misses,
-        'hits': _hitsTotal,
-      },
-    ));
+    widget.onComplete(LevelOutcome(score: s));
   }
 
   void _onTargetHit() {
-    _hitsTotal++;
     if (_roundIndex >= roundCount - 1) {
       final s = scoreForRun(
         roundsCleared: roundCount,
         livesRemaining: _lives,
         clearedAllRounds: true,
       );
-      widget.onComplete(LevelOutcome(
-        score: s,
-        metrics: {
-          'rounds_cleared': roundCount,
-          'lives_remaining': _lives,
-          'misses': _misses,
-          'hits': _hitsTotal,
-        },
-      ));
+      widget.onComplete(LevelOutcome(score: s));
       return;
     }
     setState(() {
@@ -128,7 +109,6 @@ class _LevelClickAccuracyState extends State<LevelClickAccuracy> {
   }
 
   void _onMiss() {
-    _misses++;
     if (_lives <= 1) {
       _lives = 0;
       _fail();
