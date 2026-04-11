@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../level_widget.dart';
@@ -104,13 +105,13 @@ class _LevelMastermindState extends State<LevelMastermind> {
         _done = true;
         HapticFeedback.mediumImpact();
         Future.delayed(const Duration(milliseconds: 600), () {
-          widget.onComplete(true, metrics: {'guesses': _guesses.length, 'maxGuesses': _maxGuesses});
+          widget.onComplete(LevelOutcome(score: 1, metrics: {'guesses': _guesses.length, 'maxGuesses': _maxGuesses}));
         });
       } else if (_guesses.length >= _maxGuesses) {
         _done = true;
         HapticFeedback.heavyImpact();
         Future.delayed(const Duration(milliseconds: 600), () {
-          widget.onComplete(false, metrics: {'guesses': _guesses.length, 'maxGuesses': _maxGuesses});
+          widget.onComplete(LevelOutcome(score: 0, metrics: {'guesses': _guesses.length, 'maxGuesses': _maxGuesses}));
         });
       } else {
         HapticFeedback.lightImpact();

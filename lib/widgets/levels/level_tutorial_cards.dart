@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'dart:ui';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -378,7 +379,7 @@ class _LevelTutorialCardsState extends State<LevelTutorialCards>
 
   void _checkCompletion() {
     if (_currentStep > 20) {
-      widget.onComplete(true);
+      widget.onComplete(LevelOutcome(score: 1));
     } else {
       // Schedule animation update for next step
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -399,7 +400,7 @@ class _LevelTutorialCardsState extends State<LevelTutorialCards>
         _currentStep == 19);
 
     if (!isCorrectStep) {
-      widget.onComplete(false);
+      widget.onComplete(LevelOutcome(score: 0));
       return;
     }
 
@@ -742,7 +743,7 @@ class _LevelTutorialCardsState extends State<LevelTutorialCards>
               }
 
               if (!isCorrectMove) {
-                widget.onComplete(false);
+                widget.onComplete(LevelOutcome(score: 0));
                 return;
               }
 
@@ -896,7 +897,7 @@ class _LevelTutorialCardsState extends State<LevelTutorialCards>
               }
 
               if (!isCorrectMove) {
-                widget.onComplete(false);
+                widget.onComplete(LevelOutcome(score: 0));
                 return;
               }
 

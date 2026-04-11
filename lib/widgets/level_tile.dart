@@ -13,29 +13,23 @@ class LevelTile extends StatelessWidget {
     required this.status,
     required this.onTap,
   }) : super(key: key);
-  
+
+  double? get _best => status?.bestScore;
+
   Color getBorderColor() {
-    if (status?.result == LevelResult.success) {
-      return NunuColors.successMain;
-    }
-    
-    if (status?.result == LevelResult.failed) {
-      return NunuColors.errorMain;
-    }
-    
-    return NunuColors.secondaryMain;
+    final b = _best;
+    if (b == null) return NunuColors.secondaryMain;
+    if (b >= 0.85) return NunuColors.successMain;
+    if (b >= 0.5) return NunuColors.warningMain;
+    return NunuColors.errorMain;
   }
-  
+
   Color getTextColor() {
-    if (status?.result == LevelResult.success) {
-      return NunuColors.successLight;
-    }
-
-    if (status?.result == LevelResult.failed) {
-      return NunuColors.errorLight;
-    }
-
-    return NunuColors.secondaryLight;
+    final b = _best;
+    if (b == null) return NunuColors.secondaryLight;
+    if (b >= 0.85) return NunuColors.successLight;
+    if (b >= 0.5) return NunuColors.warningMain;
+    return NunuColors.errorLight;
   }
 
   @override
@@ -50,42 +44,37 @@ class LevelTile extends StatelessWidget {
             color: getBorderColor(),
             width: 2,
           ),
-        ), 
-          child: Stack(
-            children: [
-              Center(
+        ),
+        child: Stack(
+          children: [
+            Center(
+              child: Text(
+                '$levelNumber',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: getTextColor(),
+                ),
+              ),
+            ),
+            if (_best != null)
+              Positioned(
+                bottom: 4,
+                left: 0,
+                right: 0,
                 child: Text(
-                  '$levelNumber',
+                  '${(_best! * 100).round()}%',
+                  textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: getTextColor(),
+                    color: getTextColor().withValues(alpha: 0.95),
                   ),
                 ),
               ),
-              if (status?.result == LevelResult.success)
-                Positioned(
-                  top: 4,
-                  right: 4,
-                  child: Icon(
-                    Icons.check_circle,
-                    color: NunuColors.successLight,
-                    size: 20,
-                  ),
-                ),
-              if (status?.result == LevelResult.failed)
-                Positioned(
-                  top: 4,
-                  right: 4,
-                  child: Icon(
-                    Icons.close,
-                    color: NunuColors.errorLight,
-                    size: 20,
-                  ),
-                ),
-            ],
-          )
-      )
+          ],
+        ),
+      ),
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/services.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -202,7 +203,7 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
     await Future.delayed(const Duration(milliseconds: 400));
 
     if (parsed == _correctAnswer) {
-      widget.onComplete(true);
+      widget.onComplete(LevelOutcome(score: 1));
     } else {
       _showSnackbar('wrong — try again', NunuColors.errorMain);
       setState(() => _isChecking = false);

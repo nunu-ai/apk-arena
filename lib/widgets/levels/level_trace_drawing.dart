@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -232,13 +233,13 @@ class _LevelTraceDrawingState extends State<LevelTraceDrawing> {
 
     if (_currentStroke >= _glyphStrokes.length) {
       Future.delayed(const Duration(milliseconds: 350), () {
-        widget.onComplete(true);
+        widget.onComplete(LevelOutcome(score: 1));
       });
     }
   }
 
   void _failStroke() {
-    widget.onComplete(false);
+    widget.onComplete(LevelOutcome(score: 0));
     setState(() {
       _userStroke.clear();
     });

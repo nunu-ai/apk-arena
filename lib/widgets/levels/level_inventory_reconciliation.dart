@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/services.dart' as services;
 import 'dart:convert';
@@ -158,9 +159,9 @@ class _LevelInventoryReconciliationState extends State<LevelInventoryReconciliat
   void _handleValidate() {
     final ok = _validateInventory();
     if (ok) {
-      widget.onComplete(true);
+      widget.onComplete(LevelOutcome(score: 1));
     } else {
-      widget.onComplete(false);
+      widget.onComplete(LevelOutcome(score: 0));
     }
   }
 

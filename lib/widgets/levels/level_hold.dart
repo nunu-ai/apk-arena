@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'dart:math';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -18,6 +19,7 @@ class _LevelHoldState extends State<LevelHold> with SingleTickerProviderStateMix
   late Stopwatch _stopwatch;
   bool _hasFailed = false;
   late AnimationController _progressController;
+  int _failedTries = 0;
 
   @override
   void initState() {
@@ -42,17 +44,6 @@ class _LevelHoldState extends State<LevelHold> with SingleTickerProviderStateMix
     });
   }
 
-  void _onLongPressStart(LongPressStartDetails details) {
-    setState(() {
-      _isPressing = true;
-      _progress = 0.0;
-      _hasFailed = false;
-    });
-    _stopwatch.reset();
-    _stopwatch.start();
-    _startProgress();
-  }
-
   void _onLongPressEnd(LongPressEndDetails details) {
     _stopwatch.stop();
 
@@ -61,8 +52,10 @@ class _LevelHoldState extends State<LevelHold> with SingleTickerProviderStateMix
       final difference = (holdDuration - _targetDuration).abs();
 
       if (difference <= _tolerance) {
-        // Success!
-        widget.onComplete(true);
+        widget.onComplete(LevelOutcome(
+          score: 1,
+          metrics: {'tries': _failedTries},
+        ));
       } else {
         // Failed - generate new target
         _showFailure(holdDuration);
@@ -78,6 +71,7 @@ class _LevelHoldState extends State<LevelHold> with SingleTickerProviderStateMix
   void _showFailure(double actualDuration) {
     setState(() {
       _hasFailed = true;
+      _failedTries++;
     });
 
     // Show failure briefly, then generate new target
@@ -132,7 +126,7 @@ class _LevelHoldState extends State<LevelHold> with SingleTickerProviderStateMix
             });
             _startProgress();
           },
-          onPanEnd: (details) {
+          onPanEnd: (_) {
             _onLongPressEnd(LongPressEndDetails());
           },
           onPanCancel: () {

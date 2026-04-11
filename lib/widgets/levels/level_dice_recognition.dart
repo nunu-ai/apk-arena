@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/services.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -55,7 +56,7 @@ class _LevelDiceRecognitionState extends State<LevelDiceRecognition> {
 
     if (userAnswer == _correctAnswer) {
       // Correct!
-      widget.onComplete(true);
+      widget.onComplete(LevelOutcome(score: 1));
     } else {
       // Wrong - generate new dice
       _showSnackbar('Incorrect! Try the new dice', Colors.red);

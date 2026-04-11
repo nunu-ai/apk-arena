@@ -68,6 +68,7 @@ flutter:
   assets:
     - assets/inventory/
     - assets/icon/nunu-icon-transparent@4x.png
+    - assets/captcha/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

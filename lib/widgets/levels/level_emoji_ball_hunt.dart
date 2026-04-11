@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -62,7 +63,7 @@ class _LevelEmojiBallHuntState extends State<LevelEmojiBallHunt> {
       ),
     );
     Future.delayed(const Duration(milliseconds: 900), () {
-      if (mounted) widget.onComplete(false);
+      if (mounted) widget.onComplete(LevelOutcome(score: 0));
     });
   }
 
@@ -72,7 +73,7 @@ class _LevelEmojiBallHuntState extends State<LevelEmojiBallHunt> {
       _foundBallIndexes.add(index);
     });
     if (_foundBallIndexes.length == _balls.length) {
-      widget.onComplete(true);
+      widget.onComplete(LevelOutcome(score: 1));
     }
   }
 

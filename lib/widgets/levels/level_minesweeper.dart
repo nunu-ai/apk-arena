@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../level_widget.dart';
@@ -101,11 +102,11 @@ class _LevelMinesweeperState extends State<LevelMinesweeper> {
         }
         HapticFeedback.heavyImpact();
         Future.delayed(const Duration(milliseconds: 800), () {
-          widget.onComplete(false, metrics: {
+          widget.onComplete(LevelOutcome(score: 0, metrics: {
             'revealedCount': _revealedCount,
             'flagCount': _flagCount,
             'safeCount': _safeCount,
-          });
+          }));
         });
       } else {
         _reveal(r, c);
@@ -114,11 +115,11 @@ class _LevelMinesweeperState extends State<LevelMinesweeper> {
           _gameOver = true;
           HapticFeedback.mediumImpact();
           Future.delayed(const Duration(milliseconds: 500), () {
-            widget.onComplete(true, metrics: {
+            widget.onComplete(LevelOutcome(score: 1, metrics: {
               'revealedCount': _revealedCount,
               'flagCount': _flagCount,
               'safeCount': _safeCount,
-            });
+            }));
           });
         }
       }

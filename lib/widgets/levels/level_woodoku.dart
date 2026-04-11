@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../level_widget.dart';
@@ -267,7 +268,7 @@ class _LevelWoodokuState extends State<LevelWoodoku> {
       // 4. win check (before game-over so a simultaneous score+stuck = win)
       if (_score >= _target) {
         _done = true;
-        widget.onComplete(true);
+        widget.onComplete(LevelOutcome(score: 1));
         return;
       }
 
@@ -348,7 +349,7 @@ class _LevelWoodokuState extends State<LevelWoodoku> {
       if (!_placed[i] && _fitsAnywhere(_pieces[i])) return;
     }
     _done = true;
-    widget.onComplete(false);
+    widget.onComplete(LevelOutcome(score: 0));
   }
 
   // ---- Hover helpers ----------------------------------------------------

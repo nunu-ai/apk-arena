@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -71,12 +72,12 @@ class _LevelTypingSpeedState extends State<LevelTypingSpeed> {
         (typed.length / _targetText.length * 100).clamp(0.0, 100.0);
 
     Future.delayed(const Duration(milliseconds: 400), () {
-      widget.onComplete(true, metrics: {
+      widget.onComplete(LevelOutcome(score: 1, metrics: {
         'wpm': wpm.round(),
         'accuracy': '${accuracy.toStringAsFixed(1)}%',
         'progress': '${progress.toStringAsFixed(0)}%',
         'correct': correctChars,
-      });
+      }));
     });
   }
 

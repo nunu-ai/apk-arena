@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -102,10 +103,10 @@ class _LevelSnakeState extends State<LevelSnake> {
     if (won) HapticFeedback.mediumImpact();
     else HapticFeedback.heavyImpact();
     Future.delayed(const Duration(milliseconds: 600), () {
-      widget.onComplete(won, metrics: {
+      widget.onComplete(LevelOutcome(score: won ? 1 : 0, metrics: {
         'snakeLength': _snake.length,
         'targetLength': _targetLength,
-      });
+      }));
     });
   }
 

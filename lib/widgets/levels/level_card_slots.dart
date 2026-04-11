@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'dart:ui';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -159,7 +160,7 @@ class _LevelCardSlotsState extends State<LevelCardSlots> {
 
   void _checkCompletion() {
     if (_completedCategories >= 5) {
-      widget.onComplete(true);
+      widget.onComplete(LevelOutcome(score: 1));
     }
   }
 

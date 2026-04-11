@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 
@@ -18,7 +19,7 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
       transform();
     });
     if (_value == _target) {
-      widget.onComplete(true);
+      widget.onComplete(LevelOutcome(score: 1));
     }
   }
 
@@ -48,9 +49,9 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
 
   void _submit() {
     if (_value == _target) {
-      widget.onComplete(true);
+      widget.onComplete(LevelOutcome(score: 1));
     } else {
-      widget.onComplete(false);
+      widget.onComplete(LevelOutcome(score: 0));
     }
   }
 

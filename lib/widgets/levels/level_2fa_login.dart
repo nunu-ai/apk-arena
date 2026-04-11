@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/services.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -97,7 +98,7 @@ class _Level2FALoginState extends State<Level2FALogin> {
       });
 
       await Future.delayed(const Duration(milliseconds: 500));
-      widget.onComplete(true);
+      widget.onComplete(LevelOutcome(score: 1));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

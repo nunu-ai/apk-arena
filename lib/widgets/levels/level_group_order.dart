@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import '../../theme/app_theme.dart';
 import '../level_widget.dart';
 import '../level_components/chat/chat_history.dart';
@@ -255,9 +256,9 @@ class _LevelGroupOrderState extends State<LevelGroupOrder>
   void _handlePlaceOrder() {
     final ok = _validateOrder();
     if (ok) {
-      widget.onComplete(true);
+      widget.onComplete(LevelOutcome(score: 1));
     } else {
-      widget.onComplete(false);
+      widget.onComplete(LevelOutcome(score: 0));
     }
   }
 

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -140,12 +141,12 @@ class _LevelMathSprintState extends State<LevelMathSprint>
         totalAttempts > 0 ? (_correctCount / totalAttempts * 100) : 0.0;
 
     Future.delayed(const Duration(milliseconds: 300), () {
-      widget.onComplete(true, metrics: {
+      widget.onComplete(LevelOutcome(score: 1, metrics: {
         'score': _correctCount,
         'accuracy': '${accuracy.toStringAsFixed(1)}%',
         'attempts': totalAttempts,
         'best_streak': _maxStreak,
-      });
+      }));
     });
   }
 

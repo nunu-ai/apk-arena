@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 import 'dart:math';
@@ -109,7 +110,7 @@ class _LevelDvdLogoState extends State<LevelDvdLogo> with SingleTickerProviderSt
     if (logoRect.contains(tapPosition)) {
       // Success!
       _controller.stop();
-      widget.onComplete(true);
+      widget.onComplete(LevelOutcome(score: 1));
     }
   }
 

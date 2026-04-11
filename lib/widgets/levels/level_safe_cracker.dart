@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../level_widget.dart';
@@ -71,7 +72,7 @@ class _LevelSafeCrackerState extends State<LevelSafeCracker> {
           _feedbackMessage = 'unlocked!';
           HapticFeedback.mediumImpact();
           Future.delayed(const Duration(milliseconds: 600), () {
-            widget.onComplete(true);
+            widget.onComplete(LevelOutcome(score: 1));
           });
         }
       } else {

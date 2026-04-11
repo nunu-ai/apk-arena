@@ -1,10 +1,12 @@
 import 'dart:math';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 
 class LevelGemSocket extends LevelWidget {
-  const LevelGemSocket({Key? key, required super.onComplete}) : super(key: key);
+  const LevelGemSocket({Key? key, required super.onComplete})
+      : super(key: key);
 
   @override
   State<LevelGemSocket> createState() => _LevelGemSocketState();
@@ -12,32 +14,69 @@ class LevelGemSocket extends LevelWidget {
 
 class _LevelGemSocketState extends State<LevelGemSocket>
     with TickerProviderStateMixin {
-  // The core mechanic: item renders this far above the finger
   static const Offset _fingerOffset = Offset(0, -110);
-
-  // Gem size and target size
   static const double _gemSize = 64.0;
   static const double _targetSize = 80.0;
-  static const double _hitRadius = 40.0; // how close finger must be to pick up
+  static const double _hitRadius = 40.0;
 
-  // State
+  static const int _totalStages = 4;
+  static const int _maxLives = 10;
+
+  int _socketStage = 0;
+  int _stagesCleared = 0;
+  int _lives = _maxLives;
+  bool _layoutReady = false;
+  bool _levelFinished = false;
+  final Random _rng = Random();
+
   bool _isDragging = false;
   bool _isPlaced = false;
   Offset _fingerPosition = Offset.zero;
+  Offset _dragStartPosition = Offset.zero;
   Offset _gemRestPosition = Offset.zero;
   Offset _targetCenter = Offset.zero;
+  Size _layoutSize = Size.zero;
 
-  // Snap-back animation
+  double _driftDirection = 1.0;
+
+  /// Stage 0: generous tolerance, no drift
+  /// Stage 1: tight tolerance, vertical drift
+  /// Stage 2: generous tolerance, lateral drift
+  /// Stage 3: tight tolerance + lateral drift
+  double get _snapTolerance {
+    switch (_socketStage) {
+      case 1:
+      case 3:
+        return _targetSize * 0.30;
+      default:
+        return _targetSize / 2 + _gemSize / 4;
+    }
+  }
+
+  double get _lateralDriftFactor {
+    switch (_socketStage) {
+      case 2:
+        return 0.55;
+      case 3:
+        return 0.8;
+      default:
+        return 0.0;
+    }
+  }
+
+  double get _verticalDriftFactor {
+    switch (_socketStage) {
+      case 1:
+        return 0.45;
+      default:
+        return 0.0;
+    }
+  }
+
   late AnimationController _snapBackController;
   late Animation<Offset> _snapBackAnimation;
-
-  // Lift animation (gem rises from finger to offset position)
   late AnimationController _liftController;
-
-  // Pulse animation for the target socket
   late AnimationController _pulseController;
-
-  // Success animation
   late AnimationController _successController;
 
   @override
@@ -50,11 +89,8 @@ class _LevelGemSocketState extends State<LevelGemSocket>
     );
     _snapBackAnimation = Tween<Offset>(begin: Offset.zero, end: Offset.zero)
         .animate(
-          CurvedAnimation(
-            parent: _snapBackController,
-            curve: Curves.elasticOut,
-          ),
-        );
+      CurvedAnimation(parent: _snapBackController, curve: Curves.elasticOut),
+    );
     _snapBackController.addListener(() => setState(() {}));
 
     _liftController = AnimationController(
@@ -85,11 +121,8 @@ class _LevelGemSocketState extends State<LevelGemSocket>
     super.dispose();
   }
 
-  /// The displayed position of the gem (accounting for offset when dragging)
   Offset get _gemDisplayPosition {
-    if (_isPlaced) {
-      return _targetCenter;
-    }
+    if (_isPlaced) return _targetCenter;
 
     if (_isDragging) {
       final liftProgress = _liftController.value;
@@ -97,28 +130,55 @@ class _LevelGemSocketState extends State<LevelGemSocket>
         _fingerOffset.dx * liftProgress,
         _fingerOffset.dy * liftProgress,
       );
-      return _fingerPosition + currentOffset;
+      var pos = _fingerPosition + currentOffset;
+
+      final verticalDelta = _dragStartPosition.dy - _fingerPosition.dy;
+      if (verticalDelta > 0) {
+        if (_lateralDriftFactor > 0) {
+          pos = Offset(
+            pos.dx + verticalDelta * _lateralDriftFactor * _driftDirection,
+            pos.dy,
+          );
+        }
+        if (_verticalDriftFactor > 0) {
+          pos = Offset(pos.dx, pos.dy - verticalDelta * _verticalDriftFactor);
+        }
+      }
+
+      return pos;
     }
 
-    // Snap-back in progress
-    if (_snapBackController.isAnimating) {
-      return _snapBackAnimation.value;
-    }
+    if (_snapBackController.isAnimating) return _snapBackAnimation.value;
 
     return _gemRestPosition;
   }
 
+  double _calculateScore() {
+    return (_stagesCleared * 0.20) + (_lives * 0.02);
+  }
+
+  void _finishLevel() {
+    if (_levelFinished) return;
+    _levelFinished = true;
+    widget.onComplete(LevelOutcome(
+      score: _calculateScore(),
+      metrics: {
+        'stages_cleared': _stagesCleared,
+        'lives_remaining': _lives,
+        'max_lives': _maxLives,
+      },
+    ));
+  }
+
   void _onPanStart(DragStartDetails details) {
-    if (_isPlaced) return;
+    if (_isPlaced || _levelFinished) return;
 
     final touchPos = details.localPosition;
-    final gemCenter = _gemRestPosition;
-
-    // Check if touch is near the gem
-    if ((touchPos - gemCenter).distance <= _hitRadius) {
+    if ((touchPos - _gemRestPosition).distance <= _hitRadius) {
       setState(() {
         _isDragging = true;
         _fingerPosition = touchPos;
+        _dragStartPosition = touchPos;
         _snapBackController.reset();
       });
       _liftController.forward();
@@ -126,15 +186,47 @@ class _LevelGemSocketState extends State<LevelGemSocket>
   }
 
   void _onPanUpdate(DragUpdateDetails details) {
-    if (!_isDragging || _isPlaced) return;
-
+    if (!_isDragging || _isPlaced || _levelFinished) return;
     setState(() {
       _fingerPosition = details.localPosition;
     });
   }
 
+  void _randomizeLayout(Size size) {
+    final w = size.width;
+    final h = size.height;
+    const pad = 56.0;
+    final topSpan = (h * 0.36 - 2 * pad).clamp(40.0, h);
+    final bottomTop = h * 0.52;
+    final bottomSpan = (h - bottomTop - pad - 72).clamp(48.0, h);
+
+    _driftDirection = _rng.nextBool() ? 1.0 : -1.0;
+
+    final hasLateralDrift = _socketStage >= 2;
+    double targetX;
+    if (hasLateralDrift) {
+      // Drift left → target on left half, drift right → target on right half.
+      // Prevents impossible scenarios where the finger would need to leave
+      // the screen to compensate for the drift.
+      if (_driftDirection < 0) {
+        targetX = pad + _rng.nextDouble() * ((w * 0.45) - pad).clamp(40.0, w);
+      } else {
+        targetX = (w * 0.55) +
+            _rng.nextDouble() * (w - (w * 0.55) - pad).clamp(40.0, w);
+      }
+    } else {
+      targetX = pad + _rng.nextDouble() * (w - 2 * pad).clamp(40.0, w);
+    }
+
+    _targetCenter = Offset(targetX, pad + _rng.nextDouble() * topSpan);
+    _gemRestPosition = Offset(
+      pad + _rng.nextDouble() * (w - 2 * pad).clamp(40.0, w),
+      bottomTop + _rng.nextDouble() * bottomSpan,
+    );
+  }
+
   void _onPanEnd(DragEndDetails details) {
-    if (!_isDragging || _isPlaced) return;
+    if (!_isDragging || _isPlaced || _levelFinished) return;
 
     final displayPos = _gemDisplayPosition;
     final distanceToTarget = (displayPos - _targetCenter).distance;
@@ -144,26 +236,59 @@ class _LevelGemSocketState extends State<LevelGemSocket>
     });
     _liftController.reset();
 
-    // Check if the displayed gem (not the finger!) overlaps the target
-    if (distanceToTarget <= _targetSize / 2 + _gemSize / 4) {
-      // Success!
+    if (distanceToTarget <= _snapTolerance) {
       setState(() {
         _isPlaced = true;
       });
       _successController.forward().then((_) {
-        widget.onComplete(true);
+        if (!mounted) return;
+        _stagesCleared++;
+        if (_stagesCleared >= _totalStages) {
+          _finishLevel();
+        } else {
+          setState(() {
+            _socketStage = _stagesCleared;
+            _isPlaced = false;
+            _successController.reset();
+            _snapBackController.reset();
+            _randomizeLayout(_layoutSize);
+          });
+        }
       });
     } else {
-      // Snap back to rest position
+      setState(() {
+        _lives = max(0, _lives - 1);
+      });
+
       _snapBackAnimation =
           Tween<Offset>(begin: displayPos, end: _gemRestPosition).animate(
-            CurvedAnimation(
-              parent: _snapBackController,
-              curve: Curves.elasticOut,
-            ),
-          );
+        CurvedAnimation(parent: _snapBackController, curve: Curves.elasticOut),
+      );
       _snapBackController.forward(from: 0);
+
+      if (_lives == 0) {
+        _finishLevel();
+      }
     }
+  }
+
+  Widget _buildLivesRow() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(_maxLives, (i) {
+        final alive = i < _lives;
+        return Padding(
+          padding: EdgeInsets.only(left: i == 0 ? 0 : 1),
+          child: Icon(
+            alive ? Icons.favorite : Icons.favorite_border,
+            size: 14,
+            color: alive
+                ? NunuColors.primaryMain
+                : NunuColors.primaryLight.withValues(alpha: 0.28),
+          ),
+        );
+      }),
+    );
   }
 
   @override
@@ -173,10 +298,12 @@ class _LevelGemSocketState extends State<LevelGemSocket>
       body: LayoutBuilder(
         builder: (context, constraints) {
           final size = constraints.biggest;
+          _layoutSize = size;
 
-          // Position gem at bottom-center, target at top-center
-          _gemRestPosition = Offset(size.width / 2, size.height * 0.75);
-          _targetCenter = Offset(size.width / 2, size.height * 0.25);
+          if (size.shortestSide > 0 && !_layoutReady) {
+            _layoutReady = true;
+            _randomizeLayout(size);
+          }
 
           return GestureDetector(
             onPanStart: _onPanStart,
@@ -187,23 +314,16 @@ class _LevelGemSocketState extends State<LevelGemSocket>
               painter: _BackgroundPainter(),
               child: Stack(
                 children: [
-                  // Target socket
                   _buildTargetSocket(),
-
-                  // Ghost connector line (finger to gem) while dragging
                   if (_isDragging) _buildConnectorLine(),
-
-                  // The gem
                   if (!_isPlaced) _buildGem(),
-
-                  // Placed gem (with success animation)
                   if (_isPlaced) _buildPlacedGem(),
-
-                  // Finger indicator while dragging
                   if (_isDragging) _buildFingerIndicator(),
-
-                  // Hint text
-                  if (!_isDragging && !_isPlaced) _buildHint(),
+                  Positioned(
+                    right: 12,
+                    top: 8,
+                    child: IgnorePointer(child: _buildLivesRow()),
+                  ),
                 ],
               ),
             ),
@@ -216,9 +336,8 @@ class _LevelGemSocketState extends State<LevelGemSocket>
   Widget _buildTargetSocket() {
     final pulseValue = _pulseController.value;
     final glowOpacity = _isPlaced ? 0.8 : 0.15 + pulseValue * 0.2;
-    final glowColor = _isPlaced
-        ? NunuColors.successMain
-        : NunuColors.secondaryMain;
+    final glowColor =
+        _isPlaced ? NunuColors.successMain : NunuColors.secondaryMain;
 
     return Positioned(
       left: _targetCenter.dx - _targetSize / 2,
@@ -248,7 +367,8 @@ class _LevelGemSocketState extends State<LevelGemSocket>
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: const Color(0xFF1A1030),
-              border: Border.all(color: glowColor.withOpacity(0.3), width: 1.5),
+              border:
+                  Border.all(color: glowColor.withOpacity(0.3), width: 1.5),
             ),
           ),
         ),
@@ -371,27 +491,8 @@ class _LevelGemSocketState extends State<LevelGemSocket>
       ),
     );
   }
-
-  Widget _buildHint() {
-    return Positioned(
-      bottom: 40,
-      left: 0,
-      right: 0,
-      child: Center(
-        child: Text(
-          'drag the gem to the socket above',
-          style: TextStyle(
-            color: NunuColors.textSecondary.withOpacity(0.5),
-            fontSize: 14,
-            letterSpacing: 0.5,
-          ),
-        ),
-      ),
-    );
-  }
 }
 
-/// Draws subtle background runes / arcane circles
 class _BackgroundPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -400,13 +501,11 @@ class _BackgroundPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0;
 
-    // Draw a few concentric arcane circles around the target area
     final center = Offset(size.width / 2, size.height * 0.25);
     for (int i = 1; i <= 3; i++) {
       canvas.drawCircle(center, 50.0 + i * 30.0, paint);
     }
 
-    // Draw subtle guide line from bottom to top
     final dashPaint = Paint()
       ..color = NunuColors.secondaryDarker.withOpacity(0.08)
       ..style = PaintingStyle.stroke
@@ -429,7 +528,6 @@ class _BackgroundPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-/// Draws the faint line from finger position to the offset gem position
 class _ConnectorPainter extends CustomPainter {
   final Offset from;
   final Offset to;
@@ -445,7 +543,6 @@ class _ConnectorPainter extends CustomPainter {
 
     canvas.drawLine(from, to, paint);
 
-    // Small dot at the finger position
     final dotPaint = Paint()
       ..color = Colors.white.withOpacity(0.2)
       ..style = PaintingStyle.fill;

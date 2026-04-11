@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../level_widget.dart';
@@ -96,7 +97,7 @@ class _LevelNonogramState extends State<LevelNonogram> {
         _done = true;
         HapticFeedback.mediumImpact();
         Future.delayed(const Duration(milliseconds: 500), () {
-          widget.onComplete(true, metrics: {'moves': _moves});
+          widget.onComplete(LevelOutcome(score: 1, metrics: {'moves': _moves}));
         });
       }
     });

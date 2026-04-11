@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import '../models/level_status.dart';
 import '../models/attempt_record.dart';
+import '../models/level_outcome.dart';
 import '../services/progress_service.dart';
 import '../services/analytics_service.dart';
 import '../theme/app_theme.dart';
@@ -22,7 +22,9 @@ class _LevelScreenState extends State<LevelScreen> {
   final _analyticsService = AnalyticsService.instance;
   late Stopwatch _stopwatch;
   Timer? _timer;
-  late LevelEntry levelEntry;
+  Timer? _sessionTimer;
+  LevelEntry? _levelEntry;
+  bool _finishLevelCalled = false;
 
   @override
   void initState() {
@@ -30,20 +32,29 @@ class _LevelScreenState extends State<LevelScreen> {
 
     final entry = getLevel(widget.levelNumber);
     if (entry == null) {
-      // Handle missing level
-      Navigator.pop(context);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) Navigator.pop(context);
+      });
       return;
     }
-    levelEntry = entry;
+    _levelEntry = entry;
 
     _stopwatch = Stopwatch()..start();
     _timer = Timer.periodic(const Duration(milliseconds: 100), (_) {
       if (mounted) setState(() {});
     });
+
+    _sessionTimer = Timer(entry.data.timeLimit ?? const Duration(minutes: 60), () {
+      if (!mounted || _finishLevelCalled) return;
+      unawaited(_finishLevel(
+        LevelOutcome(score: 0, metrics: {'timed_out': true}),
+      ));
+    });
   }
 
   @override
   void dispose() {
+    _sessionTimer?.cancel();
     _timer?.cancel();
     _stopwatch.stop();
     super.dispose();
@@ -58,20 +69,18 @@ class _LevelScreenState extends State<LevelScreen> {
   }
 
   void _showGiveUpDialog() {
-    final status = _progressService.getLevelStatus(widget.levelNumber);
-    final alreadyCompleted = status?.result == LevelResult.success;
+    final entry = _levelEntry;
+    if (entry == null) return;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(
-          alreadyCompleted ? 'EXIT LEVEL?' : 'GIVE UP?',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+        title: const Text(
+          'EXIT LEVEL?',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        content: Text(
-          alreadyCompleted
-              ? 'exit to main menu? your completion stays recorded.'
-              : 'are you sure you want to give up on this level?',
-          style: const TextStyle(color: NunuColors.textSecondary),
+        content: const Text(
+          'exit to main menu? your best score is kept.',
+          style: TextStyle(color: NunuColors.textSecondary),
         ),
         actions: [
           TextButton(
@@ -81,31 +90,39 @@ class _LevelScreenState extends State<LevelScreen> {
           ),
           FilledButton(
             onPressed: () async {
-              if (!alreadyCompleted) {
-                await _progressService.completeLevel(
-                  widget.levelNumber,
-                  LevelResult.failed,
-                  null, // No completion time for failed attempts
-                );
-                await _analyticsService.recordAttempt(AttemptRecord(
-                  levelNumber: widget.levelNumber,
-                  levelTitle: levelEntry.data.title,
-                  difficulty: getDifficultyName(widget.levelNumber),
-                  timestamp: DateTime.now().toUtc().toIso8601String(),
-                  success: false,
-                  durationMs: _stopwatch.elapsedMilliseconds,
-                ));
+              _stopwatch.stop();
+              _timer?.cancel();
+              _sessionTimer?.cancel();
+
+              await _progressService.recordLevelFinish(
+                widget.levelNumber,
+                LevelOutcome(score: 0, metrics: {'abandoned': true}),
+                _stopwatch.elapsed,
+              );
+              await _analyticsService.recordAttempt(AttemptRecord(
+                levelNumber: widget.levelNumber,
+                levelTitle: entry.data.title,
+                difficulty: getDifficultyName(widget.levelNumber),
+                timestamp: DateTime.now().toUtc().toIso8601String(),
+                success: false,
+                score: 0,
+                durationMs: _stopwatch.elapsedMilliseconds,
+                metrics: const {'abandoned': true},
+              ));
+
+              if (context.mounted) {
+                Navigator.pop(context);
+                Navigator.popUntil(context, (route) => route.isFirst);
               }
-              Navigator.popUntil(context, (route) => route.isFirst);
             },
             style: FilledButton.styleFrom(
               backgroundColor: NunuColors.primaryMain.withValues(alpha: 0.2),
               foregroundColor: NunuColors.primaryLight,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: Text(
-              alreadyCompleted ? 'EXIT' : 'GIVE UP',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            child: const Text(
+              'EXIT',
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -113,35 +130,44 @@ class _LevelScreenState extends State<LevelScreen> {
     );
   }
 
-  void _onLevelComplete(bool success, {Map<String, dynamic>? metrics}) async {
+  Future<void> _finishLevel(LevelOutcome outcome) async {
+    if (_finishLevelCalled) return;
+    _finishLevelCalled = true;
+
+    _sessionTimer?.cancel();
     _stopwatch.stop();
     _timer?.cancel();
 
-    await _progressService.completeLevel(
+    final elapsed = _stopwatch.elapsed;
+
+    await _progressService.recordLevelFinish(
       widget.levelNumber,
-      success ? LevelResult.success : LevelResult.failed,
-      success ? _stopwatch.elapsed : null,
+      outcome,
+      elapsed,
     );
 
     await _analyticsService.recordAttempt(AttemptRecord(
       levelNumber: widget.levelNumber,
-      levelTitle: levelEntry.data.title,
+      levelTitle: _levelEntry!.data.title,
       difficulty: getDifficultyName(widget.levelNumber),
       timestamp: DateTime.now().toUtc().toIso8601String(),
-      success: success,
-      durationMs: _stopwatch.elapsedMilliseconds,
-      metrics: metrics,
+      success: outcome.score >= 1.0,
+      score: outcome.score,
+      durationMs: elapsed.inMilliseconds,
+      metrics: outcome.metrics.isEmpty ? null : outcome.metrics,
     ));
+
+    if (!mounted) return;
 
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => LevelCompletionScreen(
           levelNumber: widget.levelNumber,
-          levelName: levelEntry.data.title,
-          success: success,
-          completionTime: success ? _stopwatch.elapsed : null,
-          metrics: metrics,
+          levelName: _levelEntry!.data.title,
+          score: outcome.score,
+          completionTime: elapsed,
+          metrics: outcome.metrics.isEmpty ? null : outcome.metrics,
         ),
       ),
     );
@@ -149,6 +175,11 @@ class _LevelScreenState extends State<LevelScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final entry = _levelEntry;
+    if (entry == null) {
+      return const Scaffold(body: SizedBox.shrink());
+    }
+
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 48,
@@ -161,29 +192,24 @@ class _LevelScreenState extends State<LevelScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text(
+              "LVL ${widget.levelNumber}: ${entry.data.title.toUpperCase()}",
+              style: const TextStyle(
+                fontSize: 14,
+                color: NunuColors.textPrimary,
+              ),
+            ),
             Builder(
               builder: (_) {
                 final status = _progressService.getLevelStatus(widget.levelNumber);
-                final isCompleted = status?.result == LevelResult.success;
-                return Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      "LVL ${widget.levelNumber}: ${levelEntry.data.title.toUpperCase()}",
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: NunuColors.textPrimary,
-                      ),
-                    ),
-                    if (isCompleted) ...[
-                      const SizedBox(width: 6),
-                      const Icon(
-                        Icons.check_circle,
-                        size: 16,
-                        color: NunuColors.successLight,
-                      )
-                    ]
-                  ],
+                final best = status?.bestScore;
+                if (best == null) return const SizedBox.shrink();
+                return Text(
+                  'best ${(best * 100).round()}%',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: NunuColors.textSecondary.withValues(alpha: 0.9),
+                  ),
                 );
               },
             ),
@@ -197,21 +223,18 @@ class _LevelScreenState extends State<LevelScreen> {
         bottom: true,
         child: Column(
           children: [
-            // Instructions banner
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               color: NunuColors.backgroundPaper,
               child: Text(
-                levelEntry.data.instructions,
+                entry.data.instructions,
                 style: const TextStyle(color: NunuColors.textPrimary),
               ),
             ),
             const Divider(height: 1),
-
-            // Level content
             Expanded(
-              child: levelEntry.widgetBuilder(_onLevelComplete),
+              child: entry.widgetBuilder(_finishLevel),
             ),
           ],
         ),

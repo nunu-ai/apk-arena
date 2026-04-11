@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
 
@@ -706,7 +707,7 @@ class _LevelRoyalMatchState extends State<LevelRoyalMatch> {
       // Level complete
       if (_currentLevel + 1 >= levels.length) {
         // All levels complete - game won!
-        widget.onComplete(true);
+        widget.onComplete(LevelOutcome(score: 1));
       } else {
         // Move to next level - capture the next level index now
         final nextLevel = _currentLevel + 1;
@@ -716,7 +717,7 @@ class _LevelRoyalMatchState extends State<LevelRoyalMatch> {
       }
     } else if (_movesRemaining <= 0) {
       // Out of moves - game over!
-      widget.onComplete(false);
+      widget.onComplete(LevelOutcome(score: 0));
     } else {
       setState(() {
         _isProcessing = false;

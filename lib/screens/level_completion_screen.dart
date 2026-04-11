@@ -1,30 +1,29 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../../level_registry.dart';
-import '../services/progress_service.dart';
 import 'level_screen.dart';
 
 class LevelCompletionScreen extends StatelessWidget {
   final int levelNumber;
   final String levelName;
-  final Duration? completionTime;
-  final bool success;
+  final Duration completionTime;
+  final double score;
   final Map<String, dynamic>? metrics;
 
   const LevelCompletionScreen({
     Key? key,
     required this.levelNumber,
     required this.levelName,
-    required this.success,
-    this.completionTime,
+    required this.score,
+    required this.completionTime,
     this.metrics,
   }) : super(key: key);
 
   String get formattedTime {
-    if (completionTime == null) return '--:--.--';
-    final minutes = completionTime!.inMinutes.toString().padLeft(2, '0');
-    final seconds = (completionTime!.inSeconds % 60).toString().padLeft(2, '0');
-    final milliseconds = ((completionTime!.inMilliseconds % 1000) ~/ 100).toString();
+    final minutes = completionTime.inMinutes.toString().padLeft(2, '0');
+    final seconds = (completionTime.inSeconds % 60).toString().padLeft(2, '0');
+    final milliseconds = ((completionTime.inMilliseconds % 1000) ~/ 100)
+        .toString();
     return '$minutes:$seconds.$milliseconds';
   }
 
@@ -45,9 +44,7 @@ class LevelCompletionScreen extends StatelessWidget {
           decoration: BoxDecoration(
             color: NunuColors.backgroundPaper,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: NunuColors.primaryDark.withOpacity(0.5),
-            ),
+            border: Border.all(color: NunuColors.primaryDark.withOpacity(0.5)),
           ),
           child: Column(
             children: [
@@ -79,13 +76,24 @@ class LevelCompletionScreen extends StatelessWidget {
     );
   }
 
-  int? get nextLevelNumber {
-    final allLevels = getAvailableLevels();
-    return ProgressService.instance.nextUncompletedLevel(allLevels, levelNumber);
+  int? get nextLevelNumber => getNextSequentialLevel(levelNumber);
+
+  Color get _accentColor {
+    if (score >= 0.85) return NunuColors.successMain;
+    if (score >= 0.5) return NunuColors.warningMain;
+    return NunuColors.errorMain;
+  }
+
+  String get _emoji {
+    if (score >= 0.85) return '🎉';
+    if (score >= 0.5) return '✨';
+    return '💔';
   }
 
   @override
   Widget build(BuildContext context) {
+    final pct = (score * 100).round();
+
     return Scaffold(
       body: Center(
         child: Padding(
@@ -93,17 +101,24 @@ class LevelCompletionScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                success ? '🎉' : '💔',
-                style: const TextStyle(fontSize: 80),
-              ),
+              Text(_emoji, style: const TextStyle(fontSize: 80)),
               const SizedBox(height: 24),
               Text(
-                success ? 'LEVEL COMPLETE!' : 'LEVEL FAILED',
+                'SCORE',
                 style: TextStyle(
-                  fontSize: 32,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: success ? NunuColors.primaryMain : NunuColors.errorMain,
+                  color: NunuColors.textSecondary,
+                  letterSpacing: 2,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '$pct%',
+                style: TextStyle(
+                  fontSize: 48,
+                  fontWeight: FontWeight.bold,
+                  color: _accentColor,
                 ),
               ),
               const SizedBox(height: 16),
@@ -115,42 +130,43 @@ class LevelCompletionScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 32),
-              if (success) ...[
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: NunuColors.backgroundPaper,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: NunuColors.secondaryLight, width: 2),
-                  ),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'TIME',
-                        style: TextStyle(
-                          color: NunuColors.textSecondary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        formattedTime,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-                    ],
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: NunuColors.backgroundPaper,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: NunuColors.secondaryLight,
+                    width: 2,
                   ),
                 ),
-                if (metrics != null && metrics!.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  _buildMetricsGrid(),
-                ],
-                const SizedBox(height: 36),
+                child: Column(
+                  children: [
+                    const Text(
+                      'TIME',
+                      style: TextStyle(
+                        color: NunuColors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      formattedTime,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (metrics != null && metrics!.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildMetricsGrid(),
               ],
+              const SizedBox(height: 36),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -159,33 +175,46 @@ class LevelCompletionScreen extends StatelessWidget {
                       Navigator.popUntil(context, (route) => route.isFirst);
                     },
                     style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
                       foregroundColor: NunuColors.secondaryLight,
-                      backgroundColor: NunuColors.secondaryMain.withValues(alpha: 0.4),
+                      backgroundColor: NunuColors.secondaryMain.withValues(
+                        alpha: 0.4,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: const Text('MAIN MENU',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      'MAIN MENU',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                   const SizedBox(width: 16),
                   FilledButton(
                     onPressed: nextLevelNumber != null
                         ? () {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => LevelScreen(levelNumber: nextLevelNumber!),
-                        ),
-                        (route) => route.isFirst,
-                      );
-                    }
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    LevelScreen(levelNumber: nextLevelNumber!),
+                              ),
+                              (route) => route.isFirst,
+                            );
+                          }
                         : null,
                     style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
                       foregroundColor: NunuColors.primaryLight,
-                      backgroundColor: NunuColors.primaryMain.withValues(alpha: 0.4),
+                      backgroundColor: NunuColors.primaryMain.withValues(
+                        alpha: 0.4,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),

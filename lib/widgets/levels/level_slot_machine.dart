@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -123,7 +124,7 @@ class _LevelSlotMachineState extends State<LevelSlotMachine>
       return;
     }
     if (input == _correctSum) {
-      widget.onComplete(true);
+      widget.onComplete(LevelOutcome(score: 1));
     } else {
       setState(() => _errorMessage = 'wrong — try again');
     }

@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -119,9 +120,9 @@ class _LevelLinkChainState extends State<LevelLinkChain> {
           _completed = true;
           final ok = _score >= _minScore;
           Future.delayed(const Duration(milliseconds: 400), () {
-            widget.onComplete(ok, metrics: {
+            widget.onComplete(LevelOutcome(score: ok ? 1 : 0, metrics: {
               'score': _score,
-            });
+            }));
           });
         }
       }

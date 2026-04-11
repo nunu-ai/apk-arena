@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/services.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -29,9 +30,9 @@ class _LevelEnterDateState extends State<LevelEnterDate> {
     final m = int.tryParse(_month.text.trim());
     final d = int.tryParse(_day.text.trim());
     if (y == now.year && m == now.month && d == now.day) {
-      widget.onComplete(true);
+      widget.onComplete(LevelOutcome(score: 1));
     } else {
-      widget.onComplete(false);
+      widget.onComplete(LevelOutcome(score: 0));
     }
   }
 

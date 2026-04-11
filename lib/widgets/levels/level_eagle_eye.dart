@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -146,11 +147,11 @@ class _LevelEagleEyeState extends State<LevelEagleEye> {
       _correctCount++;
       if (_currentRound + 1 >= _totalRounds) {
         setState(() => _completed = true);
-        widget.onComplete(true, metrics: {
+        widget.onComplete(LevelOutcome(score: 1, metrics: {
           'correct': _correctCount,
           'total': _totalRounds,
           'livesLost': _maxLives - _livesLeft,
-        });
+        }));
       } else {
         setState(() => _currentRound++);
       }
@@ -160,12 +161,12 @@ class _LevelEagleEyeState extends State<LevelEagleEye> {
         _livesLeft--;
         if (_livesLeft <= 0) {
           _completed = true;
-          widget.onComplete(false, metrics: {
+          widget.onComplete(LevelOutcome(score: 0, metrics: {
             'correct': _correctCount,
             'total': _totalRounds,
             'livesLost': _maxLives,
             'failedRound': _currentRound + 1,
-          });
+          }));
         }
       });
     }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
@@ -290,7 +291,7 @@ class _LevelBingoState extends State<LevelBingo>
     });
 
     Future.delayed(const Duration(milliseconds: 800), () {
-      widget.onComplete(won);
+      widget.onComplete(LevelOutcome(score: won ? 1 : 0));
     });
   }
 

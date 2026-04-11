@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -160,9 +161,9 @@ class _LevelFpsCollectorState extends State<LevelFpsCollector>
       _completed = true;
       _controller.stop();
       Future.delayed(const Duration(milliseconds: 400), () {
-        widget.onComplete(true, metrics: {
+        widget.onComplete(LevelOutcome(score: 1, metrics: {
           'coins': _coins.length,
-        });
+        }));
       });
     }
 

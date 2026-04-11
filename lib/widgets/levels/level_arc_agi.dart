@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -298,7 +299,7 @@ class _LevelArcAgiState extends State<LevelArcAgi> {
     return true;
   }
 
-  void _onSubmit() => widget.onComplete(_checkAnswer());
+  void _onSubmit() => widget.onComplete(LevelOutcome(score: _checkAnswer() ? 1 : 0));
 
   void _onClear() {
     setState(() {

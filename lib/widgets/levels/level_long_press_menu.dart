@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 import 'dart:math';
@@ -84,7 +85,7 @@ class _LevelLongPressMenuState extends State<LevelLongPressMenu> {
         _errorMessage = null;
       });
       Future.delayed(const Duration(milliseconds: 500), () {
-        widget.onComplete(true);
+        widget.onComplete(LevelOutcome(score: 1));
       });
     } else {
       setState(() {

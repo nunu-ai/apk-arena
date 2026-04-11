@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -84,7 +85,7 @@ class _LevelEmojiCountFruitsState extends State<LevelEmojiCountFruits> {
       return;
     }
     if (value == _targetCount) {
-      widget.onComplete(true);
+      widget.onComplete(LevelOutcome(score: 1));
     } else {
       if (_wrongAttempts == 0) {
         _wrongAttempts = 1;
@@ -95,7 +96,7 @@ class _LevelEmojiCountFruitsState extends State<LevelEmojiCountFruits> {
         setState(() {});
         _showSnack('wrong number');
         Future.delayed(const Duration(milliseconds: 900), () {
-          if (mounted) widget.onComplete(false);
+          if (mounted) widget.onComplete(LevelOutcome(score: 0));
         });
       }
     }

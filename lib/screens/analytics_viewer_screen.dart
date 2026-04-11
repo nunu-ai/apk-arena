@@ -120,7 +120,7 @@ class _AnalyticsViewerScreenState extends State<AnalyticsViewerScreen> {
             children: [
               _statChip('total attempts', '${stats.totalAttempts}', NunuColors.infoMain),
               const SizedBox(width: 8),
-              _statChip('success rate', '${stats.successRate.toStringAsFixed(0)}%', NunuColors.successMain),
+              _statChip('avg score', '${(stats.avgScore * 100).toStringAsFixed(0)}%', NunuColors.successMain),
               const SizedBox(width: 8),
               _statChip('levels tried', '${stats.uniqueLevels}', NunuColors.secondaryMain),
             ],
@@ -168,15 +168,16 @@ class _AnalyticsViewerScreenState extends State<AnalyticsViewerScreen> {
   }
 
   Widget _buildLevelCard(int levelNumber, List<AttemptRecord> attempts) {
-    final successes = attempts.where((a) => a.success).toList();
-    final failures = attempts.where((a) => !a.success).toList();
-    final successRate = attempts.isEmpty ? 0.0 : successes.length / attempts.length * 100;
-    final bestTimeMs = successes.isEmpty
-        ? null
-        : successes.map((a) => a.durationMs).reduce((a, b) => a < b ? a : b);
-    final avgTimeMs = successes.isEmpty
-        ? null
-        : successes.map((a) => a.durationMs).reduce((a, b) => a + b) ~/ successes.length;
+    final avgScore =
+        attempts.map((a) => a.score).reduce((a, b) => a + b) / attempts.length;
+    final bestScore = attempts.map((a) => a.score).reduce((a, b) => a > b ? a : b);
+    final perfectRuns = attempts.where((a) => a.score >= 1.0).length;
+    final bestTimeAmongBestScore = attempts
+        .where((a) => a.score >= bestScore - 1e-9)
+        .map((a) => a.durationMs)
+        .fold<int?>(null, (prev, ms) => prev == null || ms < prev ? ms : prev);
+    final avgTimeMs =
+        attempts.map((a) => a.durationMs).reduce((a, b) => a + b) ~/ attempts.length;
 
     final title = attempts.first.levelTitle;
     final difficulty = attempts.first.difficulty;
@@ -231,7 +232,7 @@ class _AnalyticsViewerScreenState extends State<AnalyticsViewerScreen> {
               ),
               const SizedBox(width: 8),
               Text(
-                '${successes.length}/${attempts.length} passed',
+                'avg ${(avgScore * 100).toStringAsFixed(0)}% · $perfectRuns perfect',
                 style: const TextStyle(fontSize: 11, color: NunuColors.textSecondary),
               ),
             ],
@@ -241,17 +242,12 @@ class _AnalyticsViewerScreenState extends State<AnalyticsViewerScreen> {
             Row(
               children: [
                 _miniStat('attempts', '${attempts.length}'),
-                _miniStat('pass rate', '${successRate.toStringAsFixed(0)}%'),
-                if (bestTimeMs != null) _miniStat('best', _formatDuration(bestTimeMs)),
-                if (avgTimeMs != null) _miniStat('avg', _formatDuration(avgTimeMs)),
+                _miniStat('best score', '${(bestScore * 100).round()}%'),
+                if (bestTimeAmongBestScore != null)
+                  _miniStat('fastest@best', _formatDuration(bestTimeAmongBestScore)),
+                _miniStat('avg time', _formatDuration(avgTimeMs)),
               ],
             ),
-            if (failures.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Row(children: [
-                _miniStat('failures', '${failures.length}', color: NunuColors.errorMain),
-              ]),
-            ],
             // Level-specific metrics
             if (metricsKeys.isNotEmpty) ...[
               const SizedBox(height: 8),
@@ -308,16 +304,26 @@ class _AnalyticsViewerScreenState extends State<AnalyticsViewerScreen> {
   }
 
   Widget _buildAttemptRow(AttemptRecord a) {
+    final scoreColor = a.score >= 1.0
+        ? NunuColors.successMain
+        : a.score >= 0.5
+            ? NunuColors.warningMain
+            : NunuColors.errorMain;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         children: [
           Icon(
-            a.success ? Icons.check_circle : Icons.cancel,
+            a.score >= 1.0 ? Icons.check_circle : Icons.percent,
             size: 14,
-            color: a.success ? NunuColors.successMain : NunuColors.errorMain,
+            color: scoreColor,
           ),
           const SizedBox(width: 6),
+          Text(
+            '${(a.score * 100).round()}%',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: scoreColor),
+          ),
+          const SizedBox(width: 8),
           Text(
             _formatDuration(a.durationMs),
             style: const TextStyle(fontSize: 12, color: NunuColors.textPrimary),
@@ -400,20 +406,20 @@ class _AnalyticsViewerScreenState extends State<AnalyticsViewerScreen> {
     if (attempts.isEmpty) {
       return _GlobalStats(
         totalAttempts: 0,
-        successRate: 0,
+        avgScore: 0,
         uniqueLevels: 0,
         totalTimeMs: 0,
         avgTimeMs: 0,
       );
     }
 
-    final successes = attempts.where((a) => a.success).length;
     final uniqueLevels = attempts.map((a) => a.levelNumber).toSet().length;
     final totalTimeMs = attempts.map((a) => a.durationMs).reduce((a, b) => a + b);
+    final scoreSum = attempts.map((a) => a.score).reduce((a, b) => a + b);
 
     return _GlobalStats(
       totalAttempts: attempts.length,
-      successRate: successes / attempts.length * 100,
+      avgScore: scoreSum / attempts.length,
       uniqueLevels: uniqueLevels,
       totalTimeMs: totalTimeMs,
       avgTimeMs: totalTimeMs ~/ attempts.length,
@@ -440,10 +446,14 @@ class _AnalyticsViewerScreenState extends State<AnalyticsViewerScreen> {
 
   Color _difficultyColor(String difficulty) {
     switch (difficulty) {
-      case 'baby':
+      case 'primitives':
         return NunuColors.successMain;
-      case 'human':
+      case 'visual':
+        return NunuColors.secondaryLight;
+      case 'dailys':
         return NunuColors.warningMain;
+      case 'challenges':
+        return NunuColors.primaryLight;
       case 'agi':
         return NunuColors.errorMain;
       default:
@@ -492,14 +502,14 @@ class _AnalyticsViewerScreenState extends State<AnalyticsViewerScreen> {
 
 class _GlobalStats {
   final int totalAttempts;
-  final double successRate;
+  final double avgScore;
   final int uniqueLevels;
   final int totalTimeMs;
   final int avgTimeMs;
 
   _GlobalStats({
     required this.totalAttempts,
-    required this.successRate,
+    required this.avgScore,
     required this.uniqueLevels,
     required this.totalTimeMs,
     required this.avgTimeMs,

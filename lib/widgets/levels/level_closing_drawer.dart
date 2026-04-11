@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -47,7 +48,7 @@ class _LevelClosingDrawerState extends State<LevelClosingDrawer> {
     setState(() {
       _completed = true;
     });
-    widget.onComplete(true);
+    widget.onComplete(LevelOutcome(score: 1));
   }
 
   @override
