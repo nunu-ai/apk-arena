@@ -104,7 +104,17 @@ class LevelEntry {
   LevelEntry({required this.data, required this.widgetBuilder});
 }
 
-final List<LevelEntry> primitiveLevels = [
+// ── 7 real categories (empty until levels are reviewed & moved here) ──
+final List<LevelEntry> primitivesLevels = [];
+final List<LevelEntry> visionLevels = [];
+final List<LevelEntry> memoryLevels = [];
+final List<LevelEntry> iqLevels = [];
+final List<LevelEntry> tempospatialLevels = [];
+final List<LevelEntry> gamesLevels = [];
+final List<LevelEntry> tasksLevels = [];
+
+// ── unsorted: ALL levels live here until reviewed ──
+final List<LevelEntry> unsortedLevels = [
   LevelEntry(
     data: LevelData(
       title: "Click Gauntlet",
@@ -204,9 +214,7 @@ final List<LevelEntry> primitiveLevels = [
     ),
     widgetBuilder: (onComplete) => LevelTraceDrawing(onComplete: onComplete),
   ),
-];
-
-final List<LevelEntry> visualLevels = [
+  // ── formerly: visual ──
   LevelEntry(
     data: LevelData(
       title: "Size Comparison",
@@ -318,9 +326,7 @@ final List<LevelEntry> visualLevels = [
     ),
     widgetBuilder: (onComplete) => LevelEmeraldRuntime(onComplete: onComplete),
   ),
-];
-
-final List<LevelEntry> dailyLevels = [
+  // ── formerly: dailys ──
   LevelEntry(
     data: LevelData(
       title: "Morning Alarm",
@@ -455,9 +461,7 @@ final List<LevelEntry> dailyLevels = [
     ),
     widgetBuilder: (onComplete) => LevelTutorialCards(onComplete: onComplete),
   ),
-];
-
-final List<LevelEntry> challengeLevels = [
+  // ── formerly: challenges ──
   LevelEntry(
     data: LevelData(
       title: "sudoku",
@@ -718,9 +722,7 @@ final List<LevelEntry> challengeLevels = [
     ),
     widgetBuilder: (onComplete) => LevelMemoryGrid(onComplete: onComplete),
   ),
-];
-
-final List<LevelEntry> agiLevels = [
+  // ── formerly: agi ──
   LevelEntry(
     data: LevelData(
       title: "Bingo",
@@ -793,11 +795,14 @@ final List<LevelEntry> agiLevels = [
 ];
 
 final Map<int, LevelEntry> levelsRegistry = {
-  for (var i = 0; i < primitiveLevels.length; i++) i: primitiveLevels[i],
-  for (var i = 0; i < visualLevels.length; i++) 100 + i: visualLevels[i],
-  for (var i = 0; i < dailyLevels.length; i++) 200 + i: dailyLevels[i],
-  for (var i = 0; i < challengeLevels.length; i++) 300 + i: challengeLevels[i],
-  for (var i = 0; i < agiLevels.length; i++) 400 + i: agiLevels[i],
+  for (var i = 0; i < primitivesLevels.length; i++) i: primitivesLevels[i],
+  for (var i = 0; i < visionLevels.length; i++) 100 + i: visionLevels[i],
+  for (var i = 0; i < memoryLevels.length; i++) 200 + i: memoryLevels[i],
+  for (var i = 0; i < iqLevels.length; i++) 300 + i: iqLevels[i],
+  for (var i = 0; i < tempospatialLevels.length; i++) 400 + i: tempospatialLevels[i],
+  for (var i = 0; i < gamesLevels.length; i++) 500 + i: gamesLevels[i],
+  for (var i = 0; i < tasksLevels.length; i++) 600 + i: tasksLevels[i],
+  for (var i = 0; i < unsortedLevels.length; i++) 700 + i: unsortedLevels[i],
 };
 
 List<int> getAvailableLevels() {
@@ -836,8 +841,11 @@ LevelEntry? getLevel(int levelNumber) {
 
 String getDifficultyName(int levelNumber) {
   if (levelNumber < 100) return 'primitives';
-  if (levelNumber < 200) return 'visual';
-  if (levelNumber < 300) return 'dailys';
-  if (levelNumber < 400) return 'challenges';
-  return 'agi';
+  if (levelNumber < 200) return 'vision';
+  if (levelNumber < 300) return 'memory';
+  if (levelNumber < 400) return 'iq';
+  if (levelNumber < 500) return 'tempospatial';
+  if (levelNumber < 600) return 'games';
+  if (levelNumber < 700) return 'tasks';
+  return 'unsorted';
 }

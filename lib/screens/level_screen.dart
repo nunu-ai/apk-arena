@@ -10,8 +10,9 @@ import 'level_completion_screen.dart';
 
 class LevelScreen extends StatefulWidget {
   final int levelNumber;
+  final bool randomMode;
 
-  const LevelScreen({Key? key, required this.levelNumber}) : super(key: key);
+  const LevelScreen({Key? key, required this.levelNumber, this.randomMode = false}) : super(key: key);
 
   @override
   State<LevelScreen> createState() => _LevelScreenState();
@@ -168,6 +169,7 @@ class _LevelScreenState extends State<LevelScreen> {
           score: outcome.score,
           completionTime: elapsed,
           metrics: outcome.metrics.isEmpty ? null : outcome.metrics,
+          randomMode: widget.randomMode,
         ),
       ),
     );
