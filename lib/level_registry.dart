@@ -117,7 +117,15 @@ final List<LevelEntry> primitivesLevels = [
 final List<LevelEntry> visionLevels = [];
 final List<LevelEntry> memoryLevels = [];
 final List<LevelEntry> iqLevels = [];
-final List<LevelEntry> tempospatialLevels = [];
+final List<LevelEntry> tempospatialLevels = [
+  LevelEntry(
+    data: LevelData(
+      title: "Catch the DVD",
+      instructions: "catch the target in each stage.",
+    ),
+    widgetBuilder: (onComplete) => LevelDvdLogo(onComplete: onComplete),
+  ),
+];
 final List<LevelEntry> gamesLevels = [];
 final List<LevelEntry> tasksLevels = [];
 
@@ -564,13 +572,6 @@ final List<LevelEntry> unsortedLevels = [
           "link matching gems by dragging through neighbours. longer chains = more points. reach 50 to pass.",
     ),
     widgetBuilder: (onComplete) => LevelLinkChain(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "Catch the DVD",
-      instructions: "Click the bouncing DVD logo!",
-    ),
-    widgetBuilder: (onComplete) => LevelDvdLogo(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
