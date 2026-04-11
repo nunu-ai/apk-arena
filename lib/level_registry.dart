@@ -105,7 +105,15 @@ class LevelEntry {
 }
 
 // ── 7 real categories (empty until levels are reviewed & moved here) ──
-final List<LevelEntry> primitivesLevels = [];
+final List<LevelEntry> primitivesLevels = [
+  LevelEntry(
+    data: LevelData(
+      title: "ink discipline",
+      instructions: "trace 5 shapes. stay inside the glow. 3 lives per shape.",
+    ),
+    widgetBuilder: (onComplete) => LevelTraceDrawing(onComplete: onComplete),
+  ),
+];
 final List<LevelEntry> visionLevels = [];
 final List<LevelEntry> memoryLevels = [];
 final List<LevelEntry> iqLevels = [];
@@ -206,13 +214,6 @@ final List<LevelEntry> unsortedLevels = [
       instructions: "drag the books into ascending order.",
     ),
     widgetBuilder: (onComplete) => LevelSortShelf(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "ink discipline",
-      instructions: "trace the ship in order. stay inside the glow.",
-    ),
-    widgetBuilder: (onComplete) => LevelTraceDrawing(onComplete: onComplete),
   ),
   // ── formerly: visual ──
   LevelEntry(
