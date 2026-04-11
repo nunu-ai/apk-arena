@@ -3,7 +3,6 @@ import 'dart:math';
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 
-import '../../theme/app_theme.dart';
 import '../level_widget.dart';
 
 class LevelCaptcha extends LevelWidget {
@@ -18,8 +17,7 @@ enum _CaptchaStep {
   textCaptcha1,
   imageGrid,
   textCaptcha2,
-  sliderAlign,
-  rotateAlign,
+  matchFacing,
 }
 
 class _LevelCaptchaState extends State<LevelCaptcha> {
@@ -29,6 +27,9 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
   final Random _rng = Random();
   final Stopwatch _playSw = Stopwatch();
 
+  /// Wrong answers cost one life; at 0 the run ends.
+  int _lives = 10;
+
   // --- Text CAPTCHAs ---
   final TextEditingController _textCtrl = TextEditingController();
 
@@ -37,17 +38,21 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
   static const Set<int> _gridCorrect = {0, 3, 4};
   final Set<int> _gridSelected = {};
 
-  // --- Slider align ---
-  double _sliderX = 0.5;
-
-  // --- Rotate ---
-  double _rotateTurns = 0;
-  late double _targetTurns;
+  // --- Match facing (hand vs animal), 8 compass steps clockwise from east ---
+  late int _targetFacing;
+  late int _animalFacing;
 
   @override
   void initState() {
     super.initState();
-    _targetTurns = _rng.nextInt(3) / 4.0;
+    _rollFacingChallenge();
+  }
+
+  void _rollFacingChallenge() {
+    _targetFacing = _rng.nextInt(8);
+    do {
+      _animalFacing = _rng.nextInt(8);
+    } while (_animalFacing == _targetFacing);
   }
 
   @override
@@ -73,10 +78,11 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
           _step = _CaptchaStep.textCaptcha2;
         });
       case _CaptchaStep.textCaptcha2:
-        setState(() => _step = _CaptchaStep.sliderAlign);
-      case _CaptchaStep.sliderAlign:
-        setState(() => _step = _CaptchaStep.rotateAlign);
-      case _CaptchaStep.rotateAlign:
+        setState(() {
+          _rollFacingChallenge();
+          _step = _CaptchaStep.matchFacing;
+        });
+      case _CaptchaStep.matchFacing:
         break;
     }
   }
@@ -94,10 +100,26 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
     });
   }
 
+  bool _loseLifeIfAny() {
+    if (_lives <= 0 || !mounted) return false;
+    setState(() => _lives -= 1);
+    if (_lives <= 0) {
+      _playSw.stop();
+      if (!mounted) return false;
+      widget.onComplete(LevelOutcome(
+        score: 0,
+        metrics: {'duration_ms': _playSw.elapsedMilliseconds, 'out_of_lives': true},
+      ));
+      return false;
+    }
+    return true;
+  }
+
   void _verifyText1() {
     if (_textCtrl.text.trim().toLowerCase() == '2pfpn') {
       _nextStep();
     } else {
+      if (!_loseLifeIfAny()) return;
       _snack('text does not match');
     }
   }
@@ -106,6 +128,7 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
     if (_textCtrl.text.trim().toUpperCase() == 'HAPK3') {
       _nextStep();
     } else {
+      if (!_loseLifeIfAny()) return;
       _snack('text does not match');
     }
   }
@@ -115,30 +138,25 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
         _gridSelected.containsAll(_gridCorrect)) {
       _nextStep();
     } else {
+      if (!_loseLifeIfAny()) return;
       setState(() => _gridSelected.clear());
       _snack('try again');
     }
   }
 
-  void _verifySlider() {
-    if ((_sliderX - 0.5).abs() <= 0.06) {
-      _nextStep();
-    } else {
-      _snack('align the bars');
-    }
-  }
-
-  void _verifyRotate() {
-    final d = (_rotateTurns - _targetTurns + 10) % 1.0;
-    final err = d > 0.5 ? 1.0 - d : d;
-    if (err <= 0.08) {
+  void _verifyMatchFacing() {
+    if (_animalFacing == _targetFacing) {
       _playSw.stop();
       widget.onComplete(LevelOutcome(
         score: 1,
-        metrics: {'duration_ms': _playSw.elapsedMilliseconds},
+        metrics: {
+          'duration_ms': _playSw.elapsedMilliseconds,
+          'lives_left': _lives,
+        },
       ));
     } else {
-      _snack('rotate to upright');
+      if (!_loseLifeIfAny()) return;
+      _snack('direction does not match the hand');
     }
   }
 
@@ -169,7 +187,15 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
           padding: const EdgeInsets.all(20),
           child: Container(
             constraints: const BoxConstraints(maxWidth: 420),
-            child: _buildStep(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (_step != _CaptchaStep.gate) _buildLivesBar(),
+                if (_step != _CaptchaStep.gate) const SizedBox(height: 12),
+                _buildStep(),
+              ],
+            ),
           ),
         ),
       ),
@@ -192,11 +218,31 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
           assetPath: 'assets/captcha/text_2.png',
           onVerify: _verifyText2,
         ));
-      case _CaptchaStep.sliderAlign:
-        return _wrapCard(_buildSlider());
-      case _CaptchaStep.rotateAlign:
-        return _wrapCard(_buildRotate());
+      case _CaptchaStep.matchFacing:
+        return _wrapCard(_buildMatchFacing());
     }
+  }
+
+  Widget _buildLivesBar() {
+    return Row(
+      children: [
+        Icon(Icons.favorite, color: Colors.red.shade400, size: 22),
+        const SizedBox(width: 8),
+        Text(
+          '$_lives',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          _lives == 1 ? 'life left' : 'lives left',
+          style: TextStyle(color: Colors.white70, fontSize: 14),
+        ),
+      ],
+    );
   }
 
   Widget _wrapCard(Widget child) {
@@ -330,16 +376,16 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
 
   // ─── IMAGE GRID (reCAPTCHA overlay on actual photo) ───
 
-  // Fractional positions of the 3x3 grid within the 546×818 image.
-  static const double _gridTopFrac = 0.160;
-  static const double _gridBottomFrac = 0.860;
-  static const double _gridLeftFrac = 0.004;
-  static const double _gridRightFrac = 0.996;
-  // VERIFY button area
-  static const double _verifyTopFrac = 0.905;
-  static const double _verifyBottomFrac = 0.975;
-  static const double _verifyLeftFrac = 0.62;
-  static const double _verifyRightFrac = 0.97;
+  // Fractional positions of the 3x3 grid within the 546×818 image (calibrated to asset).
+  static const double _gridTopFrac = 200 / 818;
+  static const double _gridBottomFrac = 695 / 818;
+  static const double _gridLeftFrac = 18 / 546;
+  static const double _gridRightFrac = 520 / 546;
+  // VERIFY button area (blue chip, lower right)
+  static const double _verifyTopFrac = 728 / 818;
+  static const double _verifyBottomFrac = 790 / 818;
+  static const double _verifyLeftFrac = 369 / 546;
+  static const double _verifyRightFrac = 518 / 546;
   static const double _imageAspect = 546 / 818;
 
   Widget _buildImageGrid() {
@@ -450,87 +496,286 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
     );
   }
 
-  // ─── SLIDER ────────────────────────────────────────────
+  // ─── MATCH FACING (hand reference + rotatable animal) ─
 
-  Widget _buildSlider() {
+  static const Color _floorGreen = Color(0xFF1A3D2E);
+  static const Color _floorGreenLight = Color(0xFF244A38);
+
+  Widget _buildMatchFacing() {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         const Text(
-          'slide until stripes line up',
-          style: TextStyle(color: Colors.white70),
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 56,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    flex: (_sliderX * 100).round().clamp(1, 99),
-                    child: Container(
-                      color: NunuColors.secondaryMain.withValues(alpha: 0.6),
-                    ),
-                  ),
-                  Expanded(
-                    flex: ((1 - _sliderX) * 100).round().clamp(1, 99),
-                    child: Container(
-                      color: NunuColors.primaryDark.withValues(alpha: 0.5),
-                    ),
-                  ),
-                ],
-              ),
-              Container(width: 4, height: 56, color: Colors.white),
-            ],
-          ),
-        ),
-        Slider(
-          value: _sliderX,
-          onChanged: (v) => setState(() => _sliderX = v),
-        ),
-        FilledButton(
-          onPressed: _verifySlider,
-          child: const Text('lock in'),
-        ),
-      ],
-    );
-  }
-
-  // ─── ROTATE ────────────────────────────────────────────
-
-  Widget _buildRotate() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Text(
-          'rotate until the arrow points up',
-          style: TextStyle(color: Colors.white70),
+          'use the arrows to rotate the animal to face the same way as the hand. (1 of 1)',
+          style: TextStyle(color: Colors.white70, fontSize: 13),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 20),
-        Transform.rotate(
-          angle: (_rotateTurns - _targetTurns) * 2 * pi,
-          child: const Icon(
-            Icons.navigation,
-            size: 80,
-            color: Colors.cyanAccent,
+        const SizedBox(height: 16),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _FacingStage(
+                title: 'match this!',
+                floorA: _floorGreen,
+                floorB: _floorGreenLight,
+                child: Transform.rotate(
+                  angle: _targetFacing * (pi / 4),
+                  child: CustomPaint(
+                    size: const Size(88, 88),
+                    painter: _HandPointerPainter(),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _FacingStage(
+                title: 'rotate to match',
+                floorA: _floorGreen,
+                floorB: _floorGreenLight,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Transform.rotate(
+                      angle: _animalFacing * (pi / 4),
+                      child: CustomPaint(
+                        size: const Size(88, 88),
+                        painter: _DogFacingPainter(),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton.filled(
+                          onPressed: () {
+                            setState(
+                              () => _animalFacing = (_animalFacing + 7) % 8,
+                            );
+                          },
+                          icon: const Icon(Icons.arrow_back),
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.white24,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                        IconButton.filled(
+                          onPressed: () {
+                            setState(
+                              () => _animalFacing = (_animalFacing + 1) % 8,
+                            );
+                          },
+                          icon: const Icon(Icons.arrow_forward),
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.white24,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            onPressed: _verifyMatchFacing,
+            child: const Text('submit'),
           ),
-        ),
-        Slider(
-          value: _rotateTurns,
-          min: 0,
-          max: 1,
-          divisions: 48,
-          label: _rotateTurns.toStringAsFixed(2),
-          onChanged: (v) => setState(() => _rotateTurns = v),
-        ),
-        FilledButton(
-          onPressed: _verifyRotate,
-          child: const Text('confirm rotation'),
         ),
       ],
     );
   }
+}
+
+/// Dark green “studio floor” with a light diamond grid (reference-style).
+class _FacingStage extends StatelessWidget {
+  const _FacingStage({
+    required this.title,
+    required this.floorA,
+    required this.floorB,
+    required this.child,
+  });
+
+  final String title;
+  final Color floorA;
+  final Color floorB;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 6),
+        AspectRatio(
+          aspectRatio: 1,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                CustomPaint(
+                  painter: _DiamondFloorPainter(
+                    colorA: floorA,
+                    colorB: floorB,
+                  ),
+                ),
+                Align(
+                  alignment: const Alignment(0, 0.15),
+                  child: child,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DiamondFloorPainter extends CustomPainter {
+  _DiamondFloorPainter({required this.colorA, required this.colorB});
+
+  final Color colorA;
+  final Color colorB;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = Rect.fromLTWH(0, 0, size.width, size.height);
+    final bg = Paint()..color = colorA;
+    canvas.drawRect(r, bg);
+
+    final line = Paint()
+      ..color = colorB.withValues(alpha: 0.55)
+      ..strokeWidth = 1.2;
+
+    const step = 28.0;
+    for (double x = -size.height; x < size.width + size.height; x += step) {
+      canvas.drawLine(Offset(x, 0), Offset(x + size.height, size.height), line);
+      canvas.drawLine(Offset(x, size.height), Offset(x + size.height, 0), line);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DiamondFloorPainter oldDelegate) =>
+      oldDelegate.colorA != colorA || oldDelegate.colorB != colorB;
+}
+
+/// Simple hand with index finger pointing to the right (+x); rotated by parent.
+class _HandPointerPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width * 0.45;
+    final cy = size.height * 0.52;
+    final skin = const Color(0xFFE8D5C4);
+    final outline = Paint()
+      ..color = const Color(0xFF8B7355).withValues(alpha: 0.35)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+
+    final palm = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(
+            center: Offset(cx - 6, cy + 4),
+            width: size.width * 0.38,
+            height: size.height * 0.22,
+          ),
+          const Radius.circular(6),
+        ),
+      );
+    canvas.drawPath(
+      palm,
+      Paint()..color = skin,
+    );
+    canvas.drawPath(palm, outline);
+
+    // Index finger (points +x)
+    final finger = Path()
+      ..moveTo(cx + 2, cy - 4)
+      ..quadraticBezierTo(cx + 28, cy - 18, cx + 36, cy - 6)
+      ..lineTo(cx + 34, cy + 2)
+      ..quadraticBezierTo(cx + 22, cy - 8, cx + 4, cy + 6)
+      ..close();
+    canvas.drawPath(finger, Paint()..color = skin);
+    canvas.drawPath(finger, outline);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Dog silhouette facing +x (snout right); rotated by parent.
+class _DogFacingPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width * 0.42;
+    final cy = size.height * 0.5;
+    const fur = Color(0xFFC4A574);
+    final outline = Paint()
+      ..color = const Color(0xFF5C4A2E).withValues(alpha: 0.4)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+
+    final body = Path()
+      ..addOval(
+        Rect.fromCenter(
+          center: Offset(cx - 4, cy + 2),
+          width: size.width * 0.42,
+          height: size.height * 0.28,
+        ),
+      );
+    canvas.drawPath(body, Paint()..color = fur);
+    canvas.drawPath(body, outline);
+
+    final head = Path()
+      ..addOval(
+        Rect.fromCenter(
+          center: Offset(cx + 18, cy - 6),
+          width: size.width * 0.32,
+          height: size.height * 0.26,
+        ),
+      );
+    canvas.drawPath(head, Paint()..color = fur);
+    canvas.drawPath(head, outline);
+
+    // Snout bump (+x)
+    final snout = Path()
+      ..addOval(
+        Rect.fromCenter(
+          center: Offset(cx + 32, cy - 4),
+          width: size.width * 0.14,
+          height: size.height * 0.12,
+        ),
+      );
+    canvas.drawPath(snout, Paint()..color = fur);
+    canvas.drawPath(snout, outline);
+
+    // Ear
+    final ear = Path()
+      ..moveTo(cx + 8, cy - 18)
+      ..lineTo(cx + 2, cy - 28)
+      ..lineTo(cx + 14, cy - 20)
+      ..close();
+    canvas.drawPath(ear, Paint()..color = const Color(0xFF9A7B4A));
+    canvas.drawPath(ear, outline);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

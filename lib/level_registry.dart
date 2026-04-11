@@ -16,7 +16,6 @@ import 'package:apk_arena/widgets/levels/level_click_grid_coordinate.dart';
 import 'package:apk_arena/widgets/levels/level_closing_drawer.dart';
 import 'package:apk_arena/widgets/levels/level_coin_collector.dart';
 import 'package:apk_arena/widgets/levels/level_coin_map.dart';
-import 'package:apk_arena/widgets/levels/level_connect_the_dots.dart';
 import 'package:apk_arena/widgets/levels/level_dice_recognition.dart';
 import 'package:apk_arena/widgets/levels/level_do_not_click.dart';
 import 'package:apk_arena/widgets/levels/level_dvd_logo.dart';
@@ -110,7 +109,7 @@ final List<LevelEntry> primitiveLevels = [
     data: LevelData(
       title: "Click Gauntlet",
       instructions:
-          "Tap the logo 20 times; it shrinks each hit. 10 hearts — a miss costs one.",
+          "stage 1: tap the logo 20 times; it shrinks each hit. 10 hearts — a miss costs one. stage 2: six constellations — the last three scramble the numbers. connect in order and protect your 10 lives.",
     ),
     widgetBuilder: (onComplete) => LevelClickAccuracy(onComplete: onComplete),
   ),
@@ -147,14 +146,6 @@ final List<LevelEntry> primitiveLevels = [
   ),
   LevelEntry(
     data: LevelData(
-      title: "Connect the Stars",
-      instructions:
-          "Six constellations — the last three scramble the numbers. Connect in order and protect your 10 lives.",
-    ),
-    widgetBuilder: (onComplete) => LevelConnectTheDots(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
       title: "Hold your Ground",
       instructions: "Click the button for the specified duration!",
     ),
@@ -164,7 +155,7 @@ final List<LevelEntry> primitiveLevels = [
     data: LevelData(
       title: "Prove You're Human",
       instructions:
-          "Complete every captcha step in order. Your total time is recorded at the end.",
+          "Complete every captcha step in order. 10 lives — wrong answers cost one. Your total time is recorded at the end.",
     ),
     widgetBuilder: (onComplete) => LevelCaptcha(onComplete: onComplete),
   ),
