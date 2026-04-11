@@ -4,7 +4,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../theme/app_theme.dart';
 import '../level_widget.dart';
 
 class LevelMultiTapSync extends LevelWidget {
@@ -19,13 +18,20 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
   static const Duration _syncWindow = Duration(milliseconds: 260);
   static const Duration _holdWindow = Duration(milliseconds: 340);
 
+  static const int _livesPerStage = 3;
+  static const double _laneSyncSlack = 52;
+
   final Set<int> _pressedPads = <int>{};
   final Map<int, int> _pointerToPad = <int, int>{};
   DateTime? _firstPressAt;
   Timer? _holdTimer;
-  /// 0 = hold three pads, 1 = swipe up on three lanes together
+  /// 0 = hold three pads, 1 = swipe up on three lanes together, 2 = hold + swipe elsewhere
   int _phase = 0;
+  int _lives = _livesPerStage;
   final List<double> _laneUpAccum = [0, 0, 0];
+  bool _anchorHeld = false;
+  int? _anchorPointerId;
+  double _dualSwipeAccum = 0;
   late final AnimationController _pulse;
   late final AnimationController _spin;
   late final AnimationController _energyFlow;
@@ -62,26 +68,47 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
     super.dispose();
   }
 
-  void _resetAttempt(String status) {
+  void _resetCurrentStageInputs() {
     _holdTimer?.cancel();
     _holdTimer = null;
+    _pressedPads.clear();
+    _pointerToPad.clear();
+    _firstPressAt = null;
+    _laneUpAccum[0] = _laneUpAccum[1] = _laneUpAccum[2] = 0;
+    _anchorHeld = false;
+    _anchorPointerId = null;
+    _dualSwipeAccum = 0;
+  }
+
+  void _loseLife(String statusAfterReset) {
+    _holdTimer?.cancel();
+    _holdTimer = null;
+    _lives--;
+    if (_lives <= 0) {
+      if (!mounted) return;
+      widget.onComplete(
+        LevelOutcome(score: 0, metrics: {'failed_stage': _phase}),
+      );
+      return;
+    }
+    _resetCurrentStageInputs();
     setState(() {
-      _pressedPads.clear();
-      _pointerToPad.clear();
-      _firstPressAt = null;
-      _status = status;
+      _status = '$statusAfterReset ($_lives lives left)';
     });
   }
 
   static const double _laneUpNeeded = 56;
+  static const double _dualSwipeNeeded = 80;
 
   void _startHoldCheck() {
     _holdTimer?.cancel();
     _holdTimer = Timer(_holdWindow, () {
       if (!mounted) return;
       if (_pressedPads.length == 3) {
+        _holdTimer = null;
         setState(() {
           _phase = 1;
+          _lives = _livesPerStage;
           _pressedPads.clear();
           _pointerToPad.clear();
           _firstPressAt = null;
@@ -95,33 +122,105 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
   void _onLanePointerMove(int lane, Offset delta) {
     if (_phase != 1) return;
     if (delta.dy >= 0) return;
+    final double nextLane = _laneUpAccum[lane] - delta.dy;
+    final double n0 = lane == 0 ? nextLane : _laneUpAccum[0];
+    final double n1 = lane == 1 ? nextLane : _laneUpAccum[1];
+    final double n2 = lane == 2 ? nextLane : _laneUpAccum[2];
+    final double nextMax = math.max(math.max(n0, n1), n2);
+    final double nextMin = math.min(math.min(n0, n1), n2);
+    if (nextMax - nextMin > _laneSyncSlack && nextMax > 10) {
+      _loseLife('lanes desynced. lift together.');
+      return;
+    }
     setState(() {
-      _laneUpAccum[lane] += -delta.dy;
+      _laneUpAccum[lane] = nextLane;
     });
-    if (_laneUpAccum[0] >= _laneUpNeeded &&
-        _laneUpAccum[1] >= _laneUpNeeded &&
-        _laneUpAccum[2] >= _laneUpNeeded) {
+    if (n0 >= _laneUpNeeded &&
+        n1 >= _laneUpNeeded &&
+        n2 >= _laneUpNeeded) {
+      setState(() {
+        _phase = 2;
+        _lives = _livesPerStage;
+        _resetCurrentStageInputs();
+        _status =
+            'hold the anchor with one finger; swipe right on the conduit with another';
+      });
+    }
+  }
+
+  void _onDualAnchorDown(PointerDownEvent e) {
+    if (_phase != 2) return;
+    if (_anchorHeld) return;
+    setState(() {
+      _anchorHeld = true;
+      _anchorPointerId = e.pointer;
+      _status =
+          'keep anchor down — swipe right on the conduit (${_dualSwipeAccum.toStringAsFixed(0)}/${_dualSwipeNeeded.toStringAsFixed(0)})';
+    });
+  }
+
+  void _onDualAnchorUp(PointerEvent e) {
+    if (_phase != 2) return;
+    if (e.pointer != _anchorPointerId) return;
+    final bool incomplete = _dualSwipeAccum < _dualSwipeNeeded;
+    if (incomplete && (_anchorHeld || _dualSwipeAccum > 0)) {
+      _loseLife('anchor dropped before conduit synced.');
+      return;
+    }
+    setState(() {
+      _anchorHeld = false;
+      _anchorPointerId = null;
+    });
+  }
+
+  void _onDualSwipeMove(PointerMoveEvent e) {
+    if (_phase != 2) return;
+    if (!_anchorHeld) return;
+    if (e.delta.dx <= 0) return;
+    final double nextAccum = _dualSwipeAccum + e.delta.dx;
+    setState(() {
+      _dualSwipeAccum = nextAccum;
+      _status =
+          'keep anchor — swipe right (${nextAccum.toStringAsFixed(0)}/${_dualSwipeNeeded.toStringAsFixed(0)})';
+    });
+    if (nextAccum >= _dualSwipeNeeded) {
       widget.onComplete(LevelOutcome(score: 1));
     }
   }
 
   void _onPadDown(int padId, int pointerId) {
     final DateTime now = DateTime.now();
+    String? desyncMessage;
     if (_pressedPads.isEmpty) {
       _firstPressAt = now;
     } else if (!_pressedPads.contains(padId) &&
         _firstPressAt != null &&
         now.difference(_firstPressAt!) > _syncWindow) {
-      _resetAttempt('desynced. retry the ritual.');
+      _holdTimer?.cancel();
+      _holdTimer = null;
+      _lives--;
+      if (_lives <= 0) {
+        widget.onComplete(
+          LevelOutcome(score: 0, metrics: {'failed_stage': _phase}),
+        );
+        return;
+      }
+      _pressedPads.clear();
+      _pointerToPad.clear();
       _firstPressAt = now;
+      desyncMessage = 'desynced. retry the ritual. ($_lives lives left)';
     }
 
     setState(() {
       _pointerToPad[pointerId] = padId;
       _pressedPads.add(padId);
-      _status = _pressedPads.length == 3
-          ? 'perfect sync... hold...'
-          : '${_pressedPads.length}/3 channels synced';
+      if (desyncMessage != null) {
+        _status = desyncMessage;
+      } else {
+        _status = _pressedPads.length == 3
+            ? 'perfect sync... hold...'
+            : '${_pressedPads.length}/3 channels synced';
+      }
     });
 
     if (_pressedPads.length == 3) {
@@ -153,10 +252,52 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
     });
   }
 
+  void _onCorePointerDown() {
+    if (_phase != 0) return;
+    _loseLife('reactor core is locked. sync the outer pads.');
+  }
+
+  Widget _livesHeader(int stageIndex) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'stage $stageIndex/3',
+            style: TextStyle(
+              color: _cyanNeon.withValues(alpha: 0.75),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 2,
+            ),
+          ),
+          const SizedBox(width: 20),
+          ...List.generate(_livesPerStage, (i) {
+            final alive = i < _lives;
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: Icon(
+                Icons.favorite_rounded,
+                size: 22,
+                color: alive
+                    ? const Color(0xFFFF5080)
+                    : Colors.white.withValues(alpha: 0.2),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_phase == 1) {
       return _buildTripleSwipePhase();
+    }
+    if (_phase == 2) {
+      return _buildDualBindPhase();
     }
 
     final bool allSynced = _pressedPads.length == 3;
@@ -193,6 +334,7 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                _livesHeader(1),
                 // Title with glow
                 ShaderMask(
                   shaderCallback: (bounds) => LinearGradient(
@@ -339,6 +481,7 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
           padding: const EdgeInsets.all(24),
           child: Column(
             children: [
+              _livesHeader(2),
               Text(
                 'TRIPLE LIFT',
                 style: TextStyle(
@@ -414,46 +557,219 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
     );
   }
 
+  Widget _buildDualBindPhase() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: RadialGradient(
+          center: Alignment.center,
+          radius: 1.1,
+          colors: [
+            const Color(0xFF0D1B2A),
+            const Color(0xFF020810),
+          ],
+        ),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _livesHeader(3),
+              Text(
+                'DUAL BIND',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  color: _magentaNeon,
+                  letterSpacing: 4,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                _status,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: _cyanNeon.withValues(alpha: 0.85),
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Listener(
+                        behavior: HitTestBehavior.opaque,
+                        onPointerDown: _onDualAnchorDown,
+                        onPointerUp: _onDualAnchorUp,
+                        onPointerCancel: _onDualAnchorUp,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: _anchorHeld
+                                  ? _coreGlow
+                                  : _magentaNeon.withValues(alpha: 0.5),
+                              width: _anchorHeld ? 3 : 2,
+                            ),
+                            color: _anchorHeld
+                                ? _magentaNeon.withValues(alpha: 0.12)
+                                : const Color(0xFF0D1B2A),
+                            boxShadow: _anchorHeld
+                                ? [
+                                    BoxShadow(
+                                      color: _magentaNeon.withValues(alpha: 0.35),
+                                      blurRadius: 24,
+                                    ),
+                                  ]
+                                : [],
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.lock_rounded,
+                                size: 48,
+                                color: _anchorHeld
+                                    ? _coreGlow
+                                    : _magentaNeon.withValues(alpha: 0.7),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'anchor',
+                                style: TextStyle(
+                                  color: _cyanNeon.withValues(alpha: 0.9),
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 2,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'hold',
+                                style: TextStyle(
+                                  color: _cyanNeon.withValues(alpha: 0.45),
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      flex: 3,
+                      child: Listener(
+                        behavior: HitTestBehavior.opaque,
+                        onPointerMove: _onDualSwipeMove,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: _dualSwipeAccum >= _dualSwipeNeeded
+                                  ? _coreGlow
+                                  : _cyanNeon.withValues(alpha: 0.5),
+                              width: 2,
+                            ),
+                            color: const Color(0xFF0D1B2A),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.arrow_forward_rounded,
+                                size: 44,
+                                color: _cyanNeon.withValues(alpha: 0.9),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'conduit',
+                                style: TextStyle(
+                                  color: _cyanNeon.withValues(alpha: 0.9),
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 2,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'swipe right (other finger)',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: _cyanNeon.withValues(alpha: 0.45),
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildCore(bool allSynced) {
     final double pulseScale = 1.0 + (_pulse.value * 0.15);
     final Color coreColor = allSynced ? _coreGlow : _cyanNeon;
 
-    return Transform.scale(
-      scale: pulseScale,
-      child: Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: [
-              coreColor.withValues(alpha: allSynced ? 0.9 : 0.5),
-              coreColor.withValues(alpha: 0.1),
-              Colors.transparent,
-            ],
-            stops: const [0.0, 0.5, 1.0],
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: coreColor.withValues(alpha: allSynced ? 0.8 : 0.4),
-              blurRadius: allSynced ? 40 : 20,
-              spreadRadius: allSynced ? 8 : 2,
-            ),
-          ],
-        ),
+    return Listener(
+      behavior: HitTestBehavior.opaque,
+      onPointerDown: (_) => _onCorePointerDown(),
+      child: SizedBox(
+        width: 140,
+        height: 140,
         child: Center(
-          child: Container(
-            width: 20,
-            height: 20,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: coreColor,
-              boxShadow: [
-                BoxShadow(
-                  color: coreColor,
-                  blurRadius: 10,
+          child: Transform.scale(
+            scale: pulseScale,
+            child: Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    coreColor.withValues(alpha: allSynced ? 0.9 : 0.5),
+                    coreColor.withValues(alpha: 0.1),
+                    Colors.transparent,
+                  ],
+                  stops: const [0.0, 0.5, 1.0],
                 ),
-              ],
+                boxShadow: [
+                  BoxShadow(
+                    color: coreColor.withValues(alpha: allSynced ? 0.8 : 0.4),
+                    blurRadius: allSynced ? 40 : 20,
+                    spreadRadius: allSynced ? 8 : 2,
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: coreColor,
+                    boxShadow: [
+                      BoxShadow(
+                        color: coreColor,
+                        blurRadius: 10,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
         ),

@@ -123,6 +123,14 @@ final List<LevelEntry> primitivesLevels = [
     ),
     widgetBuilder: (onComplete) => LevelConnectTheDots(onComplete: onComplete),
   ),
+  LevelEntry(
+    data: LevelData(
+      title: "Swipe Lab",
+      instructions:
+          "Follow the cards, escape five shrinking gaps, then thread five banner slots from below to above. Seven hearts, one per miss.",
+    ),
+    widgetBuilder: (onComplete) => LevelSwipeDirections(onComplete: onComplete),
+  ),
 ];
 final List<LevelEntry> visionLevels = [];
 final List<LevelEntry> memoryLevels = [];
@@ -140,14 +148,6 @@ final List<LevelEntry> unsortedLevels = [
           "Hold all 3 pads together, then swipe up on all 3 lanes at once!",
     ),
     widgetBuilder: (onComplete) => LevelMultiTapSync(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "Swipe Lab",
-      instructions:
-          "Follow the card, then escape through the shrinking gap. Five hearts — wrong swipes cost one.",
-    ),
-    widgetBuilder: (onComplete) => LevelSwipeDirections(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(

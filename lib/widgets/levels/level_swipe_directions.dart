@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../level_widget.dart';
 
-/// Cardinals (lives + ramping min distance), then pac-man gap swipes.
+/// Cardinal swipes, then pac-man gaps, then banner slots.
 class LevelSwipeDirections extends LevelWidget {
   const LevelSwipeDirections({super.key, required super.onComplete});
 
@@ -14,14 +14,17 @@ class LevelSwipeDirections extends LevelWidget {
   State<LevelSwipeDirections> createState() => _LevelSwipeDirectionsState();
 }
 
-enum _Phase { cardinal, pacman }
+enum _Phase { banner, cardinal, pacman }
 
 class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
-  static const int maxLives = 5;
-  static const int totalSteps = 4 + 5; // cardinals + pac rounds
+  static const int maxLives = 7;
+  static const int _bannerRoundsTotal = 5;
+  static const double _stepScore = 0.06;
+  static const double _lifeScore = 0.02;
 
   _Phase _phase = _Phase.cardinal;
   int _idxInStage = 0;
+  int _bannerRound = 0;
   int _pacRound = 0;
   int _totalSwipes = 0;
   int _correctSwipes = 0;
@@ -29,6 +32,12 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
   int _stepsCompleted = 0;
   int _lives = maxLives;
   Offset? _dragStart;
+  final GlobalKey _arenaKey = GlobalKey();
+
+  /// Banner phase: track path in play-area local coords.
+  Offset? _bannerLastLocal;
+  bool _bannerPassedThroughGap = false;
+  bool _bannerGestureDead = false;
 
   final Random _rng = Random();
   late List<String> _cardinalSeq;
@@ -37,15 +46,29 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
   static const List<double> _cardinalMinDist = [26, 34, 44, 58];
 
   /// Mouth half-angle (radians); smaller = narrower gap, harder.
-  static const List<double> _pacMouthHalf = [0.5, 0.38, 0.28, 0.2, 0.14];
+  static const List<double> _pacMouthHalf = [0.38, 0.28, 0.2, 0.14, 0.09];
+
+  /// Later banner rounds get a narrower slit.
+  static const List<double> _bannerGapWidthScale = [
+    1.0,
+    0.92,
+    0.84,
+    0.76,
+    0.68,
+  ];
 
   late double _pacOpeningRad;
+
+  /// Horizontal offset of banner gap center in [-1, 1] times max lateral shift.
+  double _bannerGapNorm = 0;
+  double _bannerTiltDir = 1;
 
   @override
   void initState() {
     super.initState();
     _buildSequences();
     _pacOpeningRad = _rng.nextDouble() * 2 * pi;
+    _rerollBannerGap();
   }
 
   void _buildSequences() {
@@ -56,23 +79,35 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
   int get _cardinalLen => _cardinalSeq.length;
   int get _pacLen => _pacMouthHalf.length;
 
-  double _failScore() {
-    if (totalSteps <= 0) return 0;
-    return ((_stepsCompleted / totalSteps) * 0.92).clamp(0.0, 1.0);
+  void _resetBannerGesture() {
+    _bannerLastLocal = null;
+    _bannerPassedThroughGap = false;
+    _bannerGestureDead = false;
+  }
+
+  void _rerollBannerGap() {
+    _bannerGapNorm = _rng.nextDouble() * 2 - 1;
+    _bannerTiltDir = _rng.nextBool() ? 1 : -1;
+  }
+
+  double _scoreForOutcome() {
+    return (_stepsCompleted * _stepScore + _lives * _lifeScore).clamp(0.0, 1.0);
   }
 
   void _fail() {
-    widget.onComplete(LevelOutcome(
-      score: _failScore(),
-      metrics: {
-        'total_swipes': _totalSwipes,
-        'accuracy_pct': _accuracyPct,
-        'wrong_swipes': _wrongSwipes,
-        'lives_remaining': _lives,
-        'steps_completed': _stepsCompleted,
-        'phase': _phase.name,
-      },
-    ));
+    widget.onComplete(
+      LevelOutcome(
+        score: _scoreForOutcome(),
+        metrics: {
+          'total_swipes': _totalSwipes,
+          'accuracy_pct': _accuracyPct,
+          'wrong_swipes': _wrongSwipes,
+          'lives_remaining': _lives,
+          'steps_completed': _stepsCompleted,
+          'phase': _phase.name,
+        },
+      ),
+    );
   }
 
   int get _accuracyPct {
@@ -87,7 +122,11 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
       _fail();
       return;
     }
-    if (_phase == _Phase.cardinal) {
+    if (_phase == _Phase.banner) {
+      _idxInStage = 0;
+      _rerollBannerGap();
+      _resetBannerGesture();
+    } else if (_phase == _Phase.cardinal) {
       _idxInStage = 0;
       _cardinalSeq.shuffle(_rng);
     } else {
@@ -103,7 +142,30 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
       _correctSwipes++;
       _idxInStage++;
       _stepsCompleted++;
-      if (_phase == _Phase.cardinal) {
+      if (_phase == _Phase.banner) {
+        if (_idxInStage >= 1) {
+          _idxInStage = 0;
+          _bannerRound++;
+          if (_bannerRound >= _bannerRoundsTotal) {
+            widget.onComplete(
+              LevelOutcome(
+                score: _scoreForOutcome(),
+                metrics: {
+                  'total_swipes': _totalSwipes,
+                  'accuracy_pct': _accuracyPct,
+                  'wrong_swipes': _wrongSwipes,
+                  'lives_remaining': _lives,
+                  'steps_completed': _stepsCompleted,
+                },
+              ),
+            );
+            return;
+          } else {
+            _rerollBannerGap();
+            _resetBannerGesture();
+          }
+        }
+      } else if (_phase == _Phase.cardinal) {
         if (_idxInStage >= _cardinalLen) {
           _phase = _Phase.pacman;
           _idxInStage = 0;
@@ -115,19 +177,14 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
           _idxInStage = 0;
           _pacRound++;
           if (_pacRound >= _pacLen) {
-            widget.onComplete(LevelOutcome(
-              score: 1,
-              metrics: {
-                'total_swipes': _totalSwipes,
-                'accuracy_pct': _accuracyPct,
-                'wrong_swipes': _wrongSwipes,
-                'lives_remaining': _lives,
-                'steps_completed': _stepsCompleted,
-              },
-            ));
-            return;
+            _phase = _Phase.banner;
+            _idxInStage = 0;
+            _bannerRound = 0;
+            _rerollBannerGap();
+            _resetBannerGesture();
+          } else {
+            _pacOpeningRad = _rng.nextDouble() * 2 * pi;
           }
-          _pacOpeningRad = _rng.nextDouble() * 2 * pi;
         }
       }
     } else {
@@ -151,8 +208,168 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
   bool _checkPacmanSwipe(double dx, double dy, double dist) {
     if (dist < 40) return false;
     final theta = atan2(dy, dx);
-    final half = _pacMouthHalf[_pacRound];
+    final half = _pacMouthHalf[_pacRound.clamp(0, _pacMouthHalf.length - 1)];
     return _normAngleDiff(theta, _pacOpeningRad) <= half;
+  }
+
+  ({
+    double yt,
+    double yb,
+    double topGapLeft,
+    double topGapRight,
+    double bottomGapLeft,
+    double bottomGapRight,
+  })
+  _bannerGeom(Size size) {
+    final bh = max(48.0, min(76.0, size.height * 0.12));
+    final cy = size.height / 2;
+    final yt = cy - bh / 2;
+    final yb = cy + bh / 2;
+    final gapScale =
+        _bannerGapWidthScale[_bannerRound.clamp(
+          0,
+          _bannerGapWidthScale.length - 1,
+        )];
+    final gapW = max(16.0, max(20.0, min(34.0, size.width * 0.095)) * gapScale);
+    final tiltDx = max(24.0, min(32.0, size.width * 0.09)) * _bannerTiltDir;
+    final maxShift = max(0.0, size.width / 2 - 18 - (gapW + tiltDx.abs()) / 2);
+    final gcx = size.width / 2 + _bannerGapNorm * maxShift;
+    final topCenter = gcx - tiltDx / 2;
+    final bottomCenter = gcx + tiltDx / 2;
+    return (
+      yt: yt,
+      yb: yb,
+      topGapLeft: topCenter - gapW / 2,
+      topGapRight: topCenter + gapW / 2,
+      bottomGapLeft: bottomCenter - gapW / 2,
+      bottomGapRight: bottomCenter + gapW / 2,
+    );
+  }
+
+  ({double gapLeft, double gapRight}) _bannerGapBoundsAtY(
+    Offset p,
+    ({
+      double yt,
+      double yb,
+      double topGapLeft,
+      double topGapRight,
+      double bottomGapLeft,
+      double bottomGapRight,
+    })
+    g,
+  ) {
+    final t = ((p.dy - g.yt) / (g.yb - g.yt)).clamp(0.0, 1.0);
+    final gapLeft = g.topGapLeft + (g.bottomGapLeft - g.topGapLeft) * t;
+    final gapRight = g.topGapRight + (g.bottomGapRight - g.topGapRight) * t;
+    return (gapLeft: gapLeft, gapRight: gapRight);
+  }
+
+  Offset? _globalToArenaLocal(Offset global) {
+    final ctx = _arenaKey.currentContext;
+    if (ctx == null) return null;
+    final box = ctx.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return null;
+    return box.globalToLocal(global);
+  }
+
+  /// True if the segment passes through solid banner material (not the gap).
+  bool _segmentTouchesSolidBanner(
+    Offset a,
+    Offset b,
+    ({
+      double yt,
+      double yb,
+      double topGapLeft,
+      double topGapRight,
+      double bottomGapLeft,
+      double bottomGapRight,
+    })
+    g,
+  ) {
+    const steps = 28;
+    for (var i = 0; i <= steps; i++) {
+      final t = i / steps;
+      final p = Offset(a.dx + (b.dx - a.dx) * t, a.dy + (b.dy - a.dy) * t);
+      if (p.dy < g.yt || p.dy > g.yb) continue;
+      final gap = _bannerGapBoundsAtY(p, g);
+      if (p.dx < gap.gapLeft || p.dx > gap.gapRight) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool _pointInBannerGap(
+    Offset p,
+    ({
+      double yt,
+      double yb,
+      double topGapLeft,
+      double topGapRight,
+      double bottomGapLeft,
+      double bottomGapRight,
+    })
+    g,
+  ) {
+    if (p.dy < g.yt || p.dy > g.yb) return false;
+    final gap = _bannerGapBoundsAtY(p, g);
+    return p.dx >= gap.gapLeft && p.dx <= gap.gapRight;
+  }
+
+  void _onPanStart(DragStartDetails d) {
+    _dragStart = d.globalPosition;
+    if (_phase == _Phase.banner) {
+      _bannerLastLocal = _globalToArenaLocal(d.globalPosition);
+      _bannerPassedThroughGap = false;
+      _bannerGestureDead = false;
+    }
+  }
+
+  void _onPanUpdate(DragUpdateDetails d) {
+    if (_phase != _Phase.banner || _bannerGestureDead) return;
+    final arena = _arenaKey.currentContext?.findRenderObject() as RenderBox?;
+    if (arena == null || !arena.hasSize) return;
+    final g = _bannerGeom(arena.size);
+    final cur = arena.globalToLocal(d.globalPosition);
+    final prev = _bannerLastLocal ?? cur;
+    if (_segmentTouchesSolidBanner(prev, cur, g)) {
+      _bannerGestureDead = true;
+      _bannerLastLocal = cur;
+      return;
+    }
+    if (_pointInBannerGap(cur, g)) {
+      _bannerPassedThroughGap = true;
+    }
+    _bannerLastLocal = cur;
+  }
+
+  void _onPanCancel() {
+    _dragStart = null;
+    _resetBannerGesture();
+  }
+
+  void _onBannerPanEnd(DragEndDetails details) {
+    if (_dragStart == null) return;
+    final arena = _arenaKey.currentContext?.findRenderObject() as RenderBox?;
+    if (arena == null || !arena.hasSize) {
+      _dragStart = null;
+      _resetBannerGesture();
+      return;
+    }
+    final bg = _bannerGeom(arena.size);
+    final startL = arena.globalToLocal(_dragStart!);
+    final endL = arena.globalToLocal(details.globalPosition);
+    final ok =
+        !_bannerGestureDead &&
+        startL.dy > bg.yb &&
+        endL.dy < bg.yt &&
+        endL.dy < startL.dy &&
+        _bannerPassedThroughGap &&
+        !_segmentTouchesSolidBanner(startL, endL, bg);
+
+    _registerSwipe(ok);
+    _dragStart = null;
+    _resetBannerGesture();
   }
 
   String _cardinalFromVector(double dx, double dy) {
@@ -178,13 +395,18 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
   }
 
   bool _checkCardinalSwipe(double dx, double dy, double dist) {
-    final minD = _cardinalMinDist[_idxInStage.clamp(0, _cardinalMinDist.length - 1)];
+    final minD =
+        _cardinalMinDist[_idxInStage.clamp(0, _cardinalMinDist.length - 1)];
     if (dist < minD) return false;
     final got = _cardinalFromVector(dx, dy);
     return got == _cardinalSeq[_idxInStage];
   }
 
   void _onPanEnd(DragEndDetails details) {
+    if (_phase == _Phase.banner) {
+      _onBannerPanEnd(details);
+      return;
+    }
     if (_dragStart == null) return;
     final end = details.globalPosition;
     final dx = end.dx - _dragStart!.dx;
@@ -208,6 +430,9 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
   }
 
   String get _topHint {
+    if (_phase == _Phase.banner) {
+      return 'banner ${_bannerRound + 1}/$_bannerRoundsTotal';
+    }
     if (_phase == _Phase.cardinal) {
       return 'round ${_idxInStage + 1}/$_cardinalLen';
     }
@@ -217,7 +442,46 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
     return '';
   }
 
-  double get _currentMouthHalf => _pacMouthHalf[_pacRound];
+  double get _currentMouthHalf =>
+      _pacMouthHalf[_pacRound.clamp(0, _pacMouthHalf.length - 1)];
+
+  String? get _helperText {
+    if (_phase == _Phase.banner) {
+      return 'thread five banner slots: below to above, gaps only';
+    }
+    if (_phase == _Phase.pacman) {
+      return 'swipe out through the gap';
+    }
+    return null;
+  }
+
+  Widget _bannerPlayArea() {
+    return LayoutBuilder(
+      builder: (context, c) {
+        final size = Size(c.maxWidth, c.maxHeight);
+        final bg = _bannerGeom(size);
+        final bandH = bg.yb - bg.yt;
+        return Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            Positioned.fill(
+              child: CustomPaint(
+                painter: _BannerPainter(
+                  yt: bg.yt,
+                  bandH: bandH,
+                  topGapLeft: bg.topGapLeft,
+                  topGapRight: bg.topGapRight,
+                  bottomGapLeft: bg.bottomGapLeft,
+                  bottomGapRight: bg.bottomGapRight,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   Widget _livesHeartsRow() {
     return Row(
@@ -276,9 +540,12 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
 
   @override
   Widget build(BuildContext context) {
+    final helperText = _helperText;
     return GestureDetector(
-      onPanStart: (d) => _dragStart = d.globalPosition,
+      onPanStart: _onPanStart,
+      onPanUpdate: _onPanUpdate,
       onPanEnd: _onPanEnd,
+      onPanCancel: _onPanCancel,
       child: Container(
         color: Colors.transparent,
         child: Column(
@@ -303,11 +570,11 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
                 ],
               ),
             ),
-            if (_phase == _Phase.pacman)
+            if (helperText != null)
               Padding(
                 padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
                 child: Text(
-                  'swipe out through the gap',
+                  helperText,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 12,
@@ -318,21 +585,26 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
                 ),
               ),
             Expanded(
-              child: _phase == _Phase.pacman
-                  ? Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                      child: CustomPaint(
-                        painter: _PacmanPainter(
-                          openingRad: _pacOpeningRad,
-                          mouthHalf: _currentMouthHalf,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                child: SizedBox.expand(
+                  key: _arenaKey,
+                  child: _phase == _Phase.banner
+                      ? _bannerPlayArea()
+                      : _phase == _Phase.pacman
+                      ? CustomPaint(
+                          painter: _PacmanPainter(
+                            openingRad: _pacOpeningRad,
+                            mouthHalf: _currentMouthHalf,
+                          ),
+                          child: const SizedBox.expand(),
+                        )
+                      : ColoredBox(
+                          color: Colors.transparent,
+                          child: _cardinalPanel(),
                         ),
-                        child: const SizedBox.expand(),
-                      ),
-                    )
-                  : ColoredBox(
-                      color: Colors.transparent,
-                      child: _cardinalPanel(),
-                    ),
+                ),
+              ),
             ),
           ],
         ),
@@ -343,10 +615,7 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
 
 /// Wedge + larger center hub; matches primary control colors (no eye).
 class _PacmanPainter extends CustomPainter {
-  _PacmanPainter({
-    required this.openingRad,
-    required this.mouthHalf,
-  });
+  _PacmanPainter({required this.openingRad, required this.mouthHalf});
 
   final double openingRad;
   final double mouthHalf;
@@ -391,4 +660,62 @@ class _PacmanPainter extends CustomPainter {
   bool shouldRepaint(covariant _PacmanPainter oldDelegate) =>
       openingRad != oldDelegate.openingRad ||
       mouthHalf != oldDelegate.mouthHalf;
+}
+
+class _BannerPainter extends CustomPainter {
+  _BannerPainter({
+    required this.yt,
+    required this.bandH,
+    required this.topGapLeft,
+    required this.topGapRight,
+    required this.bottomGapLeft,
+    required this.bottomGapRight,
+  });
+
+  final double yt;
+  final double bandH;
+  final double topGapLeft;
+  final double topGapRight;
+  final double bottomGapLeft;
+  final double bottomGapRight;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final bandRect = Rect.fromLTWH(0, yt, size.width, bandH);
+    final bandPath = Path()
+      ..addRRect(RRect.fromRectAndRadius(bandRect, const Radius.circular(6)));
+    final gapPath = Path()
+      ..moveTo(topGapLeft, yt)
+      ..lineTo(topGapRight, yt)
+      ..lineTo(bottomGapRight, yt + bandH)
+      ..lineTo(bottomGapLeft, yt + bandH)
+      ..close();
+    final bannerPath = Path.combine(
+      PathOperation.difference,
+      bandPath,
+      gapPath,
+    );
+
+    canvas.drawShadow(
+      bannerPath,
+      NunuColors.primaryDark.withValues(alpha: 0.35),
+      10,
+      false,
+    );
+    canvas.drawPath(
+      bannerPath,
+      Paint()
+        ..color = NunuColors.primaryMain.withValues(alpha: 0.88)
+        ..style = PaintingStyle.fill,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _BannerPainter oldDelegate) =>
+      yt != oldDelegate.yt ||
+      bandH != oldDelegate.bandH ||
+      topGapLeft != oldDelegate.topGapLeft ||
+      topGapRight != oldDelegate.topGapRight ||
+      bottomGapLeft != oldDelegate.bottomGapLeft ||
+      bottomGapRight != oldDelegate.bottomGapRight;
 }
