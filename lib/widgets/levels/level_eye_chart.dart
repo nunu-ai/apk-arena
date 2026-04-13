@@ -8,13 +8,13 @@ import '../../theme/app_theme.dart';
 class _StageConfig {
   final double fontSize;
   final double rotation; // radians
-  final bool useTypos;
+  final int typoCount;
   final bool useNonsense;
 
   const _StageConfig({
     required this.fontSize,
     this.rotation = 0,
-    this.useTypos = false,
+    this.typoCount = 0,
     this.useNonsense = false,
   });
 }
@@ -32,11 +32,11 @@ class _LevelEyeChartState extends State<LevelEyeChart> {
 
   static const List<_StageConfig> _stages = [
     _StageConfig(fontSize: 64),                                          // 1: big, real word
-    _StageConfig(fontSize: 40),                                          // 2: medium
-    _StageConfig(fontSize: 26),                                          // 3: smaller
-    _StageConfig(fontSize: 20, useTypos: true),                          // 4: small + typo
-    _StageConfig(fontSize: 16, rotation: 0.2),                           // 5: small + rotation
-    _StageConfig(fontSize: 12, useTypos: true, rotation: 0.3),          // 6: tiny + typo + rotation
+    _StageConfig(fontSize: 36, rotation: 0.08),                          // 2: smaller, slight tilt
+    _StageConfig(fontSize: 28, rotation: 0.14, typoCount: 1),           // 3: typo arrives early
+    _StageConfig(fontSize: 22, rotation: 0.20, typoCount: 1),           // 4: smaller + tilted
+    _StageConfig(fontSize: 16, rotation: 0.26, typoCount: 2),           // 5: two mistakes to spot
+    _StageConfig(fontSize: 12, rotation: 0.32, typoCount: 2),           // 6: tiny + noisy
     _StageConfig(fontSize: 9, useNonsense: true),                        // 7: tiny nonsense
     _StageConfig(fontSize: 7, useNonsense: true, rotation: 0.4),        // 8: squinting
     _StageConfig(fontSize: 5, useNonsense: true, rotation: 0.6),        // 9: pixel hunting
@@ -84,8 +84,9 @@ class _LevelEyeChartState extends State<LevelEyeChart> {
 
     if (cfg.useNonsense) {
       _displayText = _generateNonsense();
-    } else if (cfg.useTypos) {
-      _displayText = _addTypo(_words[_rand.nextInt(_words.length)]);
+    } else if (cfg.typoCount > 0) {
+      _displayText =
+          _addTypos(_words[_rand.nextInt(_words.length)], cfg.typoCount);
     } else {
       _displayText = _words[_rand.nextInt(_words.length)];
     }
@@ -103,17 +104,22 @@ class _LevelEyeChartState extends State<LevelEyeChart> {
     );
   }
 
-  String _addTypo(String word) {
+  String _addTypos(String word, int typoCount) {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
     final chars_ = word.split('');
-    // swap one random letter for a different one
-    final idx = _rand.nextInt(chars_.length);
-    String replacement;
-    do {
-      replacement = String.fromCharCode(
-          chars.codeUnitAt(_rand.nextInt(chars.length)));
-    } while (replacement == chars_[idx]);
-    chars_[idx] = replacement;
+    final indices = List.generate(chars_.length, (i) => i)..shuffle(_rand);
+    final replacements = min(typoCount, chars_.length);
+
+    for (int i = 0; i < replacements; i++) {
+      final idx = indices[i];
+      String replacement;
+      do {
+        replacement = String.fromCharCode(
+            chars.codeUnitAt(_rand.nextInt(chars.length)));
+      } while (replacement == chars_[idx]);
+      chars_[idx] = replacement;
+    }
+
     return chars_.join();
   }
 

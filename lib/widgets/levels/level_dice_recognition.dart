@@ -14,6 +14,7 @@ class _StageConfig {
   final int faceMax;
   final bool mixSizes;
   final bool rotate;
+  final List<int> requiredFaces;
 
   const _StageConfig({
     required this.diceMin,
@@ -22,6 +23,7 @@ class _StageConfig {
     this.faceMax = 6,
     this.mixSizes = false,
     this.rotate = false,
+    this.requiredFaces = const [],
   });
 }
 
@@ -36,13 +38,36 @@ class LevelDiceRecognition extends LevelWidget {
 class _LevelDiceRecognitionState extends State<LevelDiceRecognition> {
   static const List<_StageConfig> _stages = [
     _StageConfig(diceMin: 4, diceMax: 5),                                       // 1: warmup
-    _StageConfig(diceMin: 4, diceMax: 6),                                       // 2: more dice
+    _StageConfig(diceMin: 5, diceMax: 6),                                       // 2: more dice
     _StageConfig(diceMin: 5, diceMax: 7),                                       // 3: busy
     _StageConfig(diceMin: 4, diceMax: 6, faceMin: 4, faceMax: 6),              // 4: confusables only
     _StageConfig(diceMin: 5, diceMax: 7, mixSizes: true),                       // 5: mixed sizes
     _StageConfig(diceMin: 5, diceMax: 7, rotate: true),                         // 6: rotated
-    _StageConfig(diceMin: 4, diceMax: 6, faceMax: 7),                           // 7: OOD 7-dot
-    _StageConfig(diceMin: 5, diceMax: 8, faceMax: 8, mixSizes: true, rotate: true), // 8: everything
+    _StageConfig(diceMin: 5, diceMax: 7, faceMax: 7, requiredFaces: [7]),       // 7: guaranteed 7-dot
+    _StageConfig(
+      diceMin: 5,
+      diceMax: 8,
+      faceMax: 7,
+      mixSizes: true,
+      rotate: true,
+      requiredFaces: [7],
+    ),                                                                           // 8: 7-dot under chaos
+    _StageConfig(
+      diceMin: 5,
+      diceMax: 8,
+      faceMax: 8,
+      mixSizes: true,
+      requiredFaces: [7],
+    ),                                                                           // 9: 8s join the pool
+    _StageConfig(
+      diceMin: 6,
+      diceMax: 8,
+      faceMin: 4,
+      faceMax: 8,
+      mixSizes: true,
+      rotate: true,
+      requiredFaces: [7],
+    ),                                                                           // 10: dense endgame
   ];
 
   final _rand = Random();
@@ -89,6 +114,24 @@ class _LevelDiceRecognitionState extends State<LevelDiceRecognition> {
           : 0.0;
       return _DieInfo(value: value, scale: scale, angle: angle);
     });
+
+    _ensureRequiredFaces(cfg.requiredFaces);
+  }
+
+  void _ensureRequiredFaces(List<int> requiredFaces) {
+    if (requiredFaces.isEmpty || _dice.isEmpty) return;
+
+    final replaceableIndices = List.generate(_dice.length, (i) => i)
+      ..shuffle(_rand);
+
+    for (final face in requiredFaces) {
+      final alreadyPresent = _dice.any((die) => die.value == face);
+      if (alreadyPresent || replaceableIndices.isEmpty) continue;
+
+      final index = replaceableIndices.removeLast();
+      final die = _dice[index];
+      _dice[index] = _DieInfo(value: face, scale: die.scale, angle: die.angle);
+    }
   }
 
   String get _correctAnswer => _dice.map((d) => d.value).join();

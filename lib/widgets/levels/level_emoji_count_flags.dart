@@ -18,14 +18,16 @@ class _LevelEmojiCountFlagsState extends State<LevelEmojiCountFlags> {
 
   // stage definitions: (min, max) inclusive flag counts
   static const List<(int, int)> _stages = [
-    (1, 3),
-    (3, 6),
-    (6, 10),
-    (10, 15),
-    (15, 20),
-    (20, 30),
-    (30, 40),
-    (40, 50),
+    (5, 8),
+    (8, 12),
+    (12, 16),
+    (16, 20),
+    (20, 25),
+    (25, 30),
+    (30, 36),
+    (36, 42),
+    (42, 50),
+    (50, 60),
   ];
 
   int _stageIndex = 0;
@@ -86,7 +88,7 @@ class _LevelEmojiCountFlagsState extends State<LevelEmojiCountFlags> {
     final double usableHeight = max(0, height - topSafe - bottomSafe);
 
     // grid-based placement with jitter to reduce overlaps
-    const double cellBase = 48.0; // roughly emoji size
+    const double cellBase = 14.0; // roughly emoji size
     final int cols = max(1, (usableWidth / cellBase).floor());
     final int rows = max(1, (usableHeight / cellBase).floor());
     final int totalCells = cols * rows;

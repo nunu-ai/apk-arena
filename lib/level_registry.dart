@@ -161,6 +161,13 @@ final List<LevelEntry> memoryLevels = [
     ),
     widgetBuilder: (onComplete) => LevelTosQuiz(onComplete: onComplete),
   ),
+  LevelEntry(
+    data: LevelData(
+      title: "memory match",
+      instructions: "clear all boards.",
+    ),
+    widgetBuilder: (onComplete) => LevelMemoryMatch(onComplete: onComplete),
+  ),
 ];
 final List<LevelEntry> iqLevels = [];
 final List<LevelEntry> tempospatialLevels = [
@@ -495,13 +502,6 @@ final List<LevelEntry> unsortedLevels = [
           "make three match-3 combos in a row. the board grows after each one.",
     ),
     widgetBuilder: (onComplete) => LevelMatch3(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "memory match",
-      instructions: "find all matching pairs.",
-    ),
-    widgetBuilder: (onComplete) => LevelMemoryMatch(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(

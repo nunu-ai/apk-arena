@@ -19,13 +19,15 @@ class _LevelEmojiCountFruitsState extends State<LevelEmojiCountFruits> {
   // each stage: (targetMin, targetMax, distractorTypes, distractorPerType)
   static const List<(int, int, int, int)> _stages = [
     (3, 5, 1, 3),       // easy: few targets, 1 distractor type
-    (5, 8, 2, 5),       // a bit more
-    (6, 10, 2, 6),      // more items, same variety
-    (8, 12, 3, 7),      // new distractor type
-    (10, 15, 4, 8),     // getting crowded
-    (12, 18, 4, 10),    // busier
-    (15, 20, 5, 11),    // lots of variety
-    (18, 25, 6, 12),    // fruit chaos
+    (5, 8, 2, 4),       // a bit more
+    (6, 10, 2, 5),      // more items, same variety
+    (8, 12, 3, 6),      // new distractor type
+    (10, 15, 3, 7),     // getting crowded
+    (12, 18, 4, 8),     // busier
+    (15, 21, 4, 10),    // more targets, more clutter
+    (18, 25, 5, 11),    // lots of variety
+    (22, 30, 6, 12),    // fruit chaos
+    (26, 36, 7, 13),    // full bowl meltdown
   ];
 
   static const List<String> _fruits = [
