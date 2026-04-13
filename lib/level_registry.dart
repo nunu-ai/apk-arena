@@ -114,7 +114,15 @@ final List<LevelEntry> primitivesLevels = [
     widgetBuilder: (onComplete) => LevelTraceDrawing(onComplete: onComplete),
   ),
 ];
-final List<LevelEntry> visionLevels = [];
+final List<LevelEntry> visionLevels = [
+  LevelEntry(
+    data: LevelData(
+      title: "parade of nations",
+      instructions: "count the country flags and enter the total.",
+    ),
+    widgetBuilder: (onComplete) => LevelEmojiCountFlags(onComplete: onComplete),
+  ),
+];
 final List<LevelEntry> memoryLevels = [];
 final List<LevelEntry> iqLevels = [];
 final List<LevelEntry> tempospatialLevels = [
@@ -237,13 +245,6 @@ final List<LevelEntry> unsortedLevels = [
       instructions: "find and tap the 3 balls.",
     ),
     widgetBuilder: (onComplete) => LevelEmojiBallHunt(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "parade of nations",
-      instructions: "count the country flags and enter the total.",
-    ),
-    widgetBuilder: (onComplete) => LevelEmojiCountFlags(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
