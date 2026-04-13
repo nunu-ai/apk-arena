@@ -153,7 +153,15 @@ final List<LevelEntry> visionLevels = [
     widgetBuilder: (onComplete) => LevelEmojiBallHunt(onComplete: onComplete),
   ),
 ];
-final List<LevelEntry> memoryLevels = [];
+final List<LevelEntry> memoryLevels = [
+  LevelEntry(
+    data: LevelData(
+      title: "User Agreement",
+      instructions: "Review the user agreement.",
+    ),
+    widgetBuilder: (onComplete) => LevelTosQuiz(onComplete: onComplete),
+  ),
+];
 final List<LevelEntry> iqLevels = [];
 final List<LevelEntry> tempospatialLevels = [
   LevelEntry(
@@ -369,13 +377,6 @@ final List<LevelEntry> unsortedLevels = [
   LevelEntry(
     data: LevelData(title: "today's date", instructions: "enter today's date."),
     widgetBuilder: (onComplete) => LevelEnterDate(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "User Agreement",
-      instructions: "Review the user agreement.",
-    ),
-    widgetBuilder: (onComplete) => LevelTosQuiz(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
