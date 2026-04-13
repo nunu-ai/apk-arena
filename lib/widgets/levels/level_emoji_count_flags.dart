@@ -23,7 +23,8 @@ class _LevelEmojiCountFlagsState extends State<LevelEmojiCountFlags> {
     (6, 10),
     (10, 15),
     (15, 20),
-    (25, 30),
+    (20, 30),
+    (30, 40),
     (40, 50),
   ];
 

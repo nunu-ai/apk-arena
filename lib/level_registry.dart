@@ -122,6 +122,14 @@ final List<LevelEntry> visionLevels = [
     ),
     widgetBuilder: (onComplete) => LevelEmojiCountFlags(onComplete: onComplete),
   ),
+  LevelEntry(
+    data: LevelData(
+      title: "fruit salad census",
+      instructions: "count the target fruit. ignore the rest.",
+    ),
+    widgetBuilder: (onComplete) =>
+        LevelEmojiCountFruits(onComplete: onComplete),
+  ),
 ];
 final List<LevelEntry> memoryLevels = [];
 final List<LevelEntry> iqLevels = [];
@@ -269,14 +277,6 @@ final List<LevelEntry> unsortedLevels = [
       instructions: "Enter the numbers on each die from left to right!",
     ),
     widgetBuilder: (onComplete) => LevelDiceRecognition(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "fruit salad census",
-      instructions: "count the target fruit. ignore the rest.",
-    ),
-    widgetBuilder: (onComplete) =>
-        LevelEmojiCountFruits(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
