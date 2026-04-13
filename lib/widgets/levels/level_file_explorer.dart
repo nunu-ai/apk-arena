@@ -8,6 +8,8 @@ import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 
 const String _finalBossFileName = 'mission_seed_42.txt';
+const String _secondChallengeFileName = 'vault_key_final.png';
+const String _thirdChallengeFileName = 'clue.png';
 
 class _FileNode {
   final String name;
@@ -519,6 +521,18 @@ class _QuizQuestion {
   }) : kind = _QuestionKind.choice;
 }
 
+class _FinalChallenge {
+  final String targetFileName;
+  final List<String> startFolderPath;
+  final List<String> targetFolderPath;
+
+  const _FinalChallenge({
+    required this.targetFileName,
+    required this.startFolderPath,
+    required this.targetFolderPath,
+  });
+}
+
 class LevelFileExplorer extends LevelWidget {
   const LevelFileExplorer({super.key, required super.onComplete});
 
@@ -535,12 +549,13 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
   int _quizRevisits = 0;
   int _quizCorrect = 0;
   double _quizScore = 0;
-  int _bossMistakes = 0;
   _ExplorerPhase _phase = _ExplorerPhase.quiz;
+  int _challengeIndex = 0;
 
   late final List<_QuizQuestion> _questions;
   late final Map<String, TextEditingController> _numberControllers;
-  late final List<String> _bossFolderPath;
+  late final List<_FinalChallenge> _finalChallenges;
+  late final List<int> _challengeMistakes;
 
   _FileNode get _currentFolder => _navStack.last;
   bool get _isAtRoot => _navStack.length == 1;
@@ -555,10 +570,18 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
       for (final question in _questions.where((q) => q.kind == _QuestionKind.number))
         question.id: TextEditingController(),
     };
-    final bossPath = _findPathToName(_root, _finalBossFileName);
-    _bossFolderPath = bossPath == null
-        ? const []
-        : bossPath.sublist(1, bossPath.length - 1).map((node) => node.name).toList();
+    _finalChallenges = [
+      _buildFinalChallenge(_finalBossFileName, const []),
+      _buildFinalChallenge(
+        _secondChallengeFileName,
+        const ['assets', 'archive', 'icons', 'mobile'],
+      ),
+      _buildFinalChallenge(
+        _thirdChallengeFileName,
+        const ['notes', 'archive', 'tmp', 'final', 'deeper', 'branch', 'vault', 'hold'],
+      ),
+    ];
+    _challengeMistakes = List<int>.filled(_finalChallenges.length, 0);
   }
 
   @override
@@ -637,12 +660,15 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
       _quizCorrect = correct;
       _quizScore = _clamp01(accuracy - revisitPenalty);
       _phase = _ExplorerPhase.boss;
+      _challengeIndex = 0;
       _showExplorer = true;
       _isChecking = false;
-      _bossMistakes = 0;
+      for (var i = 0; i < _challengeMistakes.length; i++) {
+        _challengeMistakes[i] = 0;
+      }
       _navStack
         ..clear()
-        ..add(_root);
+        ..addAll(_resolveFolderTrail(_finalChallenges.first.startFolderPath));
     });
   }
 
@@ -661,8 +687,8 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
       if (!_visitedFolderPaths.add(folderKey)) {
         _quizRevisits++;
       }
-    } else if (!_isCorrectBossPrefix(nextPath)) {
-      _registerBossMistake('wrong folder');
+    } else if (!_isCorrectBossFolderEntry(nextPath)) {
+      _registerBossMistake();
     }
 
     setState(() {
@@ -672,8 +698,8 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
 
   void _goBack() {
     if (_isAtRoot) return;
-    if (_phase == _ExplorerPhase.boss) {
-      _registerBossMistake('backtracking costs score');
+    if (_phase == _ExplorerPhase.boss && !_isCorrectBossBack()) {
+      _registerBossMistake();
     }
     setState(() {
       _navStack.removeLast();
@@ -682,24 +708,43 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
 
   void _onFileTap(_FileNode file) {
     if (_phase != _ExplorerPhase.boss) return;
-    if (file.name == _finalBossFileName &&
-        _listsEqual(_currentFolderPathNames, _bossFolderPath)) {
-      _finishLevel();
+    if (_isCorrectBossFileTap(file.name)) {
+      _advanceOrFinishChallenge();
       return;
     }
-    _registerBossMistake('wrong file');
+    _registerBossMistake();
   }
 
-  void _registerBossMistake(String message) {
+  void _registerBossMistake() {
     setState(() {
-      _bossMistakes++;
+      _challengeMistakes[_challengeIndex]++;
     });
-    _showSnackbar(message, NunuColors.errorMain);
+  }
+
+  void _advanceOrFinishChallenge() {
+    if (_challengeIndex < _finalChallenges.length - 1) {
+      setState(() {
+        _challengeIndex++;
+        _navStack
+          ..clear()
+          ..addAll(_resolveFolderTrail(_currentChallenge.startFolderPath));
+      });
+      return;
+    }
+    _finishLevel();
   }
 
   void _finishLevel() {
-    final bossScore = _clamp01(1 - (_bossMistakes * 0.2));
+    final double bossScore = _finalChallenges.isEmpty
+        ? 0
+        : _finalChallenges
+                .asMap()
+                .entries
+                .map((entry) => _clamp01(1 - (_challengeMistakes[entry.key] * 0.2)))
+                .fold<double>(0, (sum, value) => sum + value) /
+            _finalChallenges.length;
     final finalScore = (0.7 * _quizScore) + (0.3 * bossScore);
+    final totalBossMistakes = _challengeMistakes.fold<int>(0, (sum, value) => sum + value);
 
     widget.onComplete(
       LevelOutcome(
@@ -709,7 +754,10 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
           'quiz_correct': _quizCorrect,
           'quiz_revisits': _quizRevisits,
           'boss_score': _round(bossScore),
-          'boss_mistakes': _bossMistakes,
+          'boss_mistakes': totalBossMistakes,
+          'challenge_1_mistakes': _challengeMistakes[0],
+          'challenge_2_mistakes': _challengeMistakes[1],
+          'challenge_3_mistakes': _challengeMistakes[2],
         },
       ),
     );
@@ -720,12 +768,66 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
     return 'project/${pathNames.join('/')}';
   }
 
-  bool _isCorrectBossPrefix(List<String> nextPath) {
-    if (nextPath.length > _bossFolderPath.length) return false;
+  _FinalChallenge get _currentChallenge => _finalChallenges[_challengeIndex];
+
+  _FinalChallenge _buildFinalChallenge(String targetFileName, List<String> startFolderPath) {
+    final targetPath = _findPathToName(_root, targetFileName);
+    final targetFolderPath = targetPath == null
+        ? const <String>[]
+        : targetPath.sublist(1, targetPath.length - 1).map((node) => node.name).toList();
+    return _FinalChallenge(
+      targetFileName: targetFileName,
+      startFolderPath: List<String>.from(startFolderPath),
+      targetFolderPath: targetFolderPath,
+    );
+  }
+
+  List<_FileNode> _resolveFolderTrail(List<String> pathNames) {
+    final trail = <_FileNode>[_root];
+    var current = _root;
+    for (final name in pathNames) {
+      final next = current.children.where((node) => node.isFolder && node.name == name).first;
+      trail.add(next);
+      current = next;
+    }
+    return trail;
+  }
+
+  int _sharedPrefixLength(List<String> a, List<String> b) {
+    final limit = min(a.length, b.length);
+    var length = 0;
+    while (length < limit && a[length] == b[length]) {
+      length++;
+    }
+    return length;
+  }
+
+  bool _isCorrectBossFolderEntry(List<String> nextPath) {
+    final currentPath = _currentFolderPathNames;
+    final targetPath = _currentChallenge.targetFolderPath;
+    final shared = _sharedPrefixLength(currentPath, targetPath);
+    if (currentPath.length > shared) {
+      return false;
+    }
+    if (nextPath.length > targetPath.length) {
+      return false;
+    }
     for (var i = 0; i < nextPath.length; i++) {
-      if (nextPath[i] != _bossFolderPath[i]) return false;
+      if (nextPath[i] != targetPath[i]) return false;
     }
     return true;
+  }
+
+  bool _isCorrectBossBack() {
+    final currentPath = _currentFolderPathNames;
+    final targetPath = _currentChallenge.targetFolderPath;
+    final shared = _sharedPrefixLength(currentPath, targetPath);
+    return currentPath.length > shared;
+  }
+
+  bool _isCorrectBossFileTap(String fileName) {
+    return fileName == _currentChallenge.targetFileName &&
+        _listsEqual(_currentFolderPathNames, _currentChallenge.targetFolderPath);
   }
 
   double _clamp01(double value) {
@@ -736,19 +838,6 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
 
   double _round(double value) {
     return double.parse(value.toStringAsFixed(3));
-  }
-
-  void _showSnackbar(String message, Color color) {
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    if (messenger == null) return;
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: color,
-        duration: const Duration(seconds: 2),
-      ),
-    );
   }
 
   @override
@@ -988,7 +1077,7 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
   Widget _buildExplorerHeader() {
     final title = _phase == _ExplorerPhase.quiz
         ? 'explore mode'
-        : 'go to $_finalBossFileName';
+        : 'challenge ${_challengeIndex + 1}/${_finalChallenges.length}: ${_currentChallenge.targetFileName}';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1037,16 +1126,6 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                if (_phase == _ExplorerPhase.boss) ...[
-                  const SizedBox(height: 2),
-                  const Text(
-                    'find the direct path with no mistakes',
-                    style: TextStyle(
-                      color: NunuColors.textSecondary,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
