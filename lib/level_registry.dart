@@ -145,6 +145,13 @@ final List<LevelEntry> visionLevels = [
     ),
     widgetBuilder: (onComplete) => LevelEyeChart(onComplete: onComplete),
   ),
+  LevelEntry(
+    data: LevelData(
+      title: "emoji soup",
+      instructions: "find and tap the 3 targets in each stage. 3 lives per stage.",
+    ),
+    widgetBuilder: (onComplete) => LevelEmojiBallHunt(onComplete: onComplete),
+  ),
 ];
 final List<LevelEntry> memoryLevels = [];
 final List<LevelEntry> iqLevels = [];
@@ -261,13 +268,6 @@ final List<LevelEntry> unsortedLevels = [
       instructions: "What is Larger here?",
     ),
     widgetBuilder: (onComplete) => LevelBlueWhale(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "emoji soup",
-      instructions: "find and tap the 3 balls.",
-    ),
-    widgetBuilder: (onComplete) => LevelEmojiBallHunt(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
