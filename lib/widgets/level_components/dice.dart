@@ -98,6 +98,31 @@ class DiceWidget extends StatelessWidget {
           const Offset(left, bottom),
           const Offset(right, bottom),
         ];
+      case 7:
+        // 6-layout + center dot
+        return [
+          const Offset(left, top),
+          const Offset(right, top),
+          const Offset(left, center),
+          const Offset(center, center),
+          const Offset(right, center),
+          const Offset(left, bottom),
+          const Offset(right, bottom),
+        ];
+      case 8:
+        // two columns of four
+        const double midTop = 0.333 - 0.083;
+        const double midBot = 0.667 - 0.083;
+        return [
+          const Offset(left, top),
+          const Offset(right, top),
+          const Offset(left, midTop),
+          const Offset(right, midTop),
+          const Offset(left, midBot),
+          const Offset(right, midBot),
+          const Offset(left, bottom),
+          const Offset(right, bottom),
+        ];
       default:
         return [];
     }

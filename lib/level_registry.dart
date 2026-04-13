@@ -23,6 +23,7 @@ import 'package:apk_arena/widgets/levels/level_eagle_eye.dart';
 import 'package:apk_arena/widgets/levels/level_email_riddle.dart';
 import 'package:apk_arena/widgets/levels/level_emerald_runtime.dart';
 import 'package:apk_arena/widgets/levels/level_emoji_ball_hunt.dart';
+import 'package:apk_arena/widgets/levels/level_eye_chart.dart';
 import 'package:apk_arena/widgets/levels/level_emoji_count_flags.dart';
 import 'package:apk_arena/widgets/levels/level_emoji_count_fruits.dart';
 import 'package:apk_arena/widgets/levels/level_enter_date.dart';
@@ -129,6 +130,20 @@ final List<LevelEntry> visionLevels = [
     ),
     widgetBuilder: (onComplete) =>
         LevelEmojiCountFruits(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Count the Dots",
+      instructions: "Enter the numbers on each die from left to right!",
+    ),
+    widgetBuilder: (onComplete) => LevelDiceRecognition(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "read the chart",
+      instructions: "type exactly what you see on screen.",
+    ),
+    widgetBuilder: (onComplete) => LevelEyeChart(onComplete: onComplete),
   ),
 ];
 final List<LevelEntry> memoryLevels = [];
@@ -270,13 +285,6 @@ final List<LevelEntry> unsortedLevels = [
     ),
     widgetBuilder: (onComplete) =>
         LevelClickGridCoordinate(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "Count the Dots",
-      instructions: "Enter the numbers on each die from left to right!",
-    ),
-    widgetBuilder: (onComplete) => LevelDiceRecognition(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
