@@ -168,6 +168,13 @@ final List<LevelEntry> memoryLevels = [
     ),
     widgetBuilder: (onComplete) => LevelMemoryMatch(onComplete: onComplete),
   ),
+  LevelEntry(
+    data: LevelData(
+      title: "rabbit hole",
+      instructions: "explore the filesystem efficiently and answer all questions!",
+    ),
+    widgetBuilder: (onComplete) => LevelFileExplorer(onComplete: onComplete),
+  ),
 ];
 final List<LevelEntry> iqLevels = [];
 final List<LevelEntry> tempospatialLevels = [
@@ -435,13 +442,6 @@ final List<LevelEntry> unsortedLevels = [
           "move Dr. Spaceman's appointment on Feb 14 to 1 hour earlier.",
     ),
     widgetBuilder: (onComplete) => LevelGiantCalendar(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "rabbit hole",
-      instructions: "count every file in the file system.",
-    ),
-    widgetBuilder: (onComplete) => LevelFileExplorer(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
