@@ -63,7 +63,7 @@ import 'package:apk_arena/widgets/levels/level_royal_match.dart';
 import 'package:apk_arena/widgets/levels/level_rush_hour.dart';
 import 'package:apk_arena/widgets/levels/level_scroll_mastery.dart';
 import 'package:apk_arena/widgets/levels/level_sequence_memory.dart';
-import 'package:apk_arena/widgets/levels/level_set_alarm.dart';
+import 'package:apk_arena/widgets/levels/level_calendar_alarm_planner.dart';
 import 'package:apk_arena/widgets/levels/level_settings_qa.dart';
 import 'package:apk_arena/widgets/levels/level_simple_signup.dart';
 import 'package:apk_arena/widgets/levels/level_sliding_puzzle.dart';
@@ -187,7 +187,17 @@ final List<LevelEntry> tempospatialLevels = [
   ),
 ];
 final List<LevelEntry> gamesLevels = [];
-final List<LevelEntry> tasksLevels = [];
+final List<LevelEntry> tasksLevels = [
+  LevelEntry(
+    data: LevelData(
+      title: "sleep logistics",
+      instructions:
+          "make sure all alarms are set correctly for next week!",
+    ),
+    widgetBuilder: (onComplete) =>
+        LevelCalendarAlarmPlanner(onComplete: onComplete),
+  ),
+];
 
 // ── unsorted: ALL levels live here until reviewed ──
 final List<LevelEntry> unsortedLevels = [
@@ -367,13 +377,6 @@ final List<LevelEntry> unsortedLevels = [
     widgetBuilder: (onComplete) => LevelEmeraldRuntime(onComplete: onComplete),
   ),
   // ── formerly: dailys ──
-  LevelEntry(
-    data: LevelData(
-      title: "Morning Alarm",
-      instructions: "Set the alarm correctly and enable it!",
-    ),
-    widgetBuilder: (onComplete) => LevelSetAlarm(onComplete: onComplete),
-  ),
   LevelEntry(
     data: LevelData(
       title: "2FA Login",
