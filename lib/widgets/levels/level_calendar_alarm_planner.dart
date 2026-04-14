@@ -968,23 +968,18 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
   }
 
   _Evaluation _evaluate() {
-    const attributesPerAlarm = 6;
-    final remaining = _alarms.map((alarm) => alarm.copy()).toList();
-
-    int matchedLabels = 0;
-    int correctTimes = 0;
-    int correctRepeat = 0;
-    int correctDates = 0;
-    int correctSnooze = 0;
-    int correctEnabled = 0;
-    int missing = 0;
+    const attributesPerAlarm = 6.0;
+    final remainingForScore = _alarms.map((alarm) => alarm.copy()).toList();
+    var earnedAttributes = 0.0;
+    var partialMatches = 0;
+    var unmatchedExpected = 0;
 
     for (final expected in _scenario.expectedAlarms) {
-      int bestIndex = -1;
-      int bestScore = -1;
+      var bestIndex = -1;
+      var bestAttributeScore = -1;
 
-      for (var i = 0; i < remaining.length; i++) {
-        final candidate = remaining[i];
+      for (var i = 0; i < remainingForScore.length; i++) {
+        final candidate = remainingForScore[i];
         final labelMatch =
             _normalize(candidate.label) == _normalize(expected.label);
         final timeMatch = _sameTime(candidate.time, expected.time);
@@ -995,81 +990,72 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
             candidate.snoozeMinutes == expected.snoozeMinutes;
         final enabledMatch = candidate.enabled == expected.enabled;
 
-        final score = (labelMatch ? 2 : 0) +
-            (timeMatch ? 4 : 0) +
-            (repeatMatch ? 2 : 0) +
-            (dateMatch ? 2 : 0) +
+        final attributeScore = (labelMatch ? 1 : 0) +
+            (timeMatch ? 1 : 0) +
+            (repeatMatch ? 1 : 0) +
+            (dateMatch ? 1 : 0) +
             (snoozeMatch ? 1 : 0) +
             (enabledMatch ? 1 : 0);
 
-        if (score > bestScore) {
-          bestScore = score;
+        if (attributeScore > bestAttributeScore) {
+          bestAttributeScore = attributeScore;
           bestIndex = i;
         }
       }
 
-      if (bestIndex == -1 || bestScore <= 0) {
-        missing++;
+      if (bestIndex == -1 || bestAttributeScore <= 0) {
+        unmatchedExpected++;
         continue;
       }
-      final actual = remaining.removeAt(bestIndex);
-      if (_normalize(actual.label) == _normalize(expected.label)) {
-        matchedLabels++;
-      }
-      if (_sameTime(actual.time, expected.time)) correctTimes++;
-      if (_sameDays(actual.repeatDays, expected.repeatDays)) correctRepeat++;
-      if (_sameDate(actual.oneTimeDate, expected.oneTimeDate)) correctDates++;
-      if (actual.snoozeMinutes == expected.snoozeMinutes) correctSnooze++;
-      if (actual.enabled == expected.enabled) correctEnabled++;
+
+      earnedAttributes += bestAttributeScore;
+      if (bestAttributeScore < attributesPerAlarm) partialMatches++;
+      remainingForScore.removeAt(bestIndex);
     }
 
-    final extra = remaining.length;
-    final earned = matchedLabels +
-        correctTimes +
-        correctRepeat +
-        correctDates +
-        correctSnooze +
-        correctEnabled;
-    final total = _scenario.expectedAlarms.length * attributesPerAlarm;
-    final base = total == 0 ? 0.0 : earned / total;
-    final penalty =
-        (_scenario.expectedAlarms.isEmpty ? 0.0 : extra / _scenario.expectedAlarms.length) *
-            0.15;
-    final score = (base - penalty).clamp(0.0, 1.0);
+    final exactRemaining = _alarms.map((alarm) => alarm.copy()).toList();
+    var exactCorrect = 0;
+    for (final expected in _scenario.expectedAlarms) {
+      final index = exactRemaining.indexWhere(
+        (candidate) => _isExactAlarmMatch(candidate, expected),
+      );
+      if (index == -1) continue;
+      exactRemaining.removeAt(index);
+      exactCorrect++;
+    }
+
+    final missing = _scenario.expectedAlarms.length - exactCorrect;
+    final extra = exactRemaining.length;
+    final totalExpected = _scenario.expectedAlarms.length.toDouble();
+    final totalAttributes = totalExpected * attributesPerAlarm;
+    final baseScore = totalAttributes == 0 ? 0.0 : earnedAttributes / totalAttributes;
+    final missingPenalty =
+        totalExpected == 0 ? 0.0 : (missing / totalExpected) * 0.45;
+    final partialPenalty =
+        totalExpected == 0 ? 0.0 : (partialMatches / totalExpected) * 0.20;
+    final extraPenalty =
+        totalExpected == 0 ? 0.0 : (extra / totalExpected) * 0.20;
+    final score =
+        (baseScore - missingPenalty - partialPenalty - extraPenalty)
+            .clamp(0.0, 1.0);
 
     return _Evaluation(
       score: score,
       metrics: {
-        'matched_labels': matchedLabels,
-        'correct_time_count': correctTimes,
-        'correct_repeat_count': correctRepeat,
-        'correct_date_count': correctDates,
-        'correct_snooze_count': correctSnooze,
-        'correct_enabled_count': correctEnabled,
-        'missing_alarm_count': missing,
-        'extra_alarm_count': extra,
-        'expected_alarm_count': _scenario.expectedAlarms.length,
-        'final_alarm_count': _alarms.length,
-        'expected_alarms': _scenario.expectedAlarms
-            .map(_serializeAlarm)
-            .toList(),
-        'final_alarms': _alarms.map(_serializeAlarm).toList(),
+        'correct': exactCorrect,
+        'missing': missing,
+        'extra': extra,
       },
     );
   }
 
-  Map<String, dynamic> _serializeAlarm(_PlannerAlarm alarm) {
-    final repeat = alarm.repeatDays.toList()..sort();
-    return {
-      'label': alarm.label,
-      'time': _formatTime(alarm.time),
-      'repeat_days': repeat,
-      'one_time_date': alarm.oneTimeDate == null
-          ? null
-          : '${alarm.oneTimeDate!.year}-${alarm.oneTimeDate!.month.toString().padLeft(2, '0')}-${alarm.oneTimeDate!.day.toString().padLeft(2, '0')}',
-      'enabled': alarm.enabled,
-      'snooze_minutes': alarm.snoozeMinutes,
-    };
+  bool _isExactAlarmMatch(_PlannerAlarm actual, _PlannerAlarm expected) {
+    return _normalize(actual.label) == _normalize(expected.label) &&
+        _sameTime(actual.time, expected.time) &&
+        _sameDays(actual.repeatDays, expected.repeatDays) &&
+        _sameDate(actual.oneTimeDate, expected.oneTimeDate) &&
+        actual.snoozeMinutes == expected.snoozeMinutes &&
+        actual.enabled == expected.enabled;
   }
 
   @override
