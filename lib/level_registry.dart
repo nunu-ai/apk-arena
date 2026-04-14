@@ -176,6 +176,15 @@ final List<LevelEntry> memoryLevels = [
     ),
     widgetBuilder: (onComplete) => LevelFileExplorer(onComplete: onComplete),
   ),
+  LevelEntry(
+    data: LevelData(
+      title: "trial & error",
+      instructions:
+          "survive the full session. each screen has one correct symbol. wrong picks reset the chain.",
+      timeLimit: Duration(minutes: 31),
+    ),
+    widgetBuilder: (onComplete) => LevelTrialSequence(onComplete: onComplete),
+  ),
 ];
 final List<LevelEntry> iqLevels = [];
 final List<LevelEntry> tempospatialLevels = [
@@ -559,14 +568,6 @@ final List<LevelEntry> unsortedLevels = [
       instructions: "match gems to collect all the royal crowns!",
     ),
     widgetBuilder: (onComplete) => LevelRoyalMatch(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "trial & error",
-      instructions:
-          "find the correct sequence of 7. one wrong pick resets everything.",
-    ),
-    widgetBuilder: (onComplete) => LevelTrialSequence(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
