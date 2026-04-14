@@ -73,6 +73,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
   final Set<int> _unlockedTiers = {1};
   final Set<String> _claimedCoinPacks = {};
   final Set<String> _ownedCosmetics = {};
+  final Map<String, DateTime> _activeBoosters = {};
   final GlobalKey _generatorKey = GlobalKey();
   final GlobalKey _energyKey = GlobalKey();
   final GlobalKey _coinsKey = GlobalKey();
@@ -206,19 +207,35 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
 
   bool _isCellRock(int index) => _gridUnlockLevels[index] == -2;
 
+  bool _isBoosterActive(String id) {
+    final expiresAt = _activeBoosters[id];
+    if (expiresAt == null) return false;
+    return expiresAt.isAfter(DateTime.now());
+  }
+
+  void _pruneExpiredBoosters() {
+    final now = DateTime.now();
+    _activeBoosters.removeWhere((_, expiresAt) => !expiresAt.isAfter(now));
+  }
+
   void _tickEnergyRegen() {
+    _pruneExpiredBoosters();
+
     final now = DateTime.now();
     if (_energy >= _maxEnergy) {
       _lastEnergyRegen = now;
       return;
     }
 
+    final interval = _isBoosterActive('boost_speed')
+        ? const Duration(seconds: 2)
+        : _energyRegenInterval;
     final elapsedSeconds = now.difference(_lastEnergyRegen).inSeconds;
-    if (elapsedSeconds < _energyRegenInterval.inSeconds) return;
+    if (elapsedSeconds < interval.inSeconds) return;
 
-    final gained = elapsedSeconds ~/ _energyRegenInterval.inSeconds;
+    final gained = elapsedSeconds ~/ interval.inSeconds;
     _lastEnergyRegen = _lastEnergyRegen.add(
-      Duration(seconds: gained * _energyRegenInterval.inSeconds),
+      Duration(seconds: gained * interval.inSeconds),
     );
     _energy = min(_maxEnergy, _energy + gained);
   }
@@ -263,7 +280,10 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
 
     _tickEnergyRegen();
 
-    if (_energy <= 0) {
+    final spawnCount = _isBoosterActive('boost_extra') ? 2 : 1;
+    final energyCost = _isBoosterActive('boost_speed') ? 0 : 1;
+
+    if (_energy < energyCost) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('no energy! buy more in the shop.'),
@@ -281,7 +301,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
       }
     }
 
-    if (emptyIndices.isEmpty) {
+    if (emptyIndices.length < spawnCount) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('no space to spawn items!'),
@@ -292,26 +312,37 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
       return;
     }
 
-    var targetIndex = -1;
-    if (!_tutorialComplete && _tutorialStep == 0) {
-      if (_tutorialTapCount == 1) targetIndex = _index(4, 4);
-      if (_tutorialTapCount == 2) targetIndex = _index(4, 5);
-    }
-    if (targetIndex != -1 && _gridItems[targetIndex] != null) {
-      targetIndex = -1;
-    }
-    if (targetIndex == -1) {
-      targetIndex = emptyIndices[_random.nextInt(emptyIndices.length)];
-    }
-
     setState(() {
-      _energy--;
-      _gridItems[targetIndex] = HardwareItem(
-        id: DateTime.now().microsecondsSinceEpoch.toString(),
-        type: ItemType.part,
-        tier: 1,
-      );
-      _focusedIndex = targetIndex;
+      _energy = max(0, _energy - energyCost);
+
+      final spawnTargets = <int>[];
+      for (var spawnIndex = 0; spawnIndex < spawnCount; spawnIndex++) {
+        var targetIndex = -1;
+        if (!_tutorialComplete && _tutorialStep == 0 && spawnIndex == 0) {
+          if (_tutorialTapCount == 1) targetIndex = _index(4, 4);
+          if (_tutorialTapCount == 2) targetIndex = _index(4, 5);
+        }
+        if (targetIndex != -1 &&
+            (_gridItems[targetIndex] != null || spawnTargets.contains(targetIndex))) {
+          targetIndex = -1;
+        }
+        if (targetIndex == -1) {
+          final available = emptyIndices
+              .where((index) => !spawnTargets.contains(index))
+              .toList();
+          targetIndex = available[_random.nextInt(available.length)];
+        }
+
+        _gridItems[targetIndex] = HardwareItem(
+          id: '${DateTime.now().microsecondsSinceEpoch}_$spawnIndex',
+          type: ItemType.part,
+          tier: 1,
+        );
+        spawnTargets.add(targetIndex);
+        _focusedIndex = targetIndex;
+      }
+
+      _processAutoMerge();
     });
 
     if (_settings.vibrationEnabled) {
@@ -344,11 +375,12 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
 
     setState(() {
       if (target == null) {
-        _gridItems[toIndex] = source;
-        _gridItems[fromIndex] = null;
-        _focusedIndex = toIndex;
-        return;
-      }
+      _gridItems[toIndex] = source;
+      _gridItems[fromIndex] = null;
+      _focusedIndex = toIndex;
+      _processAutoMerge();
+      return;
+    }
 
       if (source.type == ItemType.part &&
           target.type == ItemType.part &&
@@ -369,6 +401,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
           if (!_tutorialComplete && _tutorialStep == 2) {
             _advanceTutorial();
           }
+          _processAutoMerge();
           return;
         }
 
@@ -390,6 +423,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
         if (!_tutorialComplete && _tutorialStep == 1) {
           _advanceTutorial();
         }
+        _processAutoMerge();
         return;
       }
 
@@ -399,6 +433,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
       _gridItems[toIndex] = source;
       _gridItems[fromIndex] = target;
       _focusedIndex = toIndex;
+      _processAutoMerge();
     });
   }
 
@@ -436,6 +471,75 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
         (max(0, targetTier - 6) * max(0, targetTier - 6) * 120))
         .toInt();
     return OrderRequirement(targetTier: targetTier, rewardPoints: reward);
+  }
+
+  Iterable<int> _adjacentIndices(int index) sync* {
+    final row = index ~/ _cols;
+    final col = index % _cols;
+    if (row > 0) yield _index(row - 1, col);
+    if (row < _rows - 1) yield _index(row + 1, col);
+    if (col > 0) yield _index(row, col - 1);
+    if (col < _cols - 1) yield _index(row, col + 1);
+  }
+
+  void _processAutoMerge() {
+    if (!_isBoosterActive('boost_auto')) return;
+
+    var merged = true;
+    while (merged) {
+      merged = false;
+      for (var index = 0; index < _totalCells; index++) {
+        final item = _gridItems[index];
+        if (item == null ||
+            item.type != ItemType.part ||
+            item.isFrozen ||
+            item.tier != 1) {
+          continue;
+        }
+
+        for (final neighborIndex in _adjacentIndices(index)) {
+          final neighbor = _gridItems[neighborIndex];
+          if (neighbor == null ||
+              neighbor.type != ItemType.part ||
+              neighbor.isFrozen ||
+              neighbor.tier != 1) {
+            continue;
+          }
+
+          _gridItems[index] = item.copyWith(tier: 2);
+          _gridItems[neighborIndex] = null;
+          _focusedIndex = index;
+          _totalMerges++;
+          _highestTier = max(_highestTier, 2);
+          _coins += 4;
+          _totalCoinsEarned += 4;
+          _addXP(12);
+          _maybeShowUnlock(2);
+          merged = true;
+          break;
+        }
+
+        if (merged) {
+          break;
+        }
+      }
+    }
+  }
+
+  void _activateBooster(String id) {
+    setState(() {
+      _activeBoosters[id] = DateTime.now().add(const Duration(seconds: 30));
+      if (id == 'boost_auto') {
+        _processAutoMerge();
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('booster activated: $id'),
+        backgroundColor: NunuColors.successMain,
+      ),
+    );
   }
 
   void _showUnlockPopup(int tier) {
@@ -539,12 +643,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
                 });
               },
               onBuyBooster: (id) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('booster activated: $id'),
-                    backgroundColor: NunuColors.successMain,
-                  ),
-                );
+                _activateBooster(id);
               },
               onBuyCosmetic: (id) {
                 setState(() {
@@ -620,6 +719,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
                   _tutorialTapCount = 0;
                   _tutorialComplete = false;
                   _focusedIndex = null;
+                  _activeBoosters.clear();
                   _ownedCosmetics.clear();
                   _claimedCoinPacks.clear();
                   _lastEnergyRegen = DateTime.now();
@@ -1060,6 +1160,15 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
             _buildFooterStat('score', '$_sessionScore'),
             _buildFooterStat('orders', '$_ordersCompleted'),
             _buildFooterStat('best tier', '$_highestTier'),
+            _buildFooterStat(
+              'boost',
+              _activeBoosters.isEmpty
+                  ? '-'
+                  : _activeBoosters.keys
+                      .where(_isBoosterActive)
+                      .map((id) => id.replaceFirst('boost_', ''))
+                      .join('/'),
+            ),
           ],
         ),
       ),

@@ -69,10 +69,11 @@ class _LevelScreenState extends State<LevelScreen> {
     return '$minutes:$seconds.$milliseconds';
   }
 
-  void _showGiveUpDialog() {
+  Future<bool> _confirmExitLevel() async {
     final entry = _levelEntry;
-    if (entry == null) return;
-    showDialog(
+    if (entry == null) return false;
+
+    final shouldExit = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text(
@@ -85,7 +86,7 @@ class _LevelScreenState extends State<LevelScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('CANCEL',
                 style: TextStyle(color: NunuColors.secondaryMain, fontWeight: FontWeight.bold)),
           ),
@@ -112,7 +113,7 @@ class _LevelScreenState extends State<LevelScreen> {
               ));
 
               if (context.mounted) {
-                Navigator.pop(context);
+                Navigator.pop(context, true);
                 Navigator.popUntil(context, (route) => route.isFirst);
               }
             },
@@ -129,6 +130,8 @@ class _LevelScreenState extends State<LevelScreen> {
         ],
       ),
     );
+
+    return shouldExit ?? false;
   }
 
   Future<void> _finishLevel(LevelOutcome outcome) async {
@@ -182,63 +185,69 @@ class _LevelScreenState extends State<LevelScreen> {
       return const Scaffold(body: SizedBox.shrink());
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 48,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          iconSize: 20,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          onPressed: _showGiveUpDialog,
-        ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "LVL ${widget.levelNumber}: ${entry.data.title.toUpperCase()}",
-              style: const TextStyle(
-                fontSize: 14,
-                color: NunuColors.textPrimary,
+    return WillPopScope(
+      onWillPop: () async {
+        if (_finishLevelCalled) return true;
+        return _confirmExitLevel();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          toolbarHeight: 48,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            iconSize: 20,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            onPressed: _confirmExitLevel,
+          ),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "LVL ${widget.levelNumber}: ${entry.data.title.toUpperCase()}",
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: NunuColors.textPrimary,
+                ),
               ),
-            ),
-            Builder(
-              builder: (_) {
-                final status = _progressService.getLevelStatus(widget.levelNumber);
-                final best = status?.bestScore;
-                if (best == null) return const SizedBox.shrink();
-                return Text(
-                  'best ${(best * 100).round()}%',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: NunuColors.textSecondary.withValues(alpha: 0.9),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-      body: SafeArea(
-        top: false,
-        left: false,
-        right: false,
-        bottom: true,
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              color: NunuColors.backgroundPaper,
-              child: Text(
-                entry.data.instructions,
-                style: const TextStyle(color: NunuColors.textPrimary),
+              Builder(
+                builder: (_) {
+                  final status = _progressService.getLevelStatus(widget.levelNumber);
+                  final best = status?.bestScore;
+                  if (best == null) return const SizedBox.shrink();
+                  return Text(
+                    'best ${(best * 100).round()}%',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: NunuColors.textSecondary.withValues(alpha: 0.9),
+                    ),
+                  );
+                },
               ),
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: entry.widgetBuilder(_finishLevel),
-            ),
-          ],
+            ],
+          ),
+        ),
+        body: SafeArea(
+          top: false,
+          left: false,
+          right: false,
+          bottom: true,
+          child: Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                color: NunuColors.backgroundPaper,
+                child: Text(
+                  entry.data.instructions,
+                  style: const TextStyle(color: NunuColors.textPrimary),
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: entry.widgetBuilder(_finishLevel),
+              ),
+            ],
+          ),
         ),
       ),
     );
