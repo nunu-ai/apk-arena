@@ -92,6 +92,7 @@ import 'package:apk_arena/widgets/levels/level_wordle.dart';
 import 'package:apk_arena/widgets/levels/level_woodoku.dart';
 import 'package:apk_arena/widgets/levels/level_scrabble.dart';
 import 'package:apk_arena/widgets/levels/level_scrabble_hard.dart';
+import 'package:apk_arena/widgets/levels/level_signup_gauntlet.dart';
 
 import '../models/level_data.dart';
 import '../models/level_outcome.dart';
@@ -204,6 +205,16 @@ final List<LevelEntry> tasksLevels = [
     ),
     widgetBuilder: (onComplete) =>
         LevelInventoryReconciliation(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "signup gauntlet",
+      instructions:
+          "survive 5 real-world signup/login flows. every dark pattern is based on a true story.",
+      timeLimit: Duration(minutes: 30),
+    ),
+    widgetBuilder: (onComplete) =>
+        LevelSignupGauntlet(onComplete: onComplete),
   ),
 ];
 
