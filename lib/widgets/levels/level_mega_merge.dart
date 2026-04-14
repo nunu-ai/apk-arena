@@ -42,10 +42,12 @@ class HardwareItem {
 class OrderRequirement {
   final int targetTier;
   final int rewardPoints;
+  final bool isActive;
 
   const OrderRequirement({
     required this.targetTier,
     required this.rewardPoints,
+    this.isActive = true,
   });
 }
 
@@ -61,9 +63,8 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
   static const int _rows = 10;
   static const int _totalCells = _cols * _rows;
   static const int _maxTier = 13;
-  static const int _orderSlotCount = 5;
+  static const int _orderSlotCount = 3;
   static const int _maxEnergy = 120;
-  static const int _scoreTarget = 20000;
   static const Duration _energyRegenInterval = Duration(seconds: 5);
   static const Duration _runDuration = Duration(minutes: 29, seconds: 59);
 
@@ -74,6 +75,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
   final Set<String> _claimedCoinPacks = {};
   final Set<String> _ownedCosmetics = {};
   final Map<String, DateTime> _activeBoosters = {};
+  final Map<int, int> _deliveredByTier = {};
   final GlobalKey _generatorKey = GlobalKey();
   final GlobalKey _energyKey = GlobalKey();
   final GlobalKey _coinsKey = GlobalKey();
@@ -95,13 +97,13 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
   int _playerLevel = 1;
   int _currentXP = 0;
   int _xpForNextLevel = 100;
-  int _coins = 100;
+  int _coins = 0;
   int _energy = 60;
   int _sessionScore = 0;
   int _totalMerges = 0;
   int _highestTier = 1;
   int _ordersCompleted = 0;
-  int _totalCoinsEarned = 100;
+  int _totalCoinsEarned = 0;
   int _selectedAvatar = 0;
   int? _focusedIndex;
 
@@ -158,6 +160,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
     _gridItems = List<HardwareItem?>.filled(_totalCells, null);
     _manuallyUnlockedIndices.clear();
     _cellKeys.clear();
+    _deliveredByTier.clear();
     _unlockedTiers
       ..clear()
       ..add(1);
@@ -181,7 +184,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
     _placeFrozenItem(9, 4, 12);
     _placeFrozenItem(8, 2, 13);
 
-    _orders = List.generate(_orderSlotCount, (_) => _createOrder());
+    _orders = List.generate(_orderSlotCount, _createOrder);
   }
 
   void _placeFrozenItem(int row, int col, int tier) {
@@ -411,8 +414,6 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
         _focusedIndex = toIndex;
         _totalMerges++;
         _highestTier = max(_highestTier, newTier);
-        _coins += newTier * 2;
-        _totalCoinsEarned += newTier * 2;
         _addXP(newTier * 6);
         _maybeShowUnlock(newTier);
 
@@ -444,16 +445,25 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
     if (item == null) return;
 
     final order = _orders[orderIndex];
-    if (item.type != ItemType.part || item.tier != order.targetTier) return;
+    if (!order.isActive ||
+        item.type != ItemType.part ||
+        item.tier != order.targetTier) {
+      return;
+    }
 
     setState(() {
       _gridItems[fromIndex] = null;
       _ordersCompleted++;
+      _deliveredByTier.update(
+        order.targetTier,
+        (count) => count + 1,
+        ifAbsent: () => 1,
+      );
       _sessionScore += order.rewardPoints;
-      _coins += order.rewardPoints ~/ 3;
+      _coins += _coinRewardForOrder(order);
       _energy = min(_maxEnergy, _energy + 4);
-      _totalCoinsEarned += order.rewardPoints ~/ 3;
-      _orders[orderIndex] = _createOrder();
+      _totalCoinsEarned += _coinRewardForOrder(order);
+      _orders[orderIndex] = _createOrder(orderIndex);
 
       if (_settings.vibrationEnabled) {
         HapticFeedback.mediumImpact();
@@ -461,15 +471,70 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
     });
   }
 
-  OrderRequirement _createOrder() {
-    final maxTargetTier = max(4, min(_maxTier, _highestTier + 1));
-    final minTargetTier = max(4, maxTargetTier - 3);
+  int _maxDeliveriesForTier(int tier) {
+    if (tier >= 12) return 1;
+    if (tier <= 5) return 4;
+    if (tier <= 8) return 3;
+    return 2;
+  }
+
+  int _rewardForTier(int tier) {
+    return (80 * pow(2, tier - 3)).toInt();
+  }
+
+  int _coinRewardForOrder(OrderRequirement order) {
+    return order.rewardPoints ~/ 3;
+  }
+
+  int _maxPossibleScore() {
+    var total = 0;
+    for (var tier = 4; tier <= _maxTier; tier++) {
+      total += _maxDeliveriesForTier(tier) * _rewardForTier(tier);
+    }
+    return total;
+  }
+
+  int _targetOrderTierForProgress() {
+    return min(_maxTier, 4 + (_ordersCompleted ~/ 4));
+  }
+
+  List<int> _eligibleOrderTiers() {
+    final targetTier = _targetOrderTierForProgress();
+    final preferred = <int>[];
+
+    for (var tier = max(4, targetTier - 1); tier <= targetTier; tier++) {
+      final delivered = _deliveredByTier[tier] ?? 0;
+      if (delivered < _maxDeliveriesForTier(tier)) {
+        preferred.add(tier);
+      }
+    }
+
+    if (preferred.isNotEmpty) return preferred;
+
+    final fallback = <int>[];
+    for (var tier = 4; tier <= _maxTier; tier++) {
+      final delivered = _deliveredByTier[tier] ?? 0;
+      if (delivered < _maxDeliveriesForTier(tier)) {
+        fallback.add(tier);
+      }
+    }
+
+    return fallback;
+  }
+
+  OrderRequirement _createOrder(int slotIndex) {
+    final eligibleTiers = _eligibleOrderTiers();
+    if (eligibleTiers.isEmpty) {
+      return const OrderRequirement(
+        targetTier: 0,
+        rewardPoints: 0,
+        isActive: false,
+      );
+    }
     final targetTier =
-        minTargetTier + _random.nextInt(maxTargetTier - minTargetTier + 1);
-    final reward = (
-        (targetTier * targetTier * 25) +
-        (max(0, targetTier - 6) * max(0, targetTier - 6) * 120))
-        .toInt();
+        eligibleTiers[(slotIndex + _random.nextInt(eligibleTiers.length)) %
+            eligibleTiers.length];
+    final reward = _rewardForTier(targetTier);
     return OrderRequirement(targetTier: targetTier, rewardPoints: reward);
   }
 
@@ -511,8 +576,6 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
           _focusedIndex = index;
           _totalMerges++;
           _highestTier = max(_highestTier, 2);
-          _coins += 4;
-          _totalCoinsEarned += 4;
           _addXP(12);
           _maybeShowUnlock(2);
           merged = true;
@@ -600,13 +663,15 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
   void _finishRun() {
     if (!mounted || _runFinished) return;
     _runFinished = true;
+    final scoreTarget = _maxPossibleScore();
     widget.onComplete(
       LevelOutcome(
-        score: ((_sessionScore / _scoreTarget).clamp(0.0, 1.0) as num)
+        score: ((_sessionScore / scoreTarget).clamp(0.0, 1.0) as num)
             .toDouble(),
         metrics: {
           'score_points': _sessionScore,
           'orders_completed': _ordersCompleted,
+          'target_order_tier': _targetOrderTierForProgress(),
           'highest_tier': _highestTier,
           'merges': _totalMerges,
         },
@@ -709,12 +774,12 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
                   _playerLevel = 1;
                   _currentXP = 0;
                   _xpForNextLevel = 100;
-                  _coins = 100;
+                  _coins = 0;
                   _energy = 60;
                   _sessionScore = 0;
                   _totalMerges = 0;
                   _ordersCompleted = 0;
-                  _totalCoinsEarned = 100;
+                  _totalCoinsEarned = 0;
                   _tutorialStep = 0;
                   _tutorialTapCount = 0;
                   _tutorialComplete = false;
@@ -902,14 +967,19 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
       child: Row(
         children: List.generate(_orders.length, (index) {
           final order = _orders[index];
-          final icon = _getIconForTier(order.targetTier);
-          final color = _getColorForTier(order.targetTier);
+          final icon = order.isActive
+              ? _getIconForTier(order.targetTier)
+              : Icons.check_circle_outline;
+          final color = order.isActive
+              ? _getColorForTier(order.targetTier)
+              : NunuColors.successMain;
 
           return Expanded(
             child: KeyedSubtree(
               key: _orderKeys[index],
               child: DragTarget<int>(
                 onWillAccept: (fromIndex) {
+                  if (!order.isActive) return false;
                   if (fromIndex == null) return false;
                   final item = _gridItems[fromIndex];
                   return item != null &&
@@ -932,7 +1002,9 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
                           border: Border.all(
                             color: isCandidateValid
                                 ? NunuColors.primaryMain
-                                : NunuColors.textSecondary.withOpacity(0.3),
+                                : (order.isActive
+                                      ? NunuColors.textSecondary.withOpacity(0.3)
+                                      : NunuColors.successMain.withOpacity(0.35)),
                             width: isCandidateValid ? 3 : 2,
                           ),
                         ),
@@ -940,7 +1012,9 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        _getNameForTier(order.targetTier),
+                        order.isActive
+                            ? _getNameForTier(order.targetTier)
+                            : 'done',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -949,10 +1023,14 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
                         ),
                       ),
                       Text(
-                        '+${order.rewardPoints}',
+                        order.isActive
+                            ? '+${_coinRewardForOrder(order)} coins'
+                            : 'catalog cleared',
                         style: TextStyle(
                           fontSize: 9,
-                          color: NunuColors.warningMain.withOpacity(0.9),
+                          color: order.isActive
+                              ? NunuColors.warningMain.withOpacity(0.9)
+                              : NunuColors.successMain.withOpacity(0.9),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
