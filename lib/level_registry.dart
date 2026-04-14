@@ -210,7 +210,7 @@ final List<LevelEntry> tasksLevels = [
     data: LevelData(
       title: "signup gauntlet",
       instructions:
-          "survive 5 real-world signup/login flows. every dark pattern is based on a true story.",
+          "complete all 5 signup flows using the given account details, then finish each login.",
       timeLimit: Duration(minutes: 30),
     ),
     widgetBuilder: (onComplete) =>

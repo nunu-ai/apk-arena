@@ -24,7 +24,7 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
     'Sun',
   ];
   static const List<int> _snoozeOptions = [0, 5, 10, 15];
-  static const double _hourRowHeight = 76;
+  static const double _hourRowHeight = 68;
 
   late final _PlannerScenario _scenario;
   late final List<DateTime> _days;
@@ -632,10 +632,10 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                       ],
                     ),
                     borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(28)),
+                        const BorderRadius.vertical(top: Radius.circular(24)),
                   ),
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+                    padding: const EdgeInsets.fromLTRB(18, 14, 18, 22),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -650,7 +650,7 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                               existing == null ? 'new alarm' : 'edit alarm',
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 18,
+                                fontSize: 16,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -689,7 +689,7 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
                         GestureDetector(
                           onTap: () => _pickTimeFor(
                             current: selectedTime,
@@ -697,29 +697,29 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                                 setSheetState(() => selectedTime = time),
                           ),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            padding: const EdgeInsets.symmetric(vertical: 6),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
                                   _formatTime(selectedTime),
                                   style: const TextStyle(
-                                    fontSize: 52,
+                                    fontSize: 44,
                                     fontWeight: FontWeight.w300,
                                     color: Colors.white,
-                                    letterSpacing: -2,
+                                    letterSpacing: -1.5,
                                   ),
                                 ),
                                 const Icon(
                                   Icons.access_time,
                                   color: NunuColors.primaryMain,
-                                  size: 32,
+                                  size: 28,
                                 ),
                               ],
                             ),
                           ),
                         ),
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 14),
                         TextField(
                           controller: labelController,
                           style: const TextStyle(color: Colors.white),
@@ -730,9 +730,9 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                             fillColor: Colors.white.withValues(alpha: 0.06),
                           ),
                         ),
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 14),
                         Container(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.06),
                             borderRadius: BorderRadius.circular(16),
@@ -745,7 +745,7 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                                     'repeat',
                                     style: TextStyle(
                                       color: Colors.white,
-                                      fontSize: 16,
+                                      fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -764,7 +764,7 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                                 ],
                               ),
                               if (!repeats) ...[
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 6),
                                 DropdownButtonFormField<DateTime>(
                                   value: selectedDate,
                                   decoration:
@@ -785,7 +785,7 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                                   },
                                 ),
                               ] else ...[
-                                const SizedBox(height: 12),
+                                const SizedBox(height: 10),
                                 const Align(
                                   alignment: Alignment.centerLeft,
                                   child: Text(
@@ -796,7 +796,7 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                                     ),
                                   ),
                                 ),
-                                const SizedBox(height: 10),
+                                const SizedBox(height: 8),
                                 Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
@@ -814,8 +814,8 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                                         });
                                       },
                                       child: Container(
-                                        width: 36,
-                                        height: 36,
+                                        width: 32,
+                                        height: 32,
                                         decoration: BoxDecoration(
                                           shape: BoxShape.circle,
                                           color: selected
@@ -831,7 +831,7 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                                           child: Text(
                                             _dayShort[index],
                                             style: TextStyle(
-                                              fontSize: 11,
+                                              fontSize: 10,
                                               fontWeight: FontWeight.w700,
                                               color: selected
                                                   ? Colors.white
@@ -847,9 +847,9 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 14),
                         Container(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.06),
                             borderRadius: BorderRadius.circular(16),
@@ -885,7 +885,7 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                                   ),
                                 ),
                               ),
-                              const Divider(color: Colors.white24, height: 20),
+                              const Divider(color: Colors.white24, height: 16),
                               _editorRow(
                                 title: 'alarm enabled',
                                 trailing: Switch(
@@ -899,7 +899,7 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                           ),
                         ),
                         if (existing != null) ...[
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
                           TextButton.icon(
                             onPressed: () {
                               setState(() {
@@ -940,7 +940,7 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
           title,
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 16,
+            fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -1083,7 +1083,7 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
 
   Widget _buildTopTabs() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
       child: Row(
         children: [
           Expanded(
@@ -1094,7 +1094,7 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
               onTap: () => setState(() => _tabIndex = 0),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(
             child: _AppTab(
               label: 'clock',
@@ -1117,7 +1117,7 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
             decoration: const BoxDecoration(
               color: Colors.white,
               boxShadow: [
@@ -1134,38 +1134,38 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                 const Row(
                   children: [
                     Icon(Icons.menu, color: Colors.black87),
-                    SizedBox(width: 16),
+                    SizedBox(width: 12),
                     Text(
                       'March',
                       style: TextStyle(
                         color: Colors.black87,
-                        fontSize: 28,
+                        fontSize: 24,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     Spacer(),
                     Icon(Icons.search, color: Colors.black87),
-                    SizedBox(width: 16),
+                    SizedBox(width: 12),
                     CircleAvatar(
-                      radius: 14,
+                      radius: 12,
                       backgroundColor: Color(0xFF2563EB),
                       child: Text(
                         'A',
-                        style: TextStyle(color: Colors.white, fontSize: 12),
+                        style: TextStyle(color: Colors.white, fontSize: 11),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 12),
                 SizedBox(
-                  height: 82,
+                  height: 68,
                   child: Stack(
                     children: [
                       ListView.separated(
                         controller: _weekScrollController,
                         scrollDirection: Axis.horizontal,
                         itemCount: _scenario.visibleWeek.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 10),
+                        separatorBuilder: (_, __) => const SizedBox(width: 8),
                         itemBuilder: (context, index) {
                           final itemDay = _scenario.visibleWeek[index];
                           final selected = _sameDate(itemDay, day);
@@ -1180,12 +1180,12 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                             },
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 160),
-                              width: 56,
+                              width: 48,
                               decoration: BoxDecoration(
                                 color: selected
                                     ? const Color(0xFF2563EB)
                                     : Colors.transparent,
-                                borderRadius: BorderRadius.circular(18),
+                                borderRadius: BorderRadius.circular(14),
                               ),
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -1196,18 +1196,18 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                                       color: selected
                                           ? Colors.white70
                                           : Colors.black54,
-                                      fontSize: 12,
+                                      fontSize: 10,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: 4),
                                   Text(
                                     '${itemDay.day}',
                                     style: TextStyle(
                                       color: selected
                                           ? Colors.white
                                           : Colors.black87,
-                                      fontSize: 24,
+                                      fontSize: 20,
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
@@ -1251,7 +1251,7 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
             child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 18, 16, 12),
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
                   child: Row(
                     children: [
                       Expanded(
@@ -1259,7 +1259,7 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                           _formatEventDay(day),
                           style: const TextStyle(
                             color: Colors.black87,
-                            fontSize: 24,
+                            fontSize: 20,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -1268,7 +1268,7 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                         '${events.length} event${events.length == 1 ? '' : 's'}',
                         style: const TextStyle(
                           color: Colors.black54,
-                          fontSize: 14,
+                          fontSize: 12,
                         ),
                       ),
                     ],
@@ -1276,7 +1276,7 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                 ),
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+                    padding: const EdgeInsets.fromLTRB(10, 0, 10, 18),
                     child: SizedBox(
                       height: 24 * _hourRowHeight,
                       child: Stack(
@@ -1308,7 +1308,7 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 56,
+          width: 48,
           child: Padding(
             padding: const EdgeInsets.only(top: 2, right: 8),
             child: Text(
@@ -1316,7 +1316,7 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
               textAlign: TextAlign.right,
               style: const TextStyle(
                 color: Colors.black54,
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -1339,16 +1339,16 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
     final startMinutes = event.start.hour * 60 + event.start.minute;
     final top = (startMinutes / 60) * _hourRowHeight;
     final height = (event.duration.inMinutes / 60.0) * _hourRowHeight;
-    final cardHeight = height < 28 ? 28.0 : height;
-    final compact = cardHeight < 76;
-    final contentPadding = compact ? 6.0 : 12.0;
-    final titleFontSize = compact ? 13.0 : 15.0;
-    final showTime = cardHeight >= 76;
-    final showLocation = cardHeight >= 108;
+    final cardHeight = height < 24 ? 24.0 : height;
+    final compact = cardHeight < 64;
+    final contentPadding = compact ? 5.0 : 10.0;
+    final titleFontSize = compact ? 12.0 : 14.0;
+    final showTime = cardHeight >= 64;
+    final showLocation = cardHeight >= 92;
     final endTime = TimeOfDay.fromDateTime(event.start.add(event.duration));
 
     return Positioned(
-      left: 68,
+      left: 58,
       right: 0,
       top: top,
       height: cardHeight,
@@ -1359,7 +1359,7 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
           clipBehavior: Clip.hardEdge,
           decoration: BoxDecoration(
             color: event.color.withValues(alpha: 0.14),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: event.color.withValues(alpha: 0.75)),
           ),
           child: compact
@@ -1393,41 +1393,41 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                       ),
                     ),
                     if (showTime) ...[
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 1),
                       Text(
                         '${_formatTime(TimeOfDay.fromDateTime(event.start))} - ${_formatTime(endTime)}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Colors.black87,
-                          fontSize: 13,
+                          fontSize: 11,
                           fontWeight: FontWeight.w600,
                           height: 1.0,
                         ),
                       ),
                     ],
                     if (showLocation && event.recurrenceLabel != null) ...[
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 2),
                       Text(
                         event.recurrenceLabel!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: event.color,
-                          fontSize: 12,
+                          fontSize: 10,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
                     if (showLocation) ...[
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 2),
                       Text(
                         event.location,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Colors.black54,
-                          fontSize: 12,
+                          fontSize: 10,
                         ),
                       ),
                     ],
@@ -1453,13 +1453,13 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
             child: Row(
               children: [
                 const Text(
                   'Alarm',
                   style: TextStyle(
-                    fontSize: 28,
+                    fontSize: 24,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
                   ),
@@ -1481,14 +1481,14 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                     ),
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 18),
                     itemCount: _alarms.length,
                     itemBuilder: (context, index) =>
                         _buildAlarmCard(_alarms[index]),
                   ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: SizedBox(
               width: double.infinity,
               child: FilledButton(
@@ -1506,11 +1506,11 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
     return GestureDetector(
       onTap: () => _openAlarmEditor(existing: alarm),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 14),
-        padding: const EdgeInsets.all(20),
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.grey.shade800.withValues(alpha: 0.45),
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: alarm.enabled
                 ? NunuColors.primaryMain.withValues(alpha: 0.45)
@@ -1527,10 +1527,10 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                   child: Text(
                     _formatTime(alarm.time),
                     style: TextStyle(
-                      fontSize: 46,
+                      fontSize: 38,
                       fontWeight: FontWeight.w300,
                       color: alarm.enabled ? Colors.white : Colors.white38,
-                      letterSpacing: -2,
+                      letterSpacing: -1.5,
                     ),
                   ),
                 ),
@@ -1550,33 +1550,33 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                 ),
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(
               alarm.label,
               style: TextStyle(
                 color: alarm.enabled ? Colors.white : Colors.white54,
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Text(
               alarm.oneTimeDate != null
                   ? _formatEventDay(alarm.oneTimeDate!)
                   : _formatRepeatDays(alarm.repeatDays),
               style: const TextStyle(
                 color: NunuColors.textSecondary,
-                fontSize: 14,
+                fontSize: 12,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
               alarm.snoozeMinutes == 0
                   ? 'snooze off'
                   : 'snooze ${alarm.snoozeMinutes} minutes',
               style: const TextStyle(
                 color: NunuColors.textSecondary,
-                fontSize: 14,
+                fontSize: 12,
               ),
             ),
           ],
@@ -1664,10 +1664,10 @@ class _AppTab extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
         decoration: BoxDecoration(
           color: selected ? NunuColors.primaryMain : Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           boxShadow: const [
             BoxShadow(
               color: Color(0x14000000),
@@ -1681,15 +1681,16 @@ class _AppTab extends StatelessWidget {
           children: [
             Icon(
               icon,
-              size: 18,
+              size: 17,
               color: selected ? Colors.white : Colors.black87,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
                 color: selected ? Colors.white : Colors.black87,
                 fontWeight: FontWeight.w700,
+                fontSize: 13,
               ),
             ),
           ],
