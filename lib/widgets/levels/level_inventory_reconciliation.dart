@@ -157,39 +157,65 @@ class _LevelInventoryReconciliationState extends State<LevelInventoryReconciliat
   }
 
   void _handleValidate() {
-    final ok = _validateInventory();
-    if (ok) {
-      widget.onComplete(LevelOutcome(score: 1));
-    } else {
-      widget.onComplete(LevelOutcome(score: 0));
-    }
+    final evaluation = _evaluateInventory();
+    widget.onComplete(
+      LevelOutcome(score: evaluation.score, metrics: evaluation.metrics),
+    );
   }
 
-  bool _validateInventory() {
+  _InventoryEvaluation _evaluateInventory() {
     // Validate at the SKU level (handles duplicates across items and multiple receipt lines per SKU)
     final currentTotals = _sumBySku(_items);
+    final deliveredSkus = _deliveredBySku.keys.map(_normSku).toSet();
+    final allSkus = <String>{..._initialSkuTotals.keys, ...currentTotals.keys};
 
+    int requiredSkusCorrect = 0;
+    int requiredSkusIncorrect = 0;
+    int unchangedSkusCorrect = 0;
+    int unchangedSkusIncorrect = 0;
     // For each delivered SKU, final total must equal initial + delivered
     for (final entry in _deliveredBySku.entries) {
       final sku = _normSku(entry.key);
       final delivered = entry.value;
       final initial = _initialSkuTotals[sku] ?? 0;
       final current = currentTotals[sku] ?? 0;
-      if (current != initial + delivered) return false;
+      final target = initial + delivered;
+      final isCorrect = current == target;
+      if (isCorrect) {
+        requiredSkusCorrect++;
+      } else {
+        requiredSkusIncorrect++;
+      }
     }
 
     // For SKUs not in delivered set, totals must remain unchanged
-    final deliveredSkus = _deliveredBySku.keys.map(_normSku).toSet();
-    final allSkus = <String>{..._initialSkuTotals.keys, ...currentTotals.keys};
     for (final sku in allSkus) {
       if (!deliveredSkus.contains(sku)) {
         final initial = _initialSkuTotals[sku] ?? 0;
         final current = currentTotals[sku] ?? 0;
-        if (current != initial) return false;
+        final isCorrect = current == initial;
+        if (isCorrect) {
+          unchangedSkusCorrect++;
+        } else {
+          unchangedSkusIncorrect++;
+        }
       }
     }
 
-    return true;
+    final requiredSkus = deliveredSkus.length;
+    final penaltySkus = requiredSkusIncorrect + unchangedSkusIncorrect;
+    final score = requiredSkus == 0
+        ? 1.0
+        : ((requiredSkus - penaltySkus) / requiredSkus).clamp(0.0, 1.0);
+
+    return _InventoryEvaluation(
+      score: score,
+      metrics: {
+        'correct_skus': requiredSkusCorrect,
+        'wrong_skus': requiredSkusIncorrect,
+        'unrelated_wrong_skus': unchangedSkusIncorrect,
+      },
+    );
   }
 
   String _normSku(String sku) => sku.trim().toUpperCase();
@@ -201,10 +227,6 @@ class _LevelInventoryReconciliationState extends State<LevelInventoryReconciliat
       map[key] = (map[key] ?? 0) + i.quantity;
     }
     return map;
-  }
-
-  int _initialQuantityFor(String id) {
-    return _initialQuantities[id] ?? 0;
   }
 
   List<String> get _allCategories => _items.map((e) => e.category).toSet().toList()..sort();
@@ -707,6 +729,13 @@ class _LevelInventoryReconciliationState extends State<LevelInventoryReconciliat
       ),
     );
   }
+}
+
+class _InventoryEvaluation {
+  final double score;
+  final Map<String, dynamic> metrics;
+
+  const _InventoryEvaluation({required this.score, required this.metrics});
 }
 
 class ReceiptEntry {

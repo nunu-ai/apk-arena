@@ -197,6 +197,14 @@ final List<LevelEntry> tasksLevels = [
     widgetBuilder: (onComplete) =>
         LevelCalendarAlarmPlanner(onComplete: onComplete),
   ),
+  LevelEntry(
+    data: LevelData(
+      title: "operation warehouse",
+      instructions: "use the delivery receipt to update inventory.",
+    ),
+    widgetBuilder: (onComplete) =>
+        LevelInventoryReconciliation(onComplete: onComplete),
+  ),
 ];
 
 // ── unsorted: ALL levels live here until reviewed ──
@@ -445,14 +453,6 @@ final List<LevelEntry> unsortedLevels = [
           "move Dr. Spaceman's appointment on Feb 14 to 1 hour earlier.",
     ),
     widgetBuilder: (onComplete) => LevelGiantCalendar(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "operation warehouse",
-      instructions: "use the delivery receipt to update inventory.",
-    ),
-    widgetBuilder: (onComplete) =>
-        LevelInventoryReconciliation(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(

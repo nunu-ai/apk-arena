@@ -12,6 +12,8 @@ APK Arena is a Flutter-based mobile benchmark app designed to test AI agents acr
 ## 🎯 Project Purpose 
 This app serves as a lightweight, easy-to-deploy alternative to complex benchmarks like Android World. It can be installed in 30 seconds and immediately used to test mobile AI agents.
 
+As the project matures into a proper benchmark, evaluation quality matters as much as the UI. A level is not finished just because it is playable: it should produce a defensible score and a small set of useful metrics.
+
 ## 📁 Project Structure
 ```
 lib/
@@ -173,6 +175,19 @@ class _LevelYourNameState extends State {
 
 **Time limit:** In `LevelData`, set `timeLimit: Duration(minutes: 5)` to override the shell default (**60 minutes** when `timeLimit` is null). When time expires, the shell finishes the run with score `0` and `timed_out` in metrics.
 
+### Evaluation & Metrics
+
+- **benchmark first**: for reviewed levels, scoring should reflect task quality, not just whether the UI can be completed
+- **perfect should mean perfect**: `1.0` should be reserved for a genuinely correct run
+- **no free credit**: avoid scoring schemes where an agent gets a high score by doing nothing or by leaving most of the screen untouched
+- **penalize harmful actions**: touching the wrong thing, editing unrelated data, or making avoidable mistakes should reduce score when appropriate
+- **keep metrics small**: expose **1-4 metrics max** in most levels
+- **choose metrics with diagnostic value**: examples include `moves`, `guesses`, `wrong_answers`, `unrelated_wrong_items`
+- **avoid metric spam**: do not dump every internal counter into `metrics`; too many fields overflow the completion UI and make benchmark results harder to read
+- **prefer benchmark-facing metrics**: expose the few numbers a human would actually use to compare agents
+- **if many internals exist**: keep them private in code and only surface the headline metrics
+- **ported/reviewed levels matter most**: when improving levels already placed in the real benchmark categories, prioritize evaluation quality over adding more telemetry
+
 ### Step 2: Register in Registry
 
 Add to `level_registry.dart`:
@@ -180,10 +195,14 @@ Add to `level_registry.dart`:
 ```dart
 import 'package:apk_arena/widgets/levels/level_your_name.dart';
 
-// Choose difficulty tier:
-final List easyLevels = [    // 0-99
-final List mediumLevels = [  // 100-199
-final List hardLevels = [    // 200-299
+// Choose the correct reviewed benchmark category:
+final List primitivesLevels = [   // 0-99
+final List visionLevels = [       // 100-199
+final List memoryLevels = [       // 200-299
+final List iqLevels = [           // 300-399
+final List tempospatialLevels = [ // 400-499
+final List gamesLevels = [        // 500-599
+final List tasksLevels = [        // 600-699
 
   // Add your level:
   LevelEntry(
