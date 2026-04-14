@@ -1,27 +1,25 @@
 import 'dart:async';
-import 'package:apk_arena/models/level_outcome.dart';
 import 'dart:math';
+
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../level_widget.dart';
+
 import '../../theme/app_theme.dart';
 import '../level_components/mega_merge/header_bar.dart';
-import '../level_components/mega_merge/shop_dialog.dart';
 import '../level_components/mega_merge/profile_page.dart';
 import '../level_components/mega_merge/settings_page.dart';
-import '../level_components/mega_merge/unlock_popup.dart';
+import '../level_components/mega_merge/shop_dialog.dart';
 import '../level_components/mega_merge/tutorial_overlay.dart';
-
-// -----------------------------------------------------------------------------
-// Data Models
-// -----------------------------------------------------------------------------
+import '../level_components/mega_merge/unlock_popup.dart';
+import '../level_widget.dart';
 
 enum ItemType { generator, part }
 
 class HardwareItem {
   final String id;
   final ItemType type;
-  final int tier; // 1..8 for parts, 0 for generator
+  final int tier;
   final bool isFrozen;
 
   const HardwareItem({
@@ -39,33 +37,17 @@ class HardwareItem {
       isFrozen: isFrozen ?? this.isFrozen,
     );
   }
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is HardwareItem &&
-          runtimeType == other.runtimeType &&
-          id == other.id &&
-          type == other.type &&
-          tier == other.tier &&
-          isFrozen == other.isFrozen;
-
-  @override
-  int get hashCode =>
-      id.hashCode ^ type.hashCode ^ tier.hashCode ^ isFrozen.hashCode;
 }
 
-/// Represents the requirement for a specific tier.
 class OrderRequirement {
   final int targetTier;
-  bool isCompleted;
+  final int rewardPoints;
 
-  OrderRequirement({required this.targetTier, this.isCompleted = false});
+  const OrderRequirement({
+    required this.targetTier,
+    required this.rewardPoints,
+  });
 }
-
-// -----------------------------------------------------------------------------
-// Level Implementation
-// -----------------------------------------------------------------------------
 
 class LevelMegaMerge extends LevelWidget {
   const LevelMegaMerge({Key? key, required super.onComplete}) : super(key: key);
@@ -74,165 +56,155 @@ class LevelMegaMerge extends LevelWidget {
   State<LevelMegaMerge> createState() => _LevelMegaMergeState();
 }
 
-class _LevelMegaMergeState extends State<LevelMegaMerge>
-    with TickerProviderStateMixin {
-  // Grid Configuration
-  static const int _cols = 7;
-  static const int _rows = 9;
+class _LevelMegaMergeState extends State<LevelMegaMerge> {
+  static const int _cols = 8;
+  static const int _rows = 10;
   static const int _totalCells = _cols * _rows;
-  static const Duration _energyRegenInterval = Duration(seconds: 30);
+  static const int _maxTier = 13;
+  static const int _orderSlotCount = 5;
+  static const int _maxEnergy = 120;
+  static const int _scoreTarget = 20000;
+  static const Duration _energyRegenInterval = Duration(seconds: 5);
+  static const Duration _runDuration = Duration(minutes: 29, seconds: 59);
 
-  // Items
-  static const int _maxTier = 8;
-
-  // Game State
-  late List<HardwareItem?> _gridItems;
-  late List<int> _gridUnlockLevels; // 0=unlocked, N=level, -1=blocked, -2=rock
+  final Random _random = Random();
   final Set<int> _manuallyUnlockedIndices = {};
   final Map<int, GlobalKey> _cellKeys = {};
-  int _generatorIndex = 0;
-
-  int _playerLevel = 1;
-  int _currentXP = 0;
-  int _xpForNextLevel = 100;
-
-  // Economy
-  int _coins = 100;
-  int _energy = 20;
-  static const int _maxEnergy = 50;
-  Set<String> _ownedCosmetics = {};
-  final Set<String> _claimedCoinPacks = {};
-  Timer? _energyTimer;
-  DateTime _lastEnergyRegen = DateTime.now();
   final Set<int> _unlockedTiers = {1};
-
-  // Stats (for profile)
-  int _totalMerges = 0;
-  int _highestTier = 1;
-  int _ordersCompleted = 0;
-  int _totalCoinsEarned = 100;
-
-  // Settings
-  SettingsState _settings = const SettingsState();
-  int _selectedAvatar = 0;
-
-  // Orders: Robot (6), Battery (5), Chip (4)
-  late List<OrderRequirement> _orders;
-
-  // UI State
-  int? _focusedIndex;
-  bool _isMenuOpen = false;
-
-  // Tutorial State
-  int _tutorialStep = 0;
-  int _tutorialTapCount = 0;
-  int _tutorialChipIndex = -1;
-  bool _tutorialComplete = false;
-
-  // Keys for tutorial targeting
+  final Set<String> _claimedCoinPacks = {};
+  final Set<String> _ownedCosmetics = {};
   final GlobalKey _generatorKey = GlobalKey();
   final GlobalKey _energyKey = GlobalKey();
   final GlobalKey _coinsKey = GlobalKey();
   final GlobalKey _menuKey = GlobalKey();
-  final List<GlobalKey> _orderKeys = List.generate(4, (_) => GlobalKey());
+  final List<GlobalKey> _orderKeys = List.generate(
+    _orderSlotCount,
+    (_) => GlobalKey(),
+  );
+
+  late List<HardwareItem?> _gridItems;
+  late List<int> _gridUnlockLevels;
+  late List<OrderRequirement> _orders;
+
+  Timer? _energyTimer;
+  Timer? _runTimer;
+  DateTime _lastEnergyRegen = DateTime.now();
+  late DateTime _runEndsAt;
+
+  int _playerLevel = 1;
+  int _currentXP = 0;
+  int _xpForNextLevel = 100;
+  int _coins = 100;
+  int _energy = 60;
+  int _sessionScore = 0;
+  int _totalMerges = 0;
+  int _highestTier = 1;
+  int _ordersCompleted = 0;
+  int _totalCoinsEarned = 100;
+  int _selectedAvatar = 0;
+  int? _focusedIndex;
+
+  bool _isMenuOpen = false;
+  bool _tutorialComplete = false;
+  bool _runFinished = false;
+  int _tutorialStep = 0;
+  int _tutorialTapCount = 0;
+
+  SettingsState _settings = const SettingsState();
 
   @override
   void initState() {
     super.initState();
     _initializeLevel();
     _lastEnergyRegen = DateTime.now();
+    _runEndsAt = DateTime.now().add(_runDuration);
     _energyTimer = Timer.periodic(
       const Duration(seconds: 1),
-      (_) => _tickEnergyRegen(),
+      (_) {
+        if (!mounted || _runFinished) return;
+        setState(() {
+          _tickEnergyRegen();
+        });
+      },
     );
+    _runTimer = Timer(_runDuration, _finishRun);
   }
 
   @override
   void dispose() {
     _energyTimer?.cancel();
+    _runTimer?.cancel();
     super.dispose();
   }
 
   void _initializeLevel() {
-    // 1. Initialize Orders
-    _orders = [
-      OrderRequirement(targetTier: 7), // Server
-      OrderRequirement(targetTier: 6), // Robot
-      OrderRequirement(targetTier: 5), // Battery
-      OrderRequirement(targetTier: 4), // Chip
-    ];
+    _highestTier = 1;
 
-    // 2. Initialize Map (7x9) using the original Hardware Merge layout
-    // 0: Unlocked, N: Locked until Lvl N, -1: Blocked, -2: rock (blocked alt)
     const List<int> mapDesign = [
-      // Row 0
-      -1, -1, 3, 4, -1, -1, -2,
-      // Row 1
-      -2, 5, 5, 7, 4, -1, -2,
-      // Row 2
-      -1, 3, 5, 5, 6, 7, -1,
-      // Row 3
-      5, 3, 0, 0, 0, 6, -1,
-      // Row 4
-      -1, 3, 6, 4, 6, -1, -1,
-      // Row 5
-      -1, 3, 8, -1, -1, -1, -1,
-      // Row 6
-      -1, 4, 4, 3, -2, -2, -1,
-      // Row 7
-      -1, -2, -2, 4, 4, -1, -1,
-      // Row 8
-      -1, -2, -1, 5, -1, -2, -2,
+      -1, -1, 4, 5, 6, 7, -1, -1,
+      -1, 3, 3, 4, 5, 6, 7, -1,
+      2, 2, 2, 3, 3, 4, 6, 7,
+      2, 1, 1, 0, 1, 2, 5, 6,
+      1, 1, 0, 0, 0, 0, 4, 5,
+      2, 1, 1, 0, 2, 1, 5, 6,
+      3, 3, 2, 1, 1, 2, 6, 7,
+      -1, 4, 4, 5, 6, 7, 8, -1,
+      -1, -2, 5, 6, 7, 8, -2, -1,
+      -1, -1, 6, 7, 8, 9, -1, -1,
     ];
 
-    _gridUnlockLevels = List.from(mapDesign);
+    _gridUnlockLevels = List<int>.from(mapDesign);
+    _gridItems = List<HardwareItem?>.filled(_totalCells, null);
     _manuallyUnlockedIndices.clear();
+    _cellKeys.clear();
     _unlockedTiers
       ..clear()
       ..add(1);
 
-    // 3. Initialize Items
-    _gridItems = List<HardwareItem?>.filled(_totalCells, null);
-
-    // Place Generator in the cluster at [3, 2]
-    _generatorIndex = _index(3, 2);
-    _gridItems[_generatorIndex] = const HardwareItem(
+    _gridItems[_index(4, 3)] = const HardwareItem(
       id: 'gen_1',
       type: ItemType.generator,
       tier: 0,
     );
 
-    // Place frozen items mirroring the original progression
-    _placeFrozenItem(4, 2, 2); // Gear (Lvl 2 unlock)
-    _placeFrozenItem(2, 4, 3); // Motor (Lvl 3 unlock)
-    _placeFrozenItem(1, 2, 4); // Chip (Lvl 4 unlock)
-    _placeFrozenItem(1, 3, 5); // Battery (Lvl 5 unlock)
-    _placeFrozenItem(3, 5, 6); // Robot (Lvl 6 unlock)
-    _placeFrozenItem(4, 3, 7); // Server (Lvl 7 unlock)
-    _placeFrozenItem(5, 2, 8); // AI Core (Lvl 8 unlock)
+    _placeFrozenItem(5, 4, 2);
+    _placeFrozenItem(4, 6, 3);
+    _placeFrozenItem(3, 6, 4);
+    _placeFrozenItem(2, 6, 5);
+    _placeFrozenItem(1, 6, 6);
+    _placeFrozenItem(0, 5, 7);
+    _placeFrozenItem(7, 5, 8);
+    _placeFrozenItem(7, 6, 9);
+    _placeFrozenItem(8, 5, 10);
+    _placeFrozenItem(9, 5, 11);
+    _placeFrozenItem(9, 4, 12);
+    _placeFrozenItem(8, 2, 13);
+
+    _orders = List.generate(_orderSlotCount, (_) => _createOrder());
   }
 
-  void _placeFrozenItem(int r, int c, int tier) {
-    int index = r * _cols + c;
-    if (index >= 0 && index < _totalCells) {
-      final cellLevel = _gridUnlockLevels[index];
-      if (cellLevel > 0) {
-        // Only on locked cells
-        _gridItems[index] = HardwareItem(
-          id: 'frozen_${r}_$c',
-          type: ItemType.part,
-          tier: tier,
-          isFrozen: true,
-        );
-      }
-    }
+  void _placeFrozenItem(int row, int col, int tier) {
+    final index = _index(row, col);
+    if (_gridUnlockLevels[index] <= 0) return;
+    _gridItems[index] = HardwareItem(
+      id: 'frozen_${row}_$col',
+      type: ItemType.part,
+      tier: tier,
+      isFrozen: true,
+    );
   }
 
-  int _index(int r, int c) => r * _cols + c;
+  int _index(int row, int col) => row * _cols + col;
 
-  // ---------------------------------------------------------------------------
-  // Game Logic
-  // ---------------------------------------------------------------------------
+  bool _isCellUnlocked(int index) {
+    if (_manuallyUnlockedIndices.contains(index)) return true;
+    final required = _gridUnlockLevels[index];
+    return required == 0 || (required > 0 && _playerLevel >= required);
+  }
+
+  bool _isCellBlocked(int index) => _gridUnlockLevels[index] == -1;
+
+  bool _isCellRock(int index) => _gridUnlockLevels[index] == -2;
 
   void _tickEnergyRegen() {
     final now = DateTime.now();
@@ -242,57 +214,47 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
     }
 
     final elapsedSeconds = now.difference(_lastEnergyRegen).inSeconds;
-    if (elapsedSeconds >= _energyRegenInterval.inSeconds) {
-      final gained = elapsedSeconds ~/ _energyRegenInterval.inSeconds;
-      _lastEnergyRegen = _lastEnergyRegen.add(
-        Duration(seconds: gained * _energyRegenInterval.inSeconds),
-      );
-      setState(() {
-        _energy = min(_maxEnergy, _energy + gained);
-      });
-    }
+    if (elapsedSeconds < _energyRegenInterval.inSeconds) return;
+
+    final gained = elapsedSeconds ~/ _energyRegenInterval.inSeconds;
+    _lastEnergyRegen = _lastEnergyRegen.add(
+      Duration(seconds: gained * _energyRegenInterval.inSeconds),
+    );
+    _energy = min(_maxEnergy, _energy + gained);
   }
 
-  bool _isCellUnlocked(int index) {
-    if (_manuallyUnlockedIndices.contains(index)) return true;
-    int required = _gridUnlockLevels[index];
-    return required == 0 || (required > 0 && _playerLevel >= required);
-  }
-
-  bool _isCellBlocked(int index) {
-    return _gridUnlockLevels[index] == -1;
-  }
-
-  bool _isCellRock(int index) {
-    return _gridUnlockLevels[index] == -2;
+  String get _remainingTimeLabel {
+    final remaining = _runEndsAt.difference(DateTime.now());
+    final clamped = remaining.isNegative ? Duration.zero : remaining;
+    final minutes = clamped.inMinutes.toString().padLeft(2, '0');
+    final seconds = (clamped.inSeconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
   }
 
   void _addXP(int amount) {
-    setState(() {
-      _currentXP += amount;
-      while (_currentXP >= _xpForNextLevel) {
-        _currentXP -= _xpForNextLevel;
-        _playerLevel++;
-        _xpForNextLevel = (_xpForNextLevel * 1.8).round();
+    _currentXP += amount;
+    while (_currentXP >= _xpForNextLevel) {
+      _currentXP -= _xpForNextLevel;
+      _playerLevel++;
+      _xpForNextLevel = (_xpForNextLevel * 1.5).round();
 
-        if (_settings.vibrationEnabled) {
-          HapticFeedback.heavyImpact();
-        }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('level up! now level $_playerLevel'),
-            duration: const Duration(seconds: 1),
-            backgroundColor: NunuColors.primaryMain,
-          ),
-        );
+      if (_settings.vibrationEnabled) {
+        HapticFeedback.heavyImpact();
       }
-    });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('level up! now level $_playerLevel'),
+          duration: const Duration(milliseconds: 900),
+          backgroundColor: NunuColors.primaryMain,
+        ),
+      );
+    }
   }
 
   void _spawnItem() {
-    if (!_tutorialComplete &&
-        _tutorialSteps.isNotEmpty &&
-        _tutorialSteps[_tutorialStep].targetKey == _generatorKey) {
+    if (_runFinished) return;
+
+    if (!_tutorialComplete && _tutorialStep == 0) {
       _tutorialTapCount++;
       if (_tutorialTapCount >= 2) {
         _advanceTutorial();
@@ -301,21 +263,19 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
 
     _tickEnergyRegen();
 
-    // Check energy
     if (_energy <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('no energy! buy more in the shop.'),
-          duration: Duration(milliseconds: 800),
+          duration: Duration(milliseconds: 700),
           backgroundColor: NunuColors.errorMain,
         ),
       );
       return;
     }
 
-    // Find all empty unlocked cells
-    List<int> emptyIndices = [];
-    for (int i = 0; i < _totalCells; i++) {
+    final emptyIndices = <int>[];
+    for (var i = 0; i < _totalCells; i++) {
       if (_gridItems[i] == null && _isCellUnlocked(i)) {
         emptyIndices.add(i);
       }
@@ -332,38 +292,26 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
       return;
     }
 
-    // Consume energy
+    var targetIndex = -1;
+    if (!_tutorialComplete && _tutorialStep == 0) {
+      if (_tutorialTapCount == 1) targetIndex = _index(4, 4);
+      if (_tutorialTapCount == 2) targetIndex = _index(4, 5);
+    }
+    if (targetIndex != -1 && _gridItems[targetIndex] != null) {
+      targetIndex = -1;
+    }
+    if (targetIndex == -1) {
+      targetIndex = emptyIndices[_random.nextInt(emptyIndices.length)];
+    }
+
     setState(() {
       _energy--;
-    });
-
-    // Pick random spot
-    int targetIndex = -1;
-
-    if (!_tutorialComplete && _tutorialStep == 0) {
-      if (_tutorialTapCount == 1) {
-        targetIndex = _index(3, 3);
-      } else if (_tutorialTapCount == 2) {
-        targetIndex = _index(3, 4);
-      }
-    }
-
-    if (targetIndex != -1) {
-      if (_gridItems[targetIndex] != null) {
-        targetIndex = -1; // Fallback to random if occupied
-      }
-    }
-
-    if (targetIndex == -1) {
-      targetIndex = emptyIndices[Random().nextInt(emptyIndices.length)];
-    }
-
-    setState(() {
       _gridItems[targetIndex] = HardwareItem(
-        id: DateTime.now().toIso8601String(),
+        id: DateTime.now().microsecondsSinceEpoch.toString(),
         type: ItemType.part,
         tier: 1,
       );
+      _focusedIndex = targetIndex;
     });
 
     if (_settings.vibrationEnabled) {
@@ -372,147 +320,122 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
   }
 
   void _onItemMove(int fromIndex, int toIndex) {
-    if (fromIndex == toIndex) return;
+    if (_runFinished || fromIndex == toIndex) return;
 
-    // Strict tutorial enforcement for drag step
     if (!_tutorialComplete) {
       if (_tutorialStep == 1) {
-        final int sourceIndex = _index(3, 4);
-        final int destIndex = _index(3, 3);
-        // Only allow the specific drag: source -> dest
-        if (fromIndex != sourceIndex || toIndex != destIndex) return;
+        if (fromIndex != _index(4, 5) || toIndex != _index(4, 4)) return;
       } else if (_tutorialStep == 2) {
-        final int sourceIndex = _index(3, 3);
-        final int destIndex = _index(4, 2); // Frozen gear location
-        // Only allow the specific drag: source -> dest
-        if (fromIndex != sourceIndex || toIndex != destIndex) return;
-      } else if (_tutorialStep == 5) {
-        // Step 5: Delivery only. No grid-to-grid moves allowed.
-        return;
+        if (fromIndex != _index(4, 4) || toIndex != _index(5, 4)) return;
       }
     }
 
     final source = _gridItems[fromIndex];
-    if (source == null) return;
-    if (source.isFrozen) return;
+    if (source == null || source.isFrozen) return;
 
     final target = _gridItems[toIndex];
-
-    bool isMergeWithFrozen = false;
-    if (target != null &&
+    final isMergeWithFrozen =
+        target != null &&
         target.isFrozen &&
         source.type == target.type &&
-        source.tier == target.tier) {
-      isMergeWithFrozen = true;
-    }
+        source.tier == target.tier;
 
     if (!_isCellUnlocked(toIndex) && !isMergeWithFrozen) return;
 
     setState(() {
       if (target == null) {
-        // Move to empty slot
         _gridItems[toIndex] = source;
         _gridItems[fromIndex] = null;
         _focusedIndex = toIndex;
-      } else {
-        // Attempt Merge
-        if (source.type == ItemType.part &&
-            target.type == ItemType.part &&
-            source.tier == target.tier &&
-            source.tier < _maxTier) {
-          if (target.isFrozen) {
-            // Merging with frozen: unfreeze (no tier upgrade)
-            _gridItems[toIndex] = target.copyWith(isFrozen: false);
-            _gridItems[fromIndex] = null;
-            _manuallyUnlockedIndices.add(toIndex);
+        return;
+      }
 
-            if (!_tutorialComplete && _tutorialStep == 2) {
-              _advanceTutorial();
-            }
+      if (source.type == ItemType.part &&
+          target.type == ItemType.part &&
+          source.tier == target.tier &&
+          source.tier < _maxTier) {
+        if (target.isFrozen) {
+          _gridItems[toIndex] = target.copyWith(isFrozen: false);
+          _gridItems[fromIndex] = null;
+          _manuallyUnlockedIndices.add(toIndex);
+          _focusedIndex = toIndex;
 
-            if (_settings.vibrationEnabled) {
-              HapticFeedback.heavyImpact();
-            }
-
-            // Show unlock popup
-            _maybeShowUnlock(target.tier);
-          } else {
-            // Normal merge: upgrade to next tier
-            final newTier = target.tier + 1;
-            _gridItems[toIndex] = target.copyWith(tier: newTier);
-            _gridItems[fromIndex] = null;
-
-            if (!_tutorialComplete && _tutorialStep == 1) {
-              _advanceTutorial();
-            }
-
-            // Check for Chip (Tier 4) creation during tutorial
-            if (!_tutorialComplete &&
-                _tutorialStep == 4 && // Waiting state
-                newTier == 4) {
-              _tutorialChipIndex = toIndex;
-              _advanceTutorial(); // Go to step 5 (deliver chip)
-            }
-
-            _totalMerges++;
-            if (newTier > _highestTier) {
-              _highestTier = newTier;
-            }
-
-            _maybeShowUnlock(newTier);
-
-            if (_settings.vibrationEnabled) {
-              HapticFeedback.lightImpact();
-            }
+          if (_settings.vibrationEnabled) {
+            HapticFeedback.heavyImpact();
           }
 
-          // Grant XP and coins
-          _addXP(target.tier * 5);
-          final coinReward = target.tier * 2;
-          _coins += coinReward;
-          _totalCoinsEarned += coinReward;
-          _focusedIndex = toIndex;
-        } else {
-          // Swap items
-          if (target.isFrozen) return;
-          if (!_isCellUnlocked(toIndex) || !_isCellUnlocked(fromIndex)) return;
+          _maybeShowUnlock(target.tier);
 
-          _gridItems[toIndex] = source;
-          _gridItems[fromIndex] = target;
-          _focusedIndex = toIndex;
+          if (!_tutorialComplete && _tutorialStep == 2) {
+            _advanceTutorial();
+          }
+          return;
         }
+
+        final newTier = target.tier + 1;
+        _gridItems[toIndex] = target.copyWith(tier: newTier);
+        _gridItems[fromIndex] = null;
+        _focusedIndex = toIndex;
+        _totalMerges++;
+        _highestTier = max(_highestTier, newTier);
+        _coins += newTier * 2;
+        _totalCoinsEarned += newTier * 2;
+        _addXP(newTier * 6);
+        _maybeShowUnlock(newTier);
+
+        if (_settings.vibrationEnabled) {
+          HapticFeedback.lightImpact();
+        }
+
+        if (!_tutorialComplete && _tutorialStep == 1) {
+          _advanceTutorial();
+        }
+        return;
       }
+
+      if (target.isFrozen) return;
+      if (!_isCellUnlocked(toIndex) || !_isCellUnlocked(fromIndex)) return;
+
+      _gridItems[toIndex] = source;
+      _gridItems[fromIndex] = target;
+      _focusedIndex = toIndex;
     });
   }
 
   void _onItemDelivered(int fromIndex, int orderIndex) {
+    if (_runFinished) return;
+
     final item = _gridItems[fromIndex];
     if (item == null) return;
 
     final order = _orders[orderIndex];
-    if (order.isCompleted) return;
+    if (item.type != ItemType.part || item.tier != order.targetTier) return;
 
-    if (item.type == ItemType.part && item.tier == order.targetTier) {
-      setState(() {
-        _gridItems[fromIndex] = null;
-        order.isCompleted = true;
-        _ordersCompleted++;
+    setState(() {
+      _gridItems[fromIndex] = null;
+      _ordersCompleted++;
+      _sessionScore += order.rewardPoints;
+      _coins += order.rewardPoints ~/ 3;
+      _energy = min(_maxEnergy, _energy + 4);
+      _totalCoinsEarned += order.rewardPoints ~/ 3;
+      _orders[orderIndex] = _createOrder();
 
-        if (_settings.vibrationEnabled) {
-          HapticFeedback.mediumImpact();
-        }
+      if (_settings.vibrationEnabled) {
+        HapticFeedback.mediumImpact();
+      }
+    });
+  }
 
-        // Check win
-        if (_tutorialComplete && _orders.every((o) => o.isCompleted)) {
-          widget.onComplete(LevelOutcome(score: 1));
-        }
-
-        if (!_tutorialComplete && _tutorialStep == 5 && orderIndex == 3) {
-          // Chip delivered
-          _advanceTutorial();
-        }
-      });
-    }
+  OrderRequirement _createOrder() {
+    final maxTargetTier = max(4, min(_maxTier, _highestTier + 1));
+    final minTargetTier = max(4, maxTargetTier - 3);
+    final targetTier =
+        minTargetTier + _random.nextInt(maxTargetTier - minTargetTier + 1);
+    final reward = (
+        (targetTier * targetTier * 25) +
+        (max(0, targetTier - 6) * max(0, targetTier - 6) * 120))
+        .toInt();
+    return OrderRequirement(targetTier: targetTier, rewardPoints: reward);
   }
 
   void _showUnlockPopup(int tier) {
@@ -533,13 +456,9 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
     _showUnlockPopup(tier);
   }
 
-  // ---------------------------------------------------------------------------
-  // Tutorial
-  // ---------------------------------------------------------------------------
-
   void _advanceTutorial() {
     setState(() {
-      _tutorialTapCount = 0; // Reset tap count for next step
+      _tutorialTapCount = 0;
       if (_tutorialStep < _tutorialSteps.length - 1) {
         _tutorialStep++;
       } else {
@@ -548,55 +467,48 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
     });
   }
 
-  List<TutorialStep> get _tutorialSteps {
-    return [
-      TutorialStep(
-        instruction: 'keep tapping the generator to produce more items!',
-        targetKey: _generatorKey,
-        requiresTap: true,
-      ),
-      TutorialStep(
-        instruction: 'drag matching items together to merge them!',
-        sourceKey: _getCellKey(_index(3, 4)),
-        destinationKey: _getCellKey(_index(3, 3)),
-        targetKey: _getCellKey(_index(3, 3)),
-        requiresDrag: true,
-      ),
-      TutorialStep(
-        instruction: 'drag the item to the frozen item to unlock the cell!',
-        sourceKey: _getCellKey(_index(3, 3)),
-        destinationKey: _getCellKey(_index(4, 2)),
-        targetKey: _getCellKey(_index(4, 2)),
-        requiresDrag: true,
-      ),
-      const TutorialStep(
-        instruction:
-            'keep producing, merging, and upgrading items to get higher tier ones!',
-        targetKey: null,
-      ),
-      const TutorialStep(
-        instruction: 'waiting for chip...', // Placeholder, not shown
-        targetKey: null,
-      ),
-      TutorialStep(
-        instruction: 'drag the chip to the order panel to complete the order!',
-        sourceKey: _tutorialChipIndex != -1
-            ? _getCellKey(_tutorialChipIndex)
-            : null,
-        destinationKey: _orderKeys[3], // Chip order
-        targetKey: _orderKeys[3],
-        requiresDrag: true,
-      ),
-    ];
-  }
+  List<TutorialStep> get _tutorialSteps => [
+    TutorialStep(
+      instruction: 'tap the generator twice to make two starter parts.',
+      targetKey: _generatorKey,
+      requiresTap: true,
+    ),
+    TutorialStep(
+      instruction: 'drag matching parts together to merge them.',
+      sourceKey: _getCellKey(_index(4, 5)),
+      destinationKey: _getCellKey(_index(4, 4)),
+      targetKey: _getCellKey(_index(4, 4)),
+      requiresDrag: true,
+    ),
+    TutorialStep(
+      instruction: 'drag that part onto the frozen one to unlock the cell.',
+      sourceKey: _getCellKey(_index(4, 4)),
+      destinationKey: _getCellKey(_index(5, 4)),
+      targetKey: _getCellKey(_index(5, 4)),
+      requiresDrag: true,
+    ),
+  ];
 
   GlobalKey _getCellKey(int index) {
     return _cellKeys.putIfAbsent(index, () => GlobalKey());
   }
 
-  // ---------------------------------------------------------------------------
-  // Menu & Navigation
-  // ---------------------------------------------------------------------------
+  void _finishRun() {
+    if (!mounted || _runFinished) return;
+    _runFinished = true;
+    widget.onComplete(
+      LevelOutcome(
+        score: ((_sessionScore / _scoreTarget).clamp(0.0, 1.0) as num)
+            .toDouble(),
+        metrics: {
+          'score_points': _sessionScore,
+          'orders_completed': _ordersCompleted,
+          'highest_tier': _highestTier,
+          'merges': _totalMerges,
+        },
+      ),
+    );
+  }
 
   void _openShop() {
     showModalBottomSheet(
@@ -693,26 +605,27 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
               },
               onResetProgress: () {
                 setState(() {
+                  _runTimer?.cancel();
                   _initializeLevel();
                   _playerLevel = 1;
                   _currentXP = 0;
                   _xpForNextLevel = 100;
                   _coins = 100;
-                  _energy = 20;
+                  _energy = 60;
+                  _sessionScore = 0;
                   _totalMerges = 0;
-                  _highestTier = 1;
                   _ordersCompleted = 0;
+                  _totalCoinsEarned = 100;
                   _tutorialStep = 0;
                   _tutorialTapCount = 0;
-                  _tutorialChipIndex = -1;
                   _tutorialComplete = false;
-                  _manuallyUnlockedIndices.clear();
+                  _focusedIndex = null;
                   _ownedCosmetics.clear();
                   _claimedCoinPacks.clear();
-                  _unlockedTiers
-                    ..clear()
-                    ..add(1);
                   _lastEnergyRegen = DateTime.now();
+                  _runEndsAt = DateTime.now().add(_runDuration);
+                  _runFinished = false;
+                  _runTimer = Timer(_runDuration, _finishRun);
                 });
               },
             ),
@@ -721,10 +634,6 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
       },
     );
   }
-
-  // ---------------------------------------------------------------------------
-  // UI Helpers
-  // ---------------------------------------------------------------------------
 
   IconData _getIconForTier(int tier) {
     switch (tier) {
@@ -744,6 +653,16 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
         return Icons.router;
       case 8:
         return Icons.rocket_launch;
+      case 9:
+        return Icons.device_hub;
+      case 10:
+        return Icons.cloud;
+      case 11:
+        return Icons.build;
+      case 12:
+        return Icons.star;
+      case 13:
+        return Icons.bolt;
       default:
         return Icons.help_outline;
     }
@@ -767,6 +686,16 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
         return Colors.deepPurple;
       case 8:
         return Colors.pinkAccent;
+      case 9:
+        return Colors.cyanAccent;
+      case 10:
+        return Colors.indigoAccent;
+      case 11:
+        return Colors.redAccent;
+      case 12:
+        return Colors.limeAccent;
+      case 13:
+        return Colors.yellowAccent;
       default:
         return Colors.white;
     }
@@ -775,7 +704,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
   String _getNameForTier(int tier) {
     switch (tier) {
       case 1:
-        return 'energy';
+        return 'spark';
       case 2:
         return 'gear';
       case 3:
@@ -790,27 +719,29 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
         return 'server';
       case 8:
         return 'ai core';
+      case 9:
+        return 'relay';
+      case 10:
+        return 'cloud node';
+      case 11:
+        return 'forge';
+      case 12:
+        return 'star drive';
+      case 13:
+        return 'storm engine';
       default:
         return '???';
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Build
-  // ---------------------------------------------------------------------------
-
   @override
   Widget build(BuildContext context) {
-    final step =
-        !_tutorialComplete &&
-            _tutorialStep < _tutorialSteps.length &&
-            _tutorialStep != 4
+    final step = !_tutorialComplete && _tutorialStep < _tutorialSteps.length
         ? _tutorialSteps[_tutorialStep]
         : null;
 
-    Widget content = Stack(
+    final content = Stack(
       children: [
-        // Main Game
         Container(
           color: NunuColors.backgroundDefault,
           child: Column(
@@ -833,8 +764,6 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
             ],
           ),
         ),
-
-        // Menu Drawer
         if (_isMenuOpen) ...[
           GestureDetector(
             onTap: () => setState(() => _isMenuOpen = false),
@@ -868,93 +797,69 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
 
   Widget _buildOrdersRow() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       color: NunuColors.backgroundPaper.withOpacity(0.5),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: List.generate(_orders.length, (index) {
           final order = _orders[index];
           final icon = _getIconForTier(order.targetTier);
           final color = _getColorForTier(order.targetTier);
 
-          return KeyedSubtree(
-            key: _orderKeys[index],
-            child: DragTarget<int>(
-              onWillAccept: (fromIndex) {
-                if (order.isCompleted) return false;
-                if (fromIndex == null) return false;
-                final item = _gridItems[fromIndex];
-                return item != null &&
-                    item.type == ItemType.part &&
-                    item.tier == order.targetTier;
-              },
-              onAccept: (fromIndex) => _onItemDelivered(fromIndex, index),
-              builder: (context, candidateData, rejectedData) {
-                final bool isCandidateValid = candidateData.isNotEmpty;
+          return Expanded(
+            child: KeyedSubtree(
+              key: _orderKeys[index],
+              child: DragTarget<int>(
+                onWillAccept: (fromIndex) {
+                  if (fromIndex == null) return false;
+                  final item = _gridItems[fromIndex];
+                  return item != null &&
+                      item.type == ItemType.part &&
+                      item.tier == order.targetTier;
+                },
+                onAccept: (fromIndex) => _onItemDelivered(fromIndex, index),
+                builder: (context, candidateData, rejectedData) {
+                  final isCandidateValid = candidateData.isNotEmpty;
 
-                return Column(
-                  children: [
-                    Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: NunuColors.backgroundDefault,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: order.isCompleted
-                                  ? NunuColors.successMain
-                                  : (isCandidateValid
-                                        ? NunuColors.primaryMain
-                                        : NunuColors.textSecondary.withOpacity(
-                                            0.3,
-                                          )),
-                              width: isCandidateValid ? 3 : 2,
-                            ),
-                            boxShadow: isCandidateValid
-                                ? [
-                                    BoxShadow(
-                                      color: NunuColors.primaryMain.withOpacity(
-                                        0.5,
-                                      ),
-                                      blurRadius: 8,
-                                      spreadRadius: 2,
-                                    ),
-                                  ]
-                                : [],
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: NunuColors.backgroundDefault,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isCandidateValid
+                                ? NunuColors.primaryMain
+                                : NunuColors.textSecondary.withOpacity(0.3),
+                            width: isCandidateValid ? 3 : 2,
                           ),
-                          child: Icon(icon, color: color, size: 28),
                         ),
-                        if (order.isCompleted)
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: Colors.black45,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(
-                              Icons.check,
-                              color: NunuColors.successMain,
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _getNameForTier(order.targetTier),
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: order.isCompleted
-                            ? NunuColors.textSecondary
-                            : NunuColors.textPrimary,
+                        child: Icon(icon, color: color, size: 24),
                       ),
-                    ),
-                  ],
-                );
-              },
+                      const SizedBox(height: 4),
+                      Text(
+                        _getNameForTier(order.targetTier),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 9,
+                          color: NunuColors.textPrimary,
+                        ),
+                      ),
+                      Text(
+                        '+${order.rewardPoints}',
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: NunuColors.warningMain.withOpacity(0.9),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
           );
         }),
@@ -965,30 +870,25 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
   Widget _buildGrid() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final double cellWidth = constraints.maxWidth / _cols;
-        final double cellHeight = constraints.maxHeight / _rows;
-        final double size = min(cellWidth, cellHeight);
-
-        final double gridWidth = size * _cols;
-        final double gridHeight = size * _rows;
+        final cellWidth = constraints.maxWidth / _cols;
+        final cellHeight = constraints.maxHeight / _rows;
+        final size = min(cellWidth, cellHeight);
 
         return Center(
           child: SizedBox(
-            width: gridWidth,
-            height: gridHeight,
+            width: size * _cols,
+            height: size * _rows,
             child: GridView.builder(
               physics: const NeverScrollableScrollPhysics(),
               padding: EdgeInsets.zero,
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: _cols,
-                childAspectRatio: 1.0,
+                childAspectRatio: 1,
                 crossAxisSpacing: 2,
                 mainAxisSpacing: 2,
               ),
               itemCount: _totalCells,
-              itemBuilder: (context, index) {
-                return _buildCell(index);
-              },
+              itemBuilder: (context, index) => _buildCell(index),
             ),
           ),
         );
@@ -997,12 +897,12 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
   }
 
   Widget _buildCell(int index) {
-    final bool isBlocked = _isCellBlocked(index);
-    final bool isRock = _isCellRock(index);
-    final bool isUnlocked = _isCellUnlocked(index);
-    final HardwareItem? item = _gridItems[index];
-    final bool isFocused = _focusedIndex == index;
-    final bool isGenerator = item?.type == ItemType.generator;
+    final isBlocked = _isCellBlocked(index);
+    final isRock = _isCellRock(index);
+    final isUnlocked = _isCellUnlocked(index);
+    final item = _gridItems[index];
+    final isFocused = _focusedIndex == index;
+    final isGenerator = item?.type == ItemType.generator;
 
     return DragTarget<int>(
       onWillAccept: (fromIndex) {
@@ -1011,17 +911,15 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
 
         if (!isUnlocked && item != null && item.isFrozen) {
           final source = _gridItems[fromIndex];
-          if (source != null &&
+          return source != null &&
               source.type == item.type &&
-              source.tier == item.tier) {
-            return true;
-          }
+              source.tier == item.tier;
         }
         return false;
       },
       onAccept: (fromIndex) => _onItemMove(fromIndex, index),
       builder: (context, candidateData, rejectedData) {
-        Color bgColor = NunuColors.backgroundPaper;
+        var bgColor = NunuColors.backgroundPaper;
         Widget? content;
 
         if (isBlocked) {
@@ -1029,7 +927,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
           content = const Icon(Icons.block, color: Colors.white10, size: 16);
         } else if (isRock) {
           bgColor = Colors.brown.shade900.withOpacity(0.5);
-          content = Icon(Icons.terrain, color: Colors.brown.shade400, size: 20);
+          content = Icon(Icons.terrain, color: Colors.brown.shade400, size: 18);
         } else if (item != null) {
           content = _buildDraggableItem(index, item);
           if (!isUnlocked) {
@@ -1040,17 +938,16 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
           content = Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.lock, color: Colors.white24, size: 16),
+              const Icon(Icons.lock, color: Colors.white24, size: 14),
               const SizedBox(height: 2),
               Text(
                 'lv${_gridUnlockLevels[index]}',
-                style: const TextStyle(color: Colors.white24, fontSize: 10),
+                style: const TextStyle(color: Colors.white24, fontSize: 9),
               ),
             ],
           );
         }
 
-        // Highlight if candidate dragging over
         if (candidateData.isNotEmpty) {
           if (item != null) {
             final fromIndex = candidateData.first;
@@ -1069,7 +966,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
           }
         }
 
-        Widget cellWidget = Container(
+        final cellWidget = Container(
           decoration: BoxDecoration(
             color: bgColor,
             borderRadius: BorderRadius.circular(4),
@@ -1080,29 +977,18 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
           child: content,
         );
 
-        Widget gestureWrapped;
-        if (isGenerator) {
-          gestureWrapped = GestureDetector(
-            onTap: () {
-              if (isUnlocked) {
-                setState(() {
-                  _focusedIndex = index;
-                  _spawnItem();
-                });
-              }
-            },
-            child: cellWidget,
-          );
-        } else {
-          gestureWrapped = GestureDetector(
-            onTap: () {
-              if (isUnlocked) {
-                setState(() => _focusedIndex = index);
-              }
-            },
-            child: cellWidget,
-          );
-        }
+        final gestureWrapped = GestureDetector(
+          onTap: () {
+            if (!isUnlocked) return;
+            setState(() {
+              _focusedIndex = index;
+            });
+            if (isGenerator) {
+              _spawnItem();
+            }
+          },
+          child: cellWidget,
+        );
 
         return KeyedSubtree(
           key: isGenerator ? _generatorKey : _getCellKey(index),
@@ -1113,7 +999,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
   }
 
   Widget _buildDraggableItem(int index, HardwareItem item) {
-    Widget child;
+    late final Widget child;
 
     if (item.type == ItemType.generator) {
       child = Container(
@@ -1130,14 +1016,11 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
           ],
         ),
         child: const Center(
-          child: Icon(Icons.inventory_2, color: Colors.white, size: 24),
+          child: Icon(Icons.inventory_2, color: Colors.white, size: 22),
         ),
       );
     } else {
-      final Color itemColor = item.isFrozen
-          ? Colors.grey
-          : _getColorForTier(item.tier);
-
+      final itemColor = item.isFrozen ? Colors.grey : _getColorForTier(item.tier);
       child = Container(
         margin: const EdgeInsets.all(4),
         decoration: BoxDecoration(
@@ -1146,7 +1029,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
           border: Border.all(color: itemColor, width: 2),
         ),
         child: Center(
-          child: Icon(_getIconForTier(item.tier), color: itemColor, size: 24),
+          child: Icon(_getIconForTier(item.tier), color: itemColor, size: 20),
         ),
       );
     }
@@ -1166,16 +1049,42 @@ class _LevelMegaMergeState extends State<LevelMegaMerge>
 
   Widget _buildFooter() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       color: NunuColors.backgroundPaper,
       child: SafeArea(
         top: false,
-        child: SizedBox(
-          width: double.infinity,
-          height: 40,
-          child: const SizedBox.shrink(),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _buildFooterStat('time', _remainingTimeLabel),
+            _buildFooterStat('score', '$_sessionScore'),
+            _buildFooterStat('orders', '$_ordersCompleted'),
+            _buildFooterStat('best tier', '$_highestTier'),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _buildFooterStat(String label, String value) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            color: NunuColors.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            color: NunuColors.textSecondary.withOpacity(0.9),
+            fontSize: 11,
+          ),
+        ),
+      ],
     );
   }
 }

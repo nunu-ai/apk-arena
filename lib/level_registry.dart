@@ -196,7 +196,17 @@ final List<LevelEntry> tempospatialLevels = [
     widgetBuilder: (onComplete) => LevelDvdLogo(onComplete: onComplete),
   ),
 ];
-final List<LevelEntry> gamesLevels = [];
+final List<LevelEntry> gamesLevels = [
+  LevelEntry(
+    data: LevelData(
+      title: "Mega Merge",
+      instructions:
+          "Master the factory! clear the quick tutorial, then score as many delivery points as you can in 30 minutes.",
+      timeLimit: Duration(minutes: 30),
+    ),
+    widgetBuilder: (onComplete) => LevelMegaMerge(onComplete: onComplete),
+  ),
+];
 final List<LevelEntry> tasksLevels = [
   LevelEntry(
     data: LevelData(
@@ -633,14 +643,6 @@ final List<LevelEntry> unsortedLevels = [
       instructions: "Solve this card puzzle",
     ),
     widgetBuilder: (onComplete) => LevelCardSlots(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "Mega Merge",
-      instructions:
-          "Master the factory! Follow the tutorial, then deliver the parts.",
-    ),
-    widgetBuilder: (onComplete) => LevelMegaMerge(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
