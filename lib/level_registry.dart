@@ -76,7 +76,6 @@ import 'package:apk_arena/widgets/levels/level_sort_shelf.dart';
 import 'package:apk_arena/widgets/levels/level_spot_difference.dart';
 import 'package:apk_arena/widgets/levels/level_sudoku.dart';
 import 'package:apk_arena/widgets/levels/level_swipe_directions.dart';
-import 'package:apk_arena/widgets/levels/level_tap_mastery.dart';
 import 'package:apk_arena/widgets/levels/level_tic_tac_toe.dart';
 import 'package:apk_arena/widgets/levels/level_tip_calculator.dart';
 import 'package:apk_arena/widgets/levels/level_tos_quiz.dart';
@@ -131,9 +130,48 @@ final List<LevelEntry> primitivesLevels = [
     ),
     widgetBuilder: (onComplete) => LevelSwipeDirections(onComplete: onComplete),
   ),
+  LevelEntry(
+    data: LevelData(
+      title: "Tap control",
+      instructions: "clear all eight input trials.",
+    ),
+    widgetBuilder: (onComplete) => LevelMultiTapSync(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Slider Gauntlet",
+      instructions:
+          "Set the age and decimal targets, then stabilize the reactor. Ten lives — wrong submits cost one.",
+    ),
+    widgetBuilder: (onComplete) => LevelSliderSkills(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Scroll Lab",
+      instructions: "clear all scrolling challenges as fast as possible.",
+      timeLimit: Duration(minutes: 30),
+    ),
+    widgetBuilder: (onComplete) => LevelScrollMastery(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "enchanted socket",
+      instructions:
+          "four enchantments — each more treacherous than the last. 10 lives.",
+    ),
+    widgetBuilder: (onComplete) => LevelGemSocket(onComplete: onComplete),
+  ),
 ];
 final List<LevelEntry> visionLevels = [];
-final List<LevelEntry> memoryLevels = [];
+final List<LevelEntry> memoryLevels = [
+  LevelEntry(
+    data: LevelData(
+      title: "Count & Submit",
+      instructions: "follow the instruction on screen and answer correctly.",
+    ),
+    widgetBuilder: (onComplete) => LevelActionCounter(onComplete: onComplete),
+  ),
+];
 final List<LevelEntry> iqLevels = [];
 final List<LevelEntry> tempospatialLevels = [];
 final List<LevelEntry> gamesLevels = [];
@@ -141,29 +179,6 @@ final List<LevelEntry> tasksLevels = [];
 
 // ── unsorted: ALL levels live here until reviewed ──
 final List<LevelEntry> unsortedLevels = [
-  LevelEntry(
-    data: LevelData(
-      title: "Sync Chamber",
-      instructions:
-          "Hold all 3 pads together, then swipe up on all 3 lanes at once!",
-    ),
-    widgetBuilder: (onComplete) => LevelMultiTapSync(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "Tap Mastery",
-      instructions: "Like the post based on the instruction.",
-    ),
-    widgetBuilder: (onComplete) => LevelTapMastery(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "Slider Gauntlet",
-      instructions:
-          "Set the age and decimal targets. Ten lives — wrong submits cost one.",
-    ),
-    widgetBuilder: (onComplete) => LevelSliderSkills(onComplete: onComplete),
-  ),
   LevelEntry(
     data: LevelData(
       title: "Hold your Ground",
@@ -181,34 +196,10 @@ final List<LevelEntry> unsortedLevels = [
   ),
   LevelEntry(
     data: LevelData(
-      title: "Scroll Lab",
-      instructions:
-          "Five scroll challenges: lists, documents, find target, horizontal, 2D grid.",
-    ),
-    widgetBuilder: (onComplete) => LevelScrollMastery(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "Count & Submit",
-      instructions:
-          "Three counting stages — buttons shuffle after every tap, no tallies. Track your presses and prove it.",
-    ),
-    widgetBuilder: (onComplete) => LevelActionCounter(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
       title: "the one forbidden button",
       instructions: "don't do it :)",
     ),
     widgetBuilder: (onComplete) => LevelDoNotClick(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "enchanted socket",
-      instructions:
-          "four enchantments — each more treacherous than the last. 10 lives.",
-    ),
-    widgetBuilder: (onComplete) => LevelGemSocket(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
