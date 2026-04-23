@@ -206,6 +206,15 @@ final List<LevelEntry> gamesLevels = [
     ),
     widgetBuilder: (onComplete) => LevelMegaMerge(onComplete: onComplete),
   ),
+  LevelEntry(
+    data: LevelData(
+      title: "traffic jam",
+      instructions:
+      "clear all rush hour jams.",
+      timeLimit: Duration(hours: 1),
+    ),
+    widgetBuilder: (onComplete) => LevelRushHour(onComplete: onComplete),
+  ),
 ];
 final List<LevelEntry> tasksLevels = [
   LevelEntry(
@@ -734,14 +743,6 @@ final List<LevelEntry> unsortedLevels = [
           "guess the 4-color code in 10 tries. red = right color & position. white = right color, wrong position.",
     ),
     widgetBuilder: (onComplete) => LevelMastermind(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "traffic jam",
-      instructions:
-          "slide cars to unblock the red car and let it reach the exit.",
-    ),
-    widgetBuilder: (onComplete) => LevelRushHour(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
