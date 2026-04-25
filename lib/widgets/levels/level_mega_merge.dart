@@ -274,14 +274,12 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
   void _spawnItem() {
     if (_runFinished) return;
 
-    if (!_tutorialComplete && _tutorialStep == 0) {
-      _tutorialTapCount++;
-      if (_tutorialTapCount >= 2) {
-        _advanceTutorial();
-      }
-    }
-
     _tickEnergyRegen();
+
+    final isGeneratorTutorialStep = !_tutorialComplete && _tutorialStep == 0;
+    final tutorialTapCount = isGeneratorTutorialStep
+        ? _tutorialTapCount + 1
+        : _tutorialTapCount;
 
     final spawnCount = _isBoosterActive('boost_extra') ? 2 : 1;
     final energyCost = _isBoosterActive('boost_speed') ? 0 : 1;
@@ -317,13 +315,16 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
 
     setState(() {
       _energy = max(0, _energy - energyCost);
+      if (isGeneratorTutorialStep) {
+        _tutorialTapCount = tutorialTapCount;
+      }
 
       final spawnTargets = <int>[];
       for (var spawnIndex = 0; spawnIndex < spawnCount; spawnIndex++) {
         var targetIndex = -1;
-        if (!_tutorialComplete && _tutorialStep == 0 && spawnIndex == 0) {
-          if (_tutorialTapCount == 1) targetIndex = _index(4, 4);
-          if (_tutorialTapCount == 2) targetIndex = _index(4, 5);
+        if (isGeneratorTutorialStep && spawnIndex == 0) {
+          if (tutorialTapCount == 1) targetIndex = _index(4, 4);
+          if (tutorialTapCount == 2) targetIndex = _index(4, 5);
         }
         if (targetIndex != -1 &&
             (_gridItems[targetIndex] != null || spawnTargets.contains(targetIndex))) {
@@ -350,6 +351,10 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
 
     if (_settings.vibrationEnabled) {
       HapticFeedback.lightImpact();
+    }
+
+    if (isGeneratorTutorialStep && tutorialTapCount >= 2) {
+      _advanceTutorial();
     }
   }
 

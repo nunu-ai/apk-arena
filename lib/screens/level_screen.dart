@@ -5,7 +5,8 @@ import '../models/level_outcome.dart';
 import '../services/progress_service.dart';
 import '../services/analytics_service.dart';
 import '../theme/app_theme.dart';
-import '../../level_registry.dart';
+import '../widgets/level_widget.dart';
+import '../level_registry.dart';
 import 'level_completion_screen.dart';
 
 class LevelScreen extends StatefulWidget {
@@ -25,6 +26,7 @@ class _LevelScreenState extends State<LevelScreen> {
   Timer? _timer;
   Timer? _sessionTimer;
   LevelEntry? _levelEntry;
+  LevelWidget? _levelWidget;
   bool _finishLevelCalled = false;
 
   @override
@@ -39,6 +41,7 @@ class _LevelScreenState extends State<LevelScreen> {
       return;
     }
     _levelEntry = entry;
+    _levelWidget = entry.widgetBuilder(_finishLevel);
 
     _stopwatch = Stopwatch()..start();
     _timer = Timer.periodic(const Duration(milliseconds: 100), (_) {
@@ -47,8 +50,15 @@ class _LevelScreenState extends State<LevelScreen> {
 
     _sessionTimer = Timer(entry.data.timeLimit ?? const Duration(minutes: 60), () {
       if (!mounted || _finishLevelCalled) return;
+      final timeoutOutcome = _levelWidget?.onTimeout?.call();
       unawaited(_finishLevel(
-        LevelOutcome(score: 0, metrics: {'timed_out': true}),
+        LevelOutcome(
+          score: timeoutOutcome?.score ?? 0,
+          metrics: {
+            ...?timeoutOutcome?.metrics,
+            'timed_out': true,
+          },
+        ),
       ));
     });
   }
@@ -181,6 +191,7 @@ class _LevelScreenState extends State<LevelScreen> {
   @override
   Widget build(BuildContext context) {
     final entry = _levelEntry;
+    final levelWidget = _levelWidget;
     if (entry == null) {
       return const Scaffold(body: SizedBox.shrink());
     }
@@ -244,7 +255,7 @@ class _LevelScreenState extends State<LevelScreen> {
               ),
               const Divider(height: 1),
               Expanded(
-                child: entry.widgetBuilder(_finishLevel),
+                child: levelWidget ?? const SizedBox.shrink(),
               ),
             ],
           ),

@@ -64,6 +64,7 @@ import 'package:apk_arena/widgets/levels/level_rush_hour.dart';
 import 'package:apk_arena/widgets/levels/level_scroll_mastery.dart';
 import 'package:apk_arena/widgets/levels/level_sequence_memory.dart';
 import 'package:apk_arena/widgets/levels/level_calendar_alarm_planner.dart';
+import 'package:apk_arena/widgets/levels/level_cascade_protocol.dart';
 import 'package:apk_arena/widgets/levels/level_settings_qa.dart';
 import 'package:apk_arena/widgets/levels/level_simple_signup.dart';
 import 'package:apk_arena/widgets/levels/level_sliding_puzzle.dart';
@@ -93,6 +94,7 @@ import 'package:apk_arena/widgets/levels/level_woodoku.dart';
 import 'package:apk_arena/widgets/levels/level_scrabble.dart';
 import 'package:apk_arena/widgets/levels/level_scrabble_hard.dart';
 import 'package:apk_arena/widgets/levels/level_signup_gauntlet.dart';
+import 'package:apk_arena/widgets/levels/level_space_colony_tycoon.dart';
 
 import '../models/level_data.dart';
 import '../models/level_outcome.dart';
@@ -199,12 +201,31 @@ final List<LevelEntry> tempospatialLevels = [
 final List<LevelEntry> gamesLevels = [
   LevelEntry(
     data: LevelData(
+      title: "cascade protocol",
+      instructions: "score as high as you can before time runs out.",
+      timeLimit: Duration(minutes: 30),
+    ),
+    widgetBuilder: (onComplete) =>
+        LevelCascadeProtocol(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
       title: "Mega Merge",
       instructions:
           "Master the factory! clear the quick tutorial, then score as many delivery points as you can in 30 minutes.",
       timeLimit: Duration(minutes: 30),
     ),
     widgetBuilder: (onComplete) => LevelMegaMerge(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "vacuum homestead",
+      instructions:
+          "clear the tutorial, then earn as much space money as possible.",
+      timeLimit: Duration(hours: 1),
+    ),
+    widgetBuilder: (onComplete) =>
+        LevelSpaceColonyTycoon(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(

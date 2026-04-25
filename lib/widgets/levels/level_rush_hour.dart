@@ -245,8 +245,15 @@ class _LevelRushHourState extends State<LevelRushHour> {
   @override
   void initState() {
     super.initState();
+    widget.registerTimeoutBuilder(_buildOutcome);
     _validateStages();
     _loadStage(0);
+  }
+
+  @override
+  void dispose() {
+    widget.clearTimeoutBuilder();
+    super.dispose();
   }
 
   _RushHourStage get _stage => _stages[_stageIndex];
@@ -391,6 +398,10 @@ class _LevelRushHourState extends State<LevelRushHour> {
   }
 
   void _finishRun() {
+    widget.onComplete(_buildOutcome());
+  }
+
+  LevelOutcome _buildOutcome() {
     final cleared = _stageMoves.length;
     final perfectStages = List.generate(
       cleared,
@@ -410,16 +421,14 @@ class _LevelRushHourState extends State<LevelRushHour> {
     }).fold<double>(0, (sum, value) => sum + value) /
         _stages.length;
 
-    widget.onComplete(
-      LevelOutcome(
-        score: score,
-        metrics: {
-          'stages_cleared': cleared,
-          'total_moves': _totalMoves,
-          'par_overrun': parOverrun,
-          'perfect_stages': perfectStages,
-        },
-      ),
+    return LevelOutcome(
+      score: score,
+      metrics: {
+        'stages_cleared': cleared,
+        'total_moves': _totalMoves,
+        'par_overrun': parOverrun,
+        'perfect_stages': perfectStages,
+      },
     );
   }
 
