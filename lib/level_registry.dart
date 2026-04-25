@@ -172,9 +172,22 @@ final List<LevelEntry> memoryLevels = [
     widgetBuilder: (onComplete) => LevelActionCounter(onComplete: onComplete),
   ),
 ];
-final List<LevelEntry> iqLevels = [];
+final List<LevelEntry> iqLevels = [
+  LevelEntry(
+    data: LevelData(title: "IQ test", instructions: "solve all the riddles."),
+    widgetBuilder: (onComplete) => LevelOddOneOut(onComplete: onComplete),
+  ),
+];
 final List<LevelEntry> tempospatialLevels = [];
-final List<LevelEntry> gamesLevels = [];
+final List<LevelEntry> gamesLevels = [
+  LevelEntry(
+    data: LevelData(
+      title: "Bingo",
+      instructions: "Mark the called numbers quickly to get a BINGO!",
+    ),
+    widgetBuilder: (onComplete) => LevelBingo(onComplete: onComplete),
+  ),
+];
 final List<LevelEntry> tasksLevels = [];
 
 // ── unsorted: ALL levels live here until reviewed ──
@@ -275,13 +288,6 @@ final List<LevelEntry> unsortedLevels = [
       instructions: "recreate the pattern shown above!",
     ),
     widgetBuilder: (onComplete) => LevelPatternMatch(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "spot the imposter",
-      instructions: "find the odd one out in each round.",
-    ),
-    widgetBuilder: (onComplete) => LevelOddOneOut(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
@@ -722,14 +728,6 @@ final List<LevelEntry> unsortedLevels = [
           "memorize the pattern and reproduce it. how far can you go?",
     ),
     widgetBuilder: (onComplete) => LevelMemoryGrid(onComplete: onComplete),
-  ),
-  // ── formerly: agi ──
-  LevelEntry(
-    data: LevelData(
-      title: "Bingo",
-      instructions: "Mark the called numbers quickly to get a BINGO!",
-    ),
-    widgetBuilder: (onComplete) => LevelBingo(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
