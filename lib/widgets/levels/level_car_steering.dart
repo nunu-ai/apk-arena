@@ -8,8 +8,14 @@ class Obstacle {
   double x; // 0.0 to 1.0 normalized horizontal position
   double y; // vertical position in pixels (starts negative, scrolls down)
   double width; // width as fraction of screen width
+  final double speed; // pixels per frame
 
-  Obstacle({required this.x, required this.y, required this.width});
+  Obstacle({
+    required this.x,
+    required this.y,
+    required this.width,
+    required this.speed,
+  });
 }
 
 class LevelCarSteering extends LevelWidget {
@@ -27,22 +33,73 @@ class _LevelCarSteeringState extends State<LevelCarSteering>
   // Game state
   double _carX = 0.5; // normalized 0.0 to 1.0
   double _distance = 0;
-  final double _targetDistance = 150;
+  final Stopwatch _survivalTimer = Stopwatch();
   final List<Obstacle> _obstacles = [];
   bool _isPressingLeft = false;
   bool _isPressingRight = false;
   bool _gameOver = false;
+  int _currentAttempt = 1;
+  int _wavesSpawned = 0;
+  double _bestScore = 0;
+  int _bestSurvivalSeconds = 0;
+  int _bestDistance = 0;
+  double _bestDifficulty = 0;
 
   // Game parameters
   final double _carSpeed = 0.018; // lateral movement per frame
-  final double _obstacleSpeed = 3.0; // pixels per frame
-  final double _spawnInterval = 100; // frames between spawns
-  double _framesSinceLastSpawn = 0;
+  double _framesSinceLastSpawn = double.infinity;
   final double _carWidth = 0.10; // as fraction of screen width
   final double _carHeight = 50;
   final double _obstacleHeight = 60;
+  static const int _maxAttempts = 3;
+  static const Duration _fullScoreSurvivalTime = Duration(minutes: 10);
+  static const double _framesPerSecond = 60;
+  static const double _startingReactionSeconds = 17.245;
+  static const double _minimumReactionSeconds = 0.5;
+  static final double _reactionCurveDecay =
+      log(_startingReactionSeconds / _minimumReactionSeconds) / 50;
 
   Size _screenSize = Size.zero;
+
+  double get _survivalSeconds =>
+      _survivalTimer.elapsedMilliseconds / Duration.millisecondsPerSecond;
+
+  double get _difficulty {
+    final ramp = _survivalSeconds / _fullScoreSurvivalTime.inSeconds;
+    return ramp.clamp(0.0, 1.0);
+  }
+
+  double get _obstacleSpeed {
+    return _speedForWave(max(0, _wavesSpawned - 1));
+  }
+
+  double get _spawnInterval {
+    final previousWaveIndex = max(0, _wavesSpawned - 1);
+    return _clearanceFramesForWave(previousWaveIndex);
+  }
+
+  double _reactionSecondsForWave(int waveIndex) {
+    final seconds =
+        _startingReactionSeconds * exp(-_reactionCurveDecay * waveIndex);
+    return max(_minimumReactionSeconds, seconds);
+  }
+
+  double _speedForWave(int waveIndex) {
+    final carTop = _screenSize.height - 180 - _carHeight;
+    final travelDistance = max(1.0, carTop + _obstacleHeight);
+    return travelDistance /
+        (_reactionSecondsForWave(waveIndex) * _framesPerSecond);
+  }
+
+  double _clearanceFramesForWave(int waveIndex) {
+    final carTop = _screenSize.height - 180 - _carHeight;
+    final carBottom = carTop + _carHeight;
+    final clearDistance = max(1.0, carBottom + _obstacleHeight);
+    return clearDistance / _speedForWave(waveIndex);
+  }
+
+  double _roundDifficulty(double value) =>
+      double.parse(value.toStringAsFixed(2));
 
   @override
   void initState() {
@@ -51,6 +108,7 @@ class _LevelCarSteeringState extends State<LevelCarSteering>
       vsync: this,
       duration: const Duration(days: 1),
     )..addListener(_gameLoop);
+    _survivalTimer.start();
     _controller.repeat();
   }
 
@@ -73,7 +131,7 @@ class _LevelCarSteeringState extends State<LevelCarSteering>
 
       // Move obstacles down
       for (var obstacle in _obstacles) {
-        obstacle.y += _obstacleSpeed;
+        obstacle.y += obstacle.speed;
       }
 
       // Remove obstacles that have passed the bottom
@@ -88,49 +146,118 @@ class _LevelCarSteeringState extends State<LevelCarSteering>
 
       // Check collisions
       if (_checkCollision()) {
-        _gameOver = true;
-        _controller.stop();
-        widget.onComplete(LevelOutcome(score: 0));
+        _finishAttempt();
         return;
       }
 
       // Increment distance
-      _distance += 0.1;
-
-      // Check win condition
-      if (_distance >= _targetDistance) {
-        _gameOver = true;
-        _controller.stop();
-        widget.onComplete(LevelOutcome(score: 1));
-      }
+      _distance += _obstacleSpeed / 30;
     });
   }
 
+  void _finishAttempt() {
+    _survivalTimer.stop();
+
+    final score = _difficulty;
+    final survivalSeconds = _survivalSeconds.round();
+    final distance = _distance.round();
+    if (score > _bestScore) {
+      _bestScore = score;
+      _bestSurvivalSeconds = survivalSeconds;
+      _bestDistance = distance;
+      _bestDifficulty = score;
+    }
+
+    if (_currentAttempt >= _maxAttempts) {
+      _gameOver = true;
+      _controller.stop();
+      widget.onComplete(
+        LevelOutcome(
+          score: _bestScore,
+          metrics: {
+            'attempts': _maxAttempts,
+            'survival_seconds': _bestSurvivalSeconds,
+            'distance': _bestDistance,
+            'difficulty': _roundDifficulty(_bestDifficulty),
+          },
+        ),
+      );
+      return;
+    }
+
+    _currentAttempt++;
+    _wavesSpawned = 0;
+    _carX = 0.5;
+    _distance = 0;
+    _framesSinceLastSpawn = double.infinity;
+    _obstacles.clear();
+    _isPressingLeft = false;
+    _isPressingRight = false;
+    _survivalTimer
+      ..reset()
+      ..start();
+  }
+
   void _spawnObstacle() {
-    // Spawn 1-2 obstacles per wave
-    final obstacleCount = _random.nextInt(2) + 1;
+    final waveIndex = _wavesSpawned;
+    final waveSpeed = _speedForWave(waveIndex);
+    _wavesSpawned++;
+
+    final difficulty = _difficulty;
+    final density = difficulty;
     final usedPositions = <double>[];
 
-    for (var i = 0; i < obstacleCount; i++) {
+    double obstacleWidth() =>
+        0.08 + _random.nextDouble() * (0.05 + difficulty * 0.07);
+
+    void addObstacle(double x, double width) {
+      final clampedX = x.clamp(0.0, 1.0 - width).toDouble();
+      usedPositions.add(clampedX);
+      _obstacles.add(
+        Obstacle(
+          x: clampedX,
+          y: -_obstacleHeight,
+          width: width,
+          speed: waveSpeed,
+        ),
+      );
+    }
+
+    final obstacleCount =
+        3 +
+        (density * 10).floor() +
+        (_random.nextDouble() < density * 1.5 ? 1 : 0) +
+        (_random.nextDouble() < density * 0.75 ? 1 : 0);
+    final minGap = (0.33 - density * 0.25).clamp(0.08, 0.33);
+
+    final blockingWidth = obstacleWidth();
+    addObstacle(_carX + (_carWidth - blockingWidth) / 2, blockingWidth);
+
+    final anchorPositions = <double>[0.02, 0.18, 0.34, 0.50, 0.66, 0.82];
+    for (var i = 1; i < 3; i++) {
+      anchorPositions.sort((a, b) {
+        final aDistance = usedPositions
+            .map((pos) => (pos - a).abs())
+            .reduce(min);
+        final bDistance = usedPositions
+            .map((pos) => (pos - b).abs())
+            .reduce(min);
+        return bDistance.compareTo(aDistance);
+      });
+      addObstacle(anchorPositions.removeAt(0), obstacleWidth());
+    }
+
+    for (var i = 3; i < obstacleCount; i++) {
       double x;
       int attempts = 0;
       do {
-        x =
-            _random.nextDouble() *
-            (1.0 - 0.15); // leave room for obstacle width
+        x = _random.nextDouble() * 0.85; // leave room for obstacle width
         attempts++;
-      } while (usedPositions.any((pos) => (pos - x).abs() < 0.2) &&
-          attempts < 10);
+      } while (usedPositions.any((pos) => (pos - x).abs() < minGap) &&
+          attempts < 18);
 
-      if (attempts < 10) {
-        usedPositions.add(x);
-        _obstacles.add(
-          Obstacle(
-            x: x,
-            y: -_obstacleHeight,
-            width: 0.12 + _random.nextDouble() * 0.08, // 0.12 to 0.20
-          ),
-        );
+      if (attempts < 18) {
+        addObstacle(x, obstacleWidth());
       }
     }
   }
@@ -171,8 +298,8 @@ class _LevelCarSteeringState extends State<LevelCarSteering>
               // Road background with lane lines
               _buildRoad(),
 
-              // Progress bar at top
-              _buildProgressBar(),
+              // Survival HUD at top
+              _buildHud(),
 
               // Obstacles
               ..._obstacles.map((o) => _buildObstacle(o)),
@@ -196,8 +323,12 @@ class _LevelCarSteeringState extends State<LevelCarSteering>
     );
   }
 
-  Widget _buildProgressBar() {
-    final progress = (_distance / _targetDistance).clamp(0.0, 1.0);
+  Widget _buildHud() {
+    final intensity = _difficulty;
+    final elapsed = _survivalTimer.elapsed;
+    final minutes = elapsed.inMinutes.toString().padLeft(2, '0');
+    final seconds = (elapsed.inSeconds % 60).toString().padLeft(2, '0');
+
     return Positioned(
       top: 20,
       left: 20,
@@ -206,10 +337,28 @@ class _LevelCarSteeringState extends State<LevelCarSteering>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '${_distance.toInt()} / ${_targetDistance.toInt()}',
+            'survived $minutes:$seconds  |  distance ${_distance.toInt()}',
             style: const TextStyle(
               color: NunuColors.primaryLight,
               fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'try $_currentAttempt / $_maxAttempts  |  best $_bestDistance',
+            style: const TextStyle(
+              color: NunuColors.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'rage ${(intensity * 100).round()}%',
+            style: const TextStyle(
+              color: NunuColors.textSecondary,
+              fontSize: 12,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -225,7 +374,7 @@ class _LevelCarSteeringState extends State<LevelCarSteering>
               borderRadius: BorderRadius.circular(5),
               child: FractionallySizedBox(
                 alignment: Alignment.centerLeft,
-                widthFactor: progress,
+                widthFactor: intensity,
                 child: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(

@@ -178,7 +178,25 @@ final List<LevelEntry> iqLevels = [
     widgetBuilder: (onComplete) => LevelOddOneOut(onComplete: onComplete),
   ),
 ];
-final List<LevelEntry> tempospatialLevels = [];
+final List<LevelEntry> tempospatialLevels = [
+  LevelEntry(
+    data: LevelData(
+      title: "road rage",
+      instructions:
+          "steer left and right to dodge obstacles. survive as long as you can.",
+      timeLimit: Duration(hours: 24),
+    ),
+    widgetBuilder: (onComplete) => LevelCarSteering(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "pixel serpent",
+      instructions:
+          "clear four snake trials with three attempts each. later stages are faster.",
+    ),
+    widgetBuilder: (onComplete) => LevelSnake(onComplete: onComplete),
+  ),
+];
 final List<LevelEntry> gamesLevels = [
   LevelEntry(
     data: LevelData(
@@ -730,14 +748,6 @@ final List<LevelEntry> unsortedLevels = [
     widgetBuilder: (onComplete) => LevelMemoryGrid(onComplete: onComplete),
   ),
   LevelEntry(
-    data: LevelData(
-      title: "road rage",
-      instructions:
-          "steer left and right to dodge obstacles. reach the finish line!",
-    ),
-    widgetBuilder: (onComplete) => LevelCarSteering(onComplete: onComplete),
-  ),
-  LevelEntry(
     data: LevelData(title: "jump man", instructions: "reach the flag!"),
     widgetBuilder: (onComplete) => LevelMarioPlatformer(onComplete: onComplete),
   ),
@@ -754,13 +764,6 @@ final List<LevelEntry> unsortedLevels = [
       instructions: "collect all the coins.",
     ),
     widgetBuilder: (onComplete) => LevelFpsCollector(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "pixel serpent",
-      instructions: "eat 15 apples without hitting yourself or the wall.",
-    ),
-    widgetBuilder: (onComplete) => LevelSnake(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
