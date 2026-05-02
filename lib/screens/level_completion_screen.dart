@@ -10,6 +10,7 @@ class LevelCompletionScreen extends StatelessWidget {
   final Duration completionTime;
   final double score;
   final Map<String, dynamic>? metrics;
+  final Set<String>? visibleMetricKeys;
   final bool randomMode;
 
   const LevelCompletionScreen({
@@ -19,6 +20,7 @@ class LevelCompletionScreen extends StatelessWidget {
     required this.score,
     required this.completionTime,
     this.metrics,
+    this.visibleMetricKeys,
     this.randomMode = false,
   }) : super(key: key);
 
@@ -35,7 +37,7 @@ class LevelCompletionScreen extends StatelessWidget {
   }
 
   Widget _buildMetricsGrid() {
-    final entries = metrics!.entries.toList();
+    final entries = _visibleMetrics.entries.toList();
     return Wrap(
       spacing: 12,
       runSpacing: 12,
@@ -77,6 +79,18 @@ class LevelCompletionScreen extends StatelessWidget {
         );
       }).toList(),
     );
+  }
+
+  Map<String, dynamic> get _visibleMetrics {
+    final rawMetrics = metrics;
+    if (rawMetrics == null || rawMetrics.isEmpty) return const {};
+    final keys = visibleMetricKeys;
+    if (keys == null) return rawMetrics;
+
+    return {
+      for (final entry in rawMetrics.entries)
+        if (keys.contains(entry.key)) entry.key: entry.value,
+    };
   }
 
   int? get nextLevelNumber {
@@ -172,7 +186,7 @@ class LevelCompletionScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              if (metrics != null && metrics!.isNotEmpty) ...[
+              if (_visibleMetrics.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 _buildMetricsGrid(),
               ],

@@ -162,7 +162,16 @@ final List<LevelEntry> primitivesLevels = [
     widgetBuilder: (onComplete) => LevelGemSocket(onComplete: onComplete),
   ),
 ];
-final List<LevelEntry> visionLevels = [];
+final List<LevelEntry> visionLevels = [
+  LevelEntry(
+    data: LevelData(
+      title: "pixel perfect",
+      instructions:
+          "fix the wrong draft across five pixel grids. submit each stage to advance; no hints until the end.",
+    ),
+    widgetBuilder: (onComplete) => LevelPatternMatch(onComplete: onComplete),
+  ),
+];
 final List<LevelEntry> memoryLevels = [
   LevelEntry(
     data: LevelData(
@@ -195,6 +204,14 @@ final List<LevelEntry> tempospatialLevels = [
           "clear four snake trials with three attempts each. later stages are faster.",
     ),
     widgetBuilder: (onComplete) => LevelSnake(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "escape the simulation",
+      instructions: "find the exit of the maze",
+      timeLimit: Duration(minutes: 31),
+    ),
+    widgetBuilder: (onComplete) => LevelFpsMaze(onComplete: onComplete),
   ),
 ];
 final List<LevelEntry> gamesLevels = [
@@ -299,13 +316,6 @@ final List<LevelEntry> unsortedLevels = [
     ),
     widgetBuilder: (onComplete) =>
         LevelEmojiCountFruits(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "pixel perfect",
-      instructions: "recreate the pattern shown above!",
-    ),
-    widgetBuilder: (onComplete) => LevelPatternMatch(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
@@ -750,13 +760,6 @@ final List<LevelEntry> unsortedLevels = [
   LevelEntry(
     data: LevelData(title: "jump man", instructions: "reach the flag!"),
     widgetBuilder: (onComplete) => LevelMarioPlatformer(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "escape the simulation",
-      instructions: "find the exit. you are inside the machine.",
-    ),
-    widgetBuilder: (onComplete) => LevelFpsMaze(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(

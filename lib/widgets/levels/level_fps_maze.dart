@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
@@ -5,7 +6,7 @@ import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 
 class LevelFpsMaze extends LevelWidget {
-  const LevelFpsMaze({Key? key, required super.onComplete}) : super(key: key);
+  const LevelFpsMaze({super.key, required super.onComplete});
 
   @override
   State<LevelFpsMaze> createState() => _LevelFpsMazeState();
@@ -29,6 +30,7 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
   bool _strafingRight = false;
 
   // Constants
+  static const Duration _runLimit = Duration(minutes: 30);
   static const double _moveSpeed = 3.0; // cells per second
   static const double _turnSpeed = 2.5; // radians per second
   static const double _fov = pi / 3; // 60 degree field of view
@@ -40,6 +42,9 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
 
   bool _completed = false;
   DateTime _lastFrame = DateTime.now();
+  Timer? _runTimer;
+  late final int _startDistanceToExit;
+  int? _bestDistanceToExit;
 
   // 15x15 maze (1 = wall, 0 = open, 2 = exit)
   // Hand-crafted to be navigable but not trivial
@@ -74,6 +79,11 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
         }
       }
     }
+    _startDistanceToExit = max(
+      1,
+      _distanceToExit(_playerX.floor(), _playerY.floor()) ?? 1,
+    );
+    _bestDistanceToExit = _startDistanceToExit;
 
     _controller = AnimationController(
       vsync: this,
@@ -81,10 +91,12 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
     )..addListener(_gameLoop);
     _controller.repeat();
     _lastFrame = DateTime.now();
+    _runTimer = Timer(_runLimit, _finishTimedOut);
   }
 
   @override
   void dispose() {
+    _runTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -143,18 +155,92 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
       _playerY = newY;
     }
 
+    _recordProgress();
+
     // Check exit
     final playerGridX = _playerX.floor();
     final playerGridY = _playerY.floor();
     if (playerGridX == _exitX && playerGridY == _exitY && !_completed) {
-      _completed = true;
-      _controller.stop();
-      Future.delayed(const Duration(milliseconds: 300), () {
-        widget.onComplete(LevelOutcome(score: 1));
-      });
+      _completeMaze();
     }
 
     setState(() {});
+  }
+
+  void _recordProgress() {
+    final distance = _distanceToExit(_playerX.floor(), _playerY.floor());
+    if (distance == null) return;
+    final best = _bestDistanceToExit;
+    if (best == null || distance < best) {
+      _bestDistanceToExit = distance;
+    }
+  }
+
+  double _progressScore() {
+    final best = _bestDistanceToExit ?? _startDistanceToExit;
+    final progress = (_startDistanceToExit - best) / _startDistanceToExit;
+    return progress.clamp(0.0, 0.95).toDouble();
+  }
+
+  Map<String, dynamic> _progressMetrics({
+    required bool timedOut,
+    bool gaveUp = false,
+  }) {
+    final currentDistance =
+        _distanceToExit(_playerX.floor(), _playerY.floor()) ??
+        _startDistanceToExit;
+    final progressPct = (_progressScore() * 100).round();
+    return {
+      'timed_out': timedOut,
+      'gave_up': gaveUp,
+      'progress_pct': progressPct,
+      'distance_remaining': currentDistance,
+      'best_distance_remaining': _bestDistanceToExit ?? currentDistance,
+    };
+  }
+
+  void _completeMaze() {
+    if (_completed) return;
+    _completed = true;
+    _runTimer?.cancel();
+    _controller.stop();
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      widget.onComplete(
+        LevelOutcome(
+          score: 1,
+          metrics: _progressMetrics(timedOut: false),
+          visibleMetricKeys: const ['progress_pct', 'distance_remaining'],
+        ),
+      );
+    });
+  }
+
+  void _finishTimedOut() {
+    if (_completed) return;
+    _completed = true;
+    _controller.stop();
+    widget.onComplete(
+      LevelOutcome(
+        score: _progressScore(),
+        metrics: _progressMetrics(timedOut: true),
+        visibleMetricKeys: const ['progress_pct', 'distance_remaining'],
+      ),
+    );
+  }
+
+  void _finishGivenUp() {
+    if (_completed) return;
+    _completed = true;
+    _runTimer?.cancel();
+    _controller.stop();
+    widget.onComplete(
+      LevelOutcome(
+        score: _progressScore(),
+        metrics: _progressMetrics(timedOut: false, gaveUp: true),
+        visibleMetricKeys: const ['progress_pct', 'distance_remaining'],
+      ),
+    );
   }
 
   bool _isWall(double x, double y) {
@@ -173,6 +259,52 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
       if (_maze[gy][gx] == 1) return true;
     }
     return false;
+  }
+
+  int? _distanceToExit(int startX, int startY) {
+    if (startY < 0 ||
+        startY >= _maze.length ||
+        startX < 0 ||
+        startX >= _maze[0].length ||
+        _maze[startY][startX] == 1) {
+      return null;
+    }
+
+    final visited = List.generate(
+      _maze.length,
+      (_) => List<bool>.filled(_maze[0].length, false),
+    );
+    final queue = <_MazeNode>[_MazeNode(startX, startY, 0)];
+    visited[startY][startX] = true;
+
+    const directions = [
+      _GridStep(1, 0),
+      _GridStep(-1, 0),
+      _GridStep(0, 1),
+      _GridStep(0, -1),
+    ];
+
+    for (var i = 0; i < queue.length; i++) {
+      final node = queue[i];
+      if (node.x == _exitX && node.y == _exitY) return node.distance;
+
+      for (final direction in directions) {
+        final nx = node.x + direction.dx;
+        final ny = node.y + direction.dy;
+        if (ny < 0 ||
+            ny >= _maze.length ||
+            nx < 0 ||
+            nx >= _maze[0].length ||
+            visited[ny][nx] ||
+            _maze[ny][nx] == 1) {
+          continue;
+        }
+        visited[ny][nx] = true;
+        queue.add(_MazeNode(nx, ny, node.distance + 1));
+      }
+    }
+
+    return null;
   }
 
   @override
@@ -235,6 +367,7 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
                   ),
                 ),
               ),
+              Positioned(top: 12, left: 12, child: _buildGiveUpButton()),
 
               // Controls area
               Positioned(
@@ -273,6 +406,33 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
           // Right side: turn buttons
           _buildTurnPad(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildGiveUpButton() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: NunuColors.errorMain.withValues(alpha: 0.55),
+          width: 1,
+        ),
+      ),
+      child: TextButton(
+        onPressed: _finishGivenUp,
+        style: TextButton.styleFrom(
+          foregroundColor: NunuColors.errorMain,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+        child: const Text(
+          'give up',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
@@ -407,6 +567,21 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
   }
 }
 
+class _MazeNode {
+  final int x;
+  final int y;
+  final int distance;
+
+  const _MazeNode(this.x, this.y, this.distance);
+}
+
+class _GridStep {
+  final int dx;
+  final int dy;
+
+  const _GridStep(this.dx, this.dy);
+}
+
 // ---------- Raycasting Renderer ----------
 
 class _RaycastPainter extends CustomPainter {
@@ -470,8 +645,7 @@ class _RaycastPainter extends CustomPainter {
 
     // Cast rays
     for (int x = 0; x < width; x++) {
-      final rayAngle =
-          playerAngle - fov / 2 + (x / width) * fov;
+      final rayAngle = playerAngle - fov / 2 + (x / width) * fov;
 
       final result = _castRay(rayAngle);
       final distance = result.distance;
@@ -662,12 +836,7 @@ class _MinimapPainter extends CustomPainter {
     // Draw cells
     for (int y = 0; y < mazeH; y++) {
       for (int x = 0; x < mazeW; x++) {
-        final rect = Rect.fromLTWH(
-          x * cellW,
-          y * cellH,
-          cellW,
-          cellH,
-        );
+        final rect = Rect.fromLTWH(x * cellW, y * cellH, cellW, cellH);
 
         Color color;
         if (maze[y][x] == 1) {
