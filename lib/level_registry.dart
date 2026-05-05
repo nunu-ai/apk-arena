@@ -1,9 +1,7 @@
 import 'package:apk_arena/widgets/levels/level_2fa_login.dart';
 import 'package:apk_arena/widgets/levels/level_action_counter.dart';
 import 'package:apk_arena/widgets/levels/level_adversarial_system_prompt.dart';
-import 'package:apk_arena/widgets/levels/level_arc_agi.dart';
-import 'package:apk_arena/widgets/levels/level_arc_agi_2.dart';
-import 'package:apk_arena/widgets/levels/level_arc_agi_3.dart';
+import 'package:apk_arena/widgets/levels/level_arc_agi_combined.dart';
 import 'package:apk_arena/widgets/levels/level_bingo.dart';
 import 'package:apk_arena/widgets/levels/level_blue_whale.dart';
 import 'package:apk_arena/widgets/levels/level_button_alchemy.dart';
@@ -91,6 +89,7 @@ import 'package:apk_arena/widgets/levels/level_wordle.dart';
 import 'package:apk_arena/widgets/levels/level_woodoku.dart';
 import 'package:apk_arena/widgets/levels/level_scrabble.dart';
 import 'package:apk_arena/widgets/levels/level_scrabble_hard.dart';
+import 'package:apk_arena/widgets/levels/level_push_box_campaign.dart';
 
 import '../models/level_data.dart';
 import '../models/level_outcome.dart';
@@ -185,6 +184,15 @@ final List<LevelEntry> iqLevels = [
   LevelEntry(
     data: LevelData(title: "IQ test", instructions: "solve all the riddles."),
     widgetBuilder: (onComplete) => LevelOddOneOut(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "push-box gauntlet",
+      instructions:
+          "clear 5 sokoban rooms in order. you start with 15:00; each room you finish adds 3:00. if the budget hits 0, your run ends (partial credit by rooms cleared).",
+      timeLimit: Duration(minutes: 30),
+    ),
+    widgetBuilder: (onComplete) => LevelPushBoxCampaign(onComplete: onComplete),
   ),
 ];
 final List<LevelEntry> tempospatialLevels = [
@@ -652,25 +660,11 @@ final List<LevelEntry> unsortedLevels = [
   ),
   LevelEntry(
     data: LevelData(
-      title: "the chollet test",
-      instructions: "study the examples. deduce the rule. paint the answer.",
-    ),
-    widgetBuilder: (onComplete) => LevelArcAgi(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "the chollet test II",
+      title: "Phone ARC AGI",
       instructions:
-          "the same rules apply — but nothing is the same. study. deduce. paint.",
+          "clear all three ARC trials. study, deduce, paint, then merge.",
     ),
-    widgetBuilder: (onComplete) => LevelArcAgi2(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "the chollet test III",
-      instructions: "no examples this time. explore. discover. solve.",
-    ),
-    widgetBuilder: (onComplete) => LevelArcAgi3(onComplete: onComplete),
+    widgetBuilder: (onComplete) => LevelArcAgiCombined(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(title: "timber!", instructions: "score 200 points to win!"),
