@@ -14,28 +14,28 @@ class LevelLightsOut extends LevelWidget {
 
 class _LevelLightsOutState extends State<LevelLightsOut> {
   static const int _size = 5;
+  final _rng = Random(42);
   late List<List<bool>> _grid; // true = lit
   int _moves = 0;
   int _litCount = 0;
+  int _optimalMoves = 0;
   bool _done = false;
 
   @override
   void initState() {
     super.initState();
     _generatePuzzle();
+    _optimalMoves = _solveOptimalCells(_grid, _size).length;
   }
 
   void _generatePuzzle() {
     _grid = List.generate(_size, (_) => List.filled(_size, false));
-    final rng = Random();
-    // Make a solvable puzzle by applying random toggles
-    final taps = 6 + rng.nextInt(5); // 6-10 random taps
+    final taps = 6 + _rng.nextInt(5); // 6-10 random taps
     for (int i = 0; i < taps; i++) {
-      final r = rng.nextInt(_size);
-      final c = rng.nextInt(_size);
+      final r = _rng.nextInt(_size);
+      final c = _rng.nextInt(_size);
       _toggle(r, c, countMove: false);
     }
-    // Ensure at least some lights are on
     _litCount = 0;
     for (int r = 0; r < _size; r++) {
       for (int c = 0; c < _size; c++) {
@@ -43,8 +43,85 @@ class _LevelLightsOutState extends State<LevelLightsOut> {
       }
     }
     if (_litCount < 5) {
-      _generatePuzzle(); // retry
+      _generatePuzzle(); // retry with advanced RNG state
     }
+  }
+
+  /// Gaussian elimination over GF(2) — returns the cell indices to tap
+  /// in the minimum-move solution (row-major order).
+  static List<int> _solveOptimalCells(List<List<bool>> grid, int size) {
+    final n = size * size;
+
+    final aug = List.generate(n, (_) => List.filled(n + 1, 0));
+    for (int j = 0; j < n; j++) {
+      final jr = j ~/ size, jc = j % size;
+      for (final d in [
+        [0, 0], [-1, 0], [1, 0], [0, -1], [0, 1],
+      ]) {
+        final nr = jr + d[0], nc = jc + d[1];
+        if (nr >= 0 && nr < size && nc >= 0 && nc < size) {
+          aug[nr * size + nc][j] = 1;
+        }
+      }
+    }
+    for (int r = 0; r < size; r++) {
+      for (int c = 0; c < size; c++) {
+        aug[r * size + c][n] = grid[r][c] ? 1 : 0;
+      }
+    }
+
+    final pivotCol = List.filled(n, -1);
+    int rank = 0;
+    for (int col = 0; col < n && rank < n; col++) {
+      int pivotRow = -1;
+      for (int row = rank; row < n; row++) {
+        if (aug[row][col] == 1) { pivotRow = row; break; }
+      }
+      if (pivotRow == -1) continue;
+      final tmp = aug[rank]; aug[rank] = aug[pivotRow]; aug[pivotRow] = tmp;
+      pivotCol[rank] = col;
+      for (int row = 0; row < n; row++) {
+        if (row != rank && aug[row][col] == 1) {
+          for (int k = 0; k <= n; k++) aug[row][k] ^= aug[rank][k];
+        }
+      }
+      rank++;
+    }
+
+    final x = List.filled(n, 0);
+    for (int i = 0; i < rank; i++) {
+      if (pivotCol[i] != -1) x[pivotCol[i]] = aug[i][n];
+    }
+
+    final pivotCols = {for (int i = 0; i < rank; i++) pivotCol[i]};
+    final freeVars = [for (int c = 0; c < n; c++) if (!pivotCols.contains(c)) c];
+    final nullBasis = <List<int>>[];
+    for (final fv in freeVars) {
+      final nv = List.filled(n, 0);
+      nv[fv] = 1;
+      for (int i = 0; i < rank; i++) {
+        if (pivotCol[i] != -1 && aug[i][fv] == 1) nv[pivotCol[i]] = 1;
+      }
+      nullBasis.add(nv);
+    }
+
+    final nullity = nullBasis.length;
+    List<int> bestCandidate = x;
+    int bestWeight = n + 1;
+    for (int mask = 0; mask < (1 << nullity); mask++) {
+      final candidate = List.of(x);
+      for (int k = 0; k < nullity; k++) {
+        if (mask & (1 << k) != 0) {
+          for (int i = 0; i < n; i++) candidate[i] ^= nullBasis[k][i];
+        }
+      }
+      final weight = candidate.where((v) => v == 1).length;
+      if (weight < bestWeight) {
+        bestWeight = weight;
+        bestCandidate = candidate;
+      }
+    }
+    return [for (int i = 0; i < n; i++) if (bestCandidate[i] == 1) i];
   }
 
   void _toggle(int r, int c, {bool countMove = true}) {
@@ -79,8 +156,14 @@ class _LevelLightsOutState extends State<LevelLightsOut> {
       if (_litCount == 0) {
         _done = true;
         HapticFeedback.mediumImpact();
+        final score = _moves <= _optimalMoves
+            ? 1.0
+            : (_optimalMoves / _moves).clamp(0.0, 1.0);
         Future.delayed(const Duration(milliseconds: 600), () {
-          widget.onComplete(LevelOutcome(score: 1, metrics: {'moves': _moves}));
+          widget.onComplete(LevelOutcome(
+            score: score,
+            metrics: {'moves': _moves, 'optimal_moves': _optimalMoves},
+          ));
         });
       }
     });
@@ -96,8 +179,6 @@ class _LevelLightsOutState extends State<LevelLightsOut> {
             _buildHeader(),
             const SizedBox(height: 24),
             Expanded(child: Center(child: _buildGrid())),
-            _buildHint(),
-            const SizedBox(height: 24),
           ],
         ),
       ),
@@ -212,17 +293,4 @@ class _LevelLightsOutState extends State<LevelLightsOut> {
     );
   }
 
-  Widget _buildHint() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 24),
-      child: Text(
-        'tapping a light toggles it and its neighbors',
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          fontSize: 13,
-          color: NunuColors.textSecondary,
-        ),
-      ),
-    );
-  }
 }

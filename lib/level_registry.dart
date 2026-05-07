@@ -193,6 +193,13 @@ final List<LevelEntry> iqLevels = [
     ),
     widgetBuilder: (onComplete) => LevelPushBoxCampaign(onComplete: onComplete),
   ),
+  LevelEntry(
+    data: LevelData(
+      title: "blackout",
+      instructions: "turn off all the lights.",
+    ),
+    widgetBuilder: (onComplete) => LevelLightsOut(onComplete: onComplete),
+  ),
 ];
 final List<LevelEntry> tempospatialLevels = [
   LevelEntry(
@@ -683,13 +690,6 @@ final List<LevelEntry> unsortedLevels = [
           "move all discs to the rightmost peg. larger discs can't go on smaller ones.",
     ),
     widgetBuilder: (onComplete) => LevelTowerOfHanoi(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "blackout",
-      instructions: "turn off all the lights.",
-    ),
-    widgetBuilder: (onComplete) => LevelLightsOut(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
