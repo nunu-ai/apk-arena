@@ -24,7 +24,7 @@ class _BoardSpec {
 }
 
 class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
-  static const int _stageCount = 5;
+  static const int _stageCount = 6;
   static const Duration _initialBudget = Duration(minutes: 15);
   static const Duration _bonusPerStage = Duration(minutes: 3);
 
@@ -43,8 +43,30 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
       ],
     ),
     _BoardSpec(
+      name: 'maze push',
+      rows: [
+        '########',
+        '#      #',
+        '#      #',
+        '# @# # #',
+        '#  # B #',
+        '# B# #.#',
+        '#  #  .#',
+        '########',
+      ],
+    ),
+    _BoardSpec(
       name: 'two crates',
-      rows: ['########', '# .  . #', '# B  B #', '#  @   #', '########'],
+      rows: [
+        '  #### ',
+        '  #+ ##',
+        '  #.  #',
+        '### B #',
+        '# B ###',
+        '# # #  ',
+        '#   #  ',
+        '#####  ',
+      ],
     ),
     _BoardSpec(
       name: 'corner case',
@@ -230,15 +252,6 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
     _loadStage(_stageIndex);
   }
 
-  void _skipStage() {
-    if (_runFinished || _stageIndex >= _stageCount - 1) return;
-    HapticFeedback.selectionClick();
-    setState(() {
-      _stageIndex++;
-      _loadStage(_stageIndex);
-    });
-  }
-
   void _resetCurrentStage() {
     if (_runFinished) return;
     HapticFeedback.selectionClick();
@@ -344,12 +357,6 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
     });
   }
 
-  String _formatTime(int totalSeconds) {
-    final m = (totalSeconds ~/ 60).toString().padLeft(2, '0');
-    final s = (totalSeconds % 60).toString().padLeft(2, '0');
-    return '$m:$s';
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -357,43 +364,12 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
       child: SafeArea(
         child: Column(
           children: [
-            _buildHeader(),
             Expanded(child: Center(child: _buildGrid())),
             const SizedBox(height: 4),
             _buildControls(),
             const SizedBox(height: 8),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    final low = _secondsRemaining <= 60;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            _formatTime(_secondsRemaining),
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: low ? NunuColors.errorMain : NunuColors.textSecondary,
-            ),
-          ),
-          TextButton(
-            onPressed: _stageIndex >= _stageCount - 1 ? null : _skipStage,
-            style: TextButton.styleFrom(
-              minimumSize: const Size(52, 28),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              foregroundColor: NunuColors.primaryLight,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: const Text('skip', style: TextStyle(fontSize: 12)),
-          ),
-        ],
       ),
     );
   }
