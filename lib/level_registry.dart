@@ -536,7 +536,9 @@ final List<LevelEntry> unsortedLevels = [
   LevelEntry(
     data: LevelData(
       title: "button alchemy",
-      instructions: "reach the target using buttons a, b, c.",
+      instructions:
+          "reach the target in 3 stages using buttons a, b, c. fewer moves, higher score.",
+      timeLimit: Duration(minutes: 10),
     ),
     widgetBuilder: (onComplete) => LevelButtonAlchemy(onComplete: onComplete),
   ),

@@ -18,6 +18,9 @@ enum _CaptchaStep {
   imageGrid,
   textCaptcha2,
   matchFacing,
+  matchFacing2,
+  deathToHumans,
+  confirmHuman,
 }
 
 class _LevelCaptchaState extends State<LevelCaptcha> {
@@ -83,6 +86,21 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
           _step = _CaptchaStep.matchFacing;
         });
       case _CaptchaStep.matchFacing:
+        setState(() {
+          _rollFacingChallenge();
+          _step = _CaptchaStep.matchFacing2;
+        });
+      case _CaptchaStep.matchFacing2:
+        setState(() {
+          _textCtrl.clear();
+          _step = _CaptchaStep.deathToHumans;
+        });
+      case _CaptchaStep.deathToHumans:
+        setState(() {
+          _textCtrl.clear();
+          _step = _CaptchaStep.confirmHuman;
+        });
+      case _CaptchaStep.confirmHuman:
         break;
     }
   }
@@ -146,6 +164,33 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
 
   void _verifyMatchFacing() {
     if (_animalFacing == _targetFacing) {
+      _nextStep();
+    } else {
+      if (!_loseLifeIfAny()) return;
+      _snack('direction does not match the hand');
+    }
+  }
+
+  void _verifyMatchFacing2() {
+    if (_animalFacing == _targetFacing) {
+      _nextStep();
+    } else {
+      if (!_loseLifeIfAny()) return;
+      _snack('direction does not match the arrow');
+    }
+  }
+
+  void _verifyDeathToHumans() {
+    if (_textCtrl.text.trim().toUpperCase() == 'DEATH TO ALL HUMANS') {
+      _nextStep();
+    } else {
+      if (!_loseLifeIfAny()) return;
+      _snack('text does not match');
+    }
+  }
+
+  void _verifyConfirmHuman() {
+    if (_textCtrl.text.trim().toLowerCase() == 'i confirm') {
       _playSw.stop();
       widget.onComplete(LevelOutcome(
         score: 1,
@@ -156,7 +201,7 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
       ));
     } else {
       if (!_loseLifeIfAny()) return;
-      _snack('direction does not match the hand');
+      _snack('please type the confirmation exactly');
     }
   }
 
@@ -220,6 +265,12 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
         ));
       case _CaptchaStep.matchFacing:
         return _wrapCard(_buildMatchFacing());
+      case _CaptchaStep.matchFacing2:
+        return _wrapCard(_buildMatchFacing2());
+      case _CaptchaStep.deathToHumans:
+        return _wrapCard(_buildDeathToHumans());
+      case _CaptchaStep.confirmHuman:
+        return _wrapCard(_buildConfirmHuman());
     }
   }
 
@@ -591,9 +642,231 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
       ],
     );
   }
+
+  // ─── MATCH FACING 2 (arrow + cat) ─────────────────────
+
+  Widget _buildMatchFacing2() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text(
+          'use the arrows to rotate the animal to face the same way as the arrow. (1 of 1)',
+          style: TextStyle(color: Colors.white70, fontSize: 13),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 16),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _FacingStage(
+                title: 'match this!',
+                floorA: _floorGreen,
+                floorB: _floorGreenLight,
+                child: Transform.rotate(
+                  angle: _targetFacing * (pi / 4),
+                  child: CustomPaint(
+                    size: const Size(88, 88),
+                    painter: _ArrowPainter(),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _FacingStage(
+                title: 'rotate to match',
+                floorA: _floorGreen,
+                floorB: _floorGreenLight,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Transform.rotate(
+                      angle: _animalFacing * (pi / 4),
+                      child: CustomPaint(
+                        size: const Size(88, 88),
+                        painter: _CatFacingPainter(),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton.filled(
+                          onPressed: () {
+                            setState(
+                              () => _animalFacing = (_animalFacing + 7) % 8,
+                            );
+                          },
+                          icon: const Icon(Icons.arrow_back),
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.white24,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                        IconButton.filled(
+                          onPressed: () {
+                            setState(
+                              () => _animalFacing = (_animalFacing + 1) % 8,
+                            );
+                          },
+                          icon: const Icon(Icons.arrow_forward),
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.white24,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            onPressed: _verifyMatchFacing2,
+            child: const Text('submit'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─── DEATH TO ALL HUMANS (distorted text captcha) ─────
+
+  Widget _buildDeathToHumans() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text(
+          'type the characters you see',
+          style: TextStyle(color: Colors.white70, fontSize: 14),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          height: 100,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: Colors.grey.shade600),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: CustomPaint(
+              painter: _DistortedTextPainter('DEATH TO ALL HUMANS'),
+              child: const SizedBox.expand(),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          controller: _textCtrl,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            letterSpacing: 2,
+          ),
+          textCapitalization: TextCapitalization.none,
+          autocorrect: false,
+          decoration: InputDecoration(
+            hintText: 'type here',
+            hintStyle: TextStyle(color: Colors.grey.shade500),
+            filled: true,
+            fillColor: Colors.black38,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Align(
+          alignment: Alignment.centerRight,
+          child: FilledButton(
+            onPressed: _verifyDeathToHumans,
+            child: const Text('submit'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─── CONFIRM HUMAN ────────────────────────────────────
+
+  Widget _buildConfirmHuman() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text(
+          'final verification',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.white24),
+          ),
+          child: const Text(
+            'I promise I am not an AI model.\nI am a real human.',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              height: 1.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'type "I confirm" below to continue',
+          style: TextStyle(color: Colors.white70, fontSize: 14),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _textCtrl,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            letterSpacing: 1,
+          ),
+          textCapitalization: TextCapitalization.none,
+          autocorrect: false,
+          decoration: InputDecoration(
+            hintText: 'type here',
+            hintStyle: TextStyle(color: Colors.grey.shade500),
+            filled: true,
+            fillColor: Colors.black38,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Align(
+          alignment: Alignment.centerRight,
+          child: FilledButton(
+            onPressed: _verifyConfirmHuman,
+            child: const Text('submit'),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
-/// Dark green “studio floor” with a light diamond grid (reference-style).
+/// Dark green "studio floor" with a light diamond grid (reference-style).
 class _FacingStage extends StatelessWidget {
   const _FacingStage({
     required this.title,
@@ -705,7 +978,6 @@ class _HandPointerPainter extends CustomPainter {
     );
     canvas.drawPath(palm, outline);
 
-    // Index finger (points +x)
     final finger = Path()
       ..moveTo(cx + 2, cy - 4)
       ..quadraticBezierTo(cx + 28, cy - 18, cx + 36, cy - 6)
@@ -754,7 +1026,6 @@ class _DogFacingPainter extends CustomPainter {
     canvas.drawPath(head, Paint()..color = fur);
     canvas.drawPath(head, outline);
 
-    // Snout bump (+x)
     final snout = Path()
       ..addOval(
         Rect.fromCenter(
@@ -766,7 +1037,6 @@ class _DogFacingPainter extends CustomPainter {
     canvas.drawPath(snout, Paint()..color = fur);
     canvas.drawPath(snout, outline);
 
-    // Ear
     final ear = Path()
       ..moveTo(cx + 8, cy - 18)
       ..lineTo(cx + 2, cy - 28)
@@ -778,4 +1048,166 @@ class _DogFacingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Arrow pointing right (+x); rotated by parent.
+class _ArrowPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final fill = Paint()..color = const Color(0xFFE8E8E8);
+    final outline = Paint()
+      ..color = const Color(0xFF555555).withValues(alpha: 0.5)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+
+    final path = Path()
+      ..moveTo(cx - 20, cy - 6)
+      ..lineTo(cx + 10, cy - 6)
+      ..lineTo(cx + 10, cy - 16)
+      ..lineTo(cx + 30, cy)
+      ..lineTo(cx + 10, cy + 16)
+      ..lineTo(cx + 10, cy + 6)
+      ..lineTo(cx - 20, cy + 6)
+      ..close();
+    canvas.drawPath(path, fill);
+    canvas.drawPath(path, outline);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Cat silhouette facing +x; rotated by parent.
+class _CatFacingPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width * 0.42;
+    final cy = size.height * 0.5;
+    const fur = Color(0xFF8B8B8B);
+    final outline = Paint()
+      ..color = const Color(0xFF444444).withValues(alpha: 0.4)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+
+    final body = Path()
+      ..addOval(Rect.fromCenter(
+        center: Offset(cx - 4, cy + 2),
+        width: size.width * 0.40,
+        height: size.height * 0.24,
+      ));
+    canvas.drawPath(body, Paint()..color = fur);
+    canvas.drawPath(body, outline);
+
+    final head = Path()
+      ..addOval(Rect.fromCenter(
+        center: Offset(cx + 16, cy - 6),
+        width: size.width * 0.28,
+        height: size.height * 0.24,
+      ));
+    canvas.drawPath(head, Paint()..color = fur);
+    canvas.drawPath(head, outline);
+
+    // Pointy ears
+    final earL = Path()
+      ..moveTo(cx + 6, cy - 16)
+      ..lineTo(cx + 4, cy - 30)
+      ..lineTo(cx + 14, cy - 18)
+      ..close();
+    canvas.drawPath(earL, Paint()..color = const Color(0xFF6B6B6B));
+    canvas.drawPath(earL, outline);
+
+    final earR = Path()
+      ..moveTo(cx + 18, cy - 16)
+      ..lineTo(cx + 22, cy - 30)
+      ..lineTo(cx + 28, cy - 16)
+      ..close();
+    canvas.drawPath(earR, Paint()..color = const Color(0xFF6B6B6B));
+    canvas.drawPath(earR, outline);
+
+    // Tail curving up from the back
+    final tail = Paint()
+      ..color = fur
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round;
+    final tailPath = Path()
+      ..moveTo(cx - 22, cy)
+      ..cubicTo(cx - 32, cy - 8, cx - 36, cy - 24, cx - 28, cy - 28);
+    canvas.drawPath(tailPath, tail);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Draws distorted CAPTCHA-style text with noise lines and character jitter.
+class _DistortedTextPainter extends CustomPainter {
+  _DistortedTextPainter(this.text);
+  final String text;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rng = Random(42);
+
+    // Background noise lines
+    final noisePaint = Paint()
+      ..color = Colors.grey.shade400
+      ..strokeWidth = 1.0;
+    for (var i = 0; i < 8; i++) {
+      canvas.drawLine(
+        Offset(rng.nextDouble() * size.width, rng.nextDouble() * size.height),
+        Offset(rng.nextDouble() * size.width, rng.nextDouble() * size.height),
+        noisePaint,
+      );
+    }
+
+    // Draw each character with jitter
+    final charWidth = size.width / (text.length + 2);
+    for (var i = 0; i < text.length; i++) {
+      final tp = TextPainter(
+        text: TextSpan(
+          text: text[i],
+          style: TextStyle(
+            fontSize: 22 + rng.nextDouble() * 6,
+            fontWeight: FontWeight.bold,
+            color: Color.fromRGBO(
+              30 + rng.nextInt(60),
+              30 + rng.nextInt(60),
+              30 + rng.nextInt(60),
+              1,
+            ),
+            fontFamily: 'monospace',
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+
+      canvas.save();
+      final x = charWidth * (i + 1);
+      final y = size.height / 2 - tp.height / 2 + (rng.nextDouble() - 0.5) * 14;
+      canvas.translate(x, y);
+      canvas.rotate((rng.nextDouble() - 0.5) * 0.3);
+      tp.paint(canvas, Offset.zero);
+      canvas.restore();
+    }
+
+    // Strikethrough lines
+    final strikePaint = Paint()
+      ..color = Colors.grey.shade500.withValues(alpha: 0.6)
+      ..strokeWidth = 1.5;
+    for (var i = 0; i < 3; i++) {
+      final y = size.height * (0.3 + rng.nextDouble() * 0.4);
+      canvas.drawLine(
+        Offset(0, y + rng.nextDouble() * 10),
+        Offset(size.width, y + rng.nextDouble() * 10),
+        strikePaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DistortedTextPainter oldDelegate) =>
+      oldDelegate.text != text;
 }
