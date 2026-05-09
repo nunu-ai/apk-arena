@@ -17,6 +17,7 @@ import 'package:apk_arena/widgets/levels/level_coin_map.dart';
 import 'package:apk_arena/widgets/levels/level_connect_the_dots.dart';
 import 'package:apk_arena/widgets/levels/level_dice_recognition.dart';
 import 'package:apk_arena/widgets/levels/level_do_not_click.dart';
+import 'package:apk_arena/widgets/levels/level_double_maze.dart';
 import 'package:apk_arena/widgets/levels/level_dvd_logo.dart';
 import 'package:apk_arena/widgets/levels/level_eagle_eye.dart';
 import 'package:apk_arena/widgets/levels/level_email_riddle.dart';
@@ -170,6 +171,14 @@ final List<LevelEntry> visionLevels = [
     ),
     widgetBuilder: (onComplete) => LevelPatternMatch(onComplete: onComplete),
   ),
+  LevelEntry(
+    data: LevelData(
+      title: "Prove You're Human",
+      instructions:
+          "complete each captcha stage. wrong attempts halve that stage's score; you can skip a stage for zero.",
+    ),
+    widgetBuilder: (onComplete) => LevelCaptcha(onComplete: onComplete),
+  ),
 ];
 final List<LevelEntry> memoryLevels = [
   LevelEntry(
@@ -200,6 +209,15 @@ final List<LevelEntry> iqLevels = [
     ),
     widgetBuilder: (onComplete) => LevelLightsOut(onComplete: onComplete),
   ),
+  LevelEntry(
+    data: LevelData(
+      title: "button alchemy",
+      instructions:
+          "reach the target in 3 stages using buttons a, b, c. fewer moves, higher score.",
+      timeLimit: Duration(minutes: 10),
+    ),
+    widgetBuilder: (onComplete) => LevelButtonAlchemy(onComplete: onComplete),
+  ),
 ];
 final List<LevelEntry> tempospatialLevels = [
   LevelEntry(
@@ -227,6 +245,13 @@ final List<LevelEntry> tempospatialLevels = [
     ),
     widgetBuilder: (onComplete) => LevelFpsMaze(onComplete: onComplete),
   ),
+  LevelEntry(
+    data: LevelData(
+      title: "labyrinth gauntlet",
+      instructions: "clear two mazes back to back. fewer moves = higher score.",
+    ),
+    widgetBuilder: (onComplete) => LevelDoubleMaze(onComplete: onComplete),
+  ),
 ];
 final List<LevelEntry> gamesLevels = [
   LevelEntry(
@@ -247,14 +272,6 @@ final List<LevelEntry> unsortedLevels = [
       instructions: "Click the button for the specified duration!",
     ),
     widgetBuilder: (onComplete) => LevelHold(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "Prove You're Human",
-      instructions:
-          "Complete every captcha step in order. 10 lives — wrong answers cost one. Your total time is recorded at the end.",
-    ),
-    widgetBuilder: (onComplete) => LevelCaptcha(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
@@ -532,15 +549,6 @@ final List<LevelEntry> unsortedLevels = [
       instructions: "find all matching pairs.",
     ),
     widgetBuilder: (onComplete) => LevelMemoryMatch(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "button alchemy",
-      instructions:
-          "reach the target in 3 stages using buttons a, b, c. fewer moves, higher score.",
-      timeLimit: Duration(minutes: 10),
-    ),
-    widgetBuilder: (onComplete) => LevelButtonAlchemy(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(

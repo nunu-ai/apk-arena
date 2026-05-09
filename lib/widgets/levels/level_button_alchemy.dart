@@ -162,7 +162,8 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
     _metrics['stage_${i}_moves'] = _moveCount;
     _metrics['stage_${i}_optimal'] = optimal;
     _metrics['stage_${i}_par'] = optimal + _explorePerButton * _numButtons;
-    _metrics['stage_${i}_score'] = _stageScores.last;
+    _metrics['stage_${i}_score'] =
+        double.parse(_stageScores.last.toStringAsFixed(2));
     if (skipped) _metrics['stage_${i}_skipped'] = true;
   }
 
@@ -221,15 +222,6 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildProgressDots(),
-              const SizedBox(height: 8),
-              Text(
-                stage.modulus != null
-                    ? 'stage ${_stageIndex + 1}/3 · ${stage.name} · mod ${stage.modulus}'
-                    : 'stage ${_stageIndex + 1}/3 · ${stage.name}',
-                textAlign: TextAlign.center,
-                style: textTheme.bodySmall
-                    ?.copyWith(color: NunuColors.textSecondary),
-              ),
               const SizedBox(height: 16),
               _buildCard(stage, textTheme),
               const SizedBox(height: 16),
@@ -343,6 +335,14 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
           style: textTheme.headlineLarge
               ?.copyWith(color: NunuColors.primaryLight),
         ),
+        if (stage.modulus != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            'mod ${stage.modulus}',
+            style: textTheme.bodySmall
+                ?.copyWith(color: NunuColors.textSecondary),
+          ),
+        ],
         const SizedBox(height: 16),
         Divider(color: NunuColors.primaryDark.withValues(alpha: 0.3)),
         const SizedBox(height: 16),

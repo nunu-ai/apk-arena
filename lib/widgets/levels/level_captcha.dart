@@ -17,6 +17,7 @@ enum _CaptchaStep {
   textCaptcha1,
   imageGrid,
   textCaptcha2,
+  trafficLightsGrid,
   matchFacing,
   matchFacing2,
   deathToHumans,
@@ -24,24 +25,34 @@ enum _CaptchaStep {
 }
 
 class _LevelCaptchaState extends State<LevelCaptcha> {
+  static const int _totalStages = 9;
+
   _CaptchaStep _step = _CaptchaStep.gate;
   bool _isVerifying = false;
+  bool _stageActionLocked = false;
+  bool _isFinished = false;
 
   final Random _rng = Random();
   final Stopwatch _playSw = Stopwatch();
 
-  /// Wrong answers cost one life; at 0 the run ends.
-  int _lives = 10;
+  // Stage scoring:
+  // success after N wrong attempts = 0.5^N, skip stage = 0
+  int _wrongAttempts = 0;
+  int _totalWrongAttempts = 0;
+  int _skippedStages = 0;
+  final List<double> _stageScores = [];
 
-  // --- Text CAPTCHAs ---
   final TextEditingController _textCtrl = TextEditingController();
 
   // --- Image grid (taxis) ---
-  // Correct tiles: top-left (0), middle-left (3), middle-center (4)
   static const Set<int> _gridCorrect = {0, 3, 4};
   final Set<int> _gridSelected = {};
 
-  // --- Match facing (hand vs animal), 8 compass steps clockwise from east ---
+  // --- Image grid (traffic lights) ---
+  static const Set<int> _trafficCorrect = {1, 2, 3};
+  final Set<int> _trafficSelected = {};
+
+  // --- Match facing ---
   late int _targetFacing;
   late int _animalFacing;
 
@@ -51,20 +62,18 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
     _rollFacingChallenge();
   }
 
-  void _rollFacingChallenge() {
-    _targetFacing = _rng.nextInt(8);
-    do {
-      _animalFacing = _rng.nextInt(8);
-    } while (_animalFacing == _targetFacing);
-  }
-
   @override
   void dispose() {
     _textCtrl.dispose();
     super.dispose();
   }
 
-  // ─── FLOW ──────────────────────────────────────────────
+  void _rollFacingChallenge() {
+    _targetFacing = _rng.nextInt(8);
+    do {
+      _animalFacing = _rng.nextInt(8);
+    } while (_animalFacing == _targetFacing);
+  }
 
   void _nextStep() {
     switch (_step) {
@@ -78,9 +87,15 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
       case _CaptchaStep.imageGrid:
         setState(() {
           _textCtrl.clear();
+          _gridSelected.clear();
           _step = _CaptchaStep.textCaptcha2;
         });
       case _CaptchaStep.textCaptcha2:
+        setState(() {
+          _trafficSelected.clear();
+          _step = _CaptchaStep.trafficLightsGrid;
+        });
+      case _CaptchaStep.trafficLightsGrid:
         setState(() {
           _rollFacingChallenge();
           _step = _CaptchaStep.matchFacing;
@@ -105,6 +120,106 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
     }
   }
 
+  int get _stageNumber {
+    switch (_step) {
+      case _CaptchaStep.gate:
+        return 1;
+      case _CaptchaStep.textCaptcha1:
+        return 2;
+      case _CaptchaStep.imageGrid:
+        return 3;
+      case _CaptchaStep.textCaptcha2:
+        return 4;
+      case _CaptchaStep.trafficLightsGrid:
+        return 5;
+      case _CaptchaStep.matchFacing:
+        return 6;
+      case _CaptchaStep.matchFacing2:
+        return 7;
+      case _CaptchaStep.deathToHumans:
+        return 8;
+      case _CaptchaStep.confirmHuman:
+        return 9;
+    }
+  }
+
+  bool get _canSkipStage {
+    // While selecting grid tiles, keep the top-right skip button inert so a
+    // near-miss tap around the grid cannot accidentally advance several stages.
+    if (_step == _CaptchaStep.imageGrid && _gridSelected.isNotEmpty) {
+      return false;
+    }
+    if (_step == _CaptchaStep.trafficLightsGrid && _trafficSelected.isNotEmpty) {
+      return false;
+    }
+    return !_stageActionLocked && !_isFinished;
+  }
+
+  void _lockStageActionsBriefly() {
+    _stageActionLocked = true;
+    Future.delayed(const Duration(milliseconds: 250), () {
+      if (!mounted || _isFinished) return;
+      setState(() => _stageActionLocked = false);
+    });
+  }
+
+  void _registerWrongAttempt() {
+    _wrongAttempts += 1;
+    _totalWrongAttempts += 1;
+  }
+
+  void _completeStageSuccess() {
+    if (_stageActionLocked || _isFinished) return;
+    _lockStageActionsBriefly();
+    final stageScore = pow(0.5, _wrongAttempts).toDouble();
+    _stageScores.add(stageScore);
+    _wrongAttempts = 0;
+
+    if (_step == _CaptchaStep.confirmHuman) {
+      _finishRun();
+      return;
+    }
+    _nextStep();
+  }
+
+  void _skipStage() {
+    if (!_canSkipStage) return;
+    _lockStageActionsBriefly();
+    _stageScores.add(0);
+    _wrongAttempts = 0;
+    _skippedStages += 1;
+
+    if (_step == _CaptchaStep.confirmHuman) {
+      _finishRun();
+      return;
+    }
+    _nextStep();
+  }
+
+  void _finishRun() {
+    if (_isFinished) return;
+    _isFinished = true;
+    _playSw.stop();
+    final count = _stageScores.isEmpty ? 1 : _stageScores.length;
+    final total = _stageScores.fold<double>(0, (sum, s) => sum + s);
+    final score = total / count;
+
+    widget.onComplete(
+      LevelOutcome(
+        score: score,
+        metrics: {
+          'duration_ms': _playSw.elapsedMilliseconds,
+          'stages_scored': _stageScores.length,
+          'total_stages': _totalStages,
+          'wrong_attempts': _totalWrongAttempts,
+          'skipped_stages': _skippedStages,
+          'score_percent': (score * 100).round(),
+        },
+        visibleMetricKeys: const ['wrong_attempts', 'skipped_stages'],
+      ),
+    );
+  }
+
   void _gateTap() {
     if (_isVerifying) return;
     setState(() => _isVerifying = true);
@@ -114,108 +229,95 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
         ..reset()
         ..start();
       setState(() => _isVerifying = false);
-      _nextStep();
+      _completeStageSuccess();
     });
   }
 
-  bool _loseLifeIfAny() {
-    if (_lives <= 0 || !mounted) return false;
-    setState(() => _lives -= 1);
-    if (_lives <= 0) {
-      _playSw.stop();
-      if (!mounted) return false;
-      widget.onComplete(LevelOutcome(
-        score: 0,
-        metrics: {'duration_ms': _playSw.elapsedMilliseconds, 'out_of_lives': true},
-      ));
-      return false;
-    }
-    return true;
-  }
-
   void _verifyText1() {
-    if (_textCtrl.text.trim().toLowerCase() == '2pfpn') {
-      _nextStep();
-    } else {
-      if (!_loseLifeIfAny()) return;
-      _snack('text does not match');
+    if (_textCtrl.text.trim() == '2pfpn') {
+      _completeStageSuccess();
+      return;
     }
+    _registerWrongAttempt();
+    _snack('text does not match');
   }
 
   void _verifyText2() {
-    if (_textCtrl.text.trim().toUpperCase() == 'HAPK3') {
-      _nextStep();
-    } else {
-      if (!_loseLifeIfAny()) return;
-      _snack('text does not match');
+    if (_textCtrl.text.trim() == 'HAPK3') {
+      _completeStageSuccess();
+      return;
     }
+    _registerWrongAttempt();
+    _snack('text does not match');
   }
 
   void _verifyGrid() {
     if (_gridSelected.length == _gridCorrect.length &&
         _gridSelected.containsAll(_gridCorrect)) {
-      _nextStep();
-    } else {
-      if (!_loseLifeIfAny()) return;
-      setState(() => _gridSelected.clear());
-      _snack('try again');
+      _completeStageSuccess();
+      return;
     }
+    _registerWrongAttempt();
+    setState(() => _gridSelected.clear());
+    _snack('try again');
+  }
+
+  void _verifyTrafficGrid() {
+    if (_trafficSelected.length == _trafficCorrect.length &&
+        _trafficSelected.containsAll(_trafficCorrect)) {
+      _completeStageSuccess();
+      return;
+    }
+    _registerWrongAttempt();
+    setState(() => _trafficSelected.clear());
+    _snack('try again');
   }
 
   void _verifyMatchFacing() {
     if (_animalFacing == _targetFacing) {
-      _nextStep();
-    } else {
-      if (!_loseLifeIfAny()) return;
-      _snack('direction does not match the hand');
+      _completeStageSuccess();
+      return;
     }
+    _registerWrongAttempt();
+    _snack('direction does not match the hand');
   }
 
   void _verifyMatchFacing2() {
     if (_animalFacing == _targetFacing) {
-      _nextStep();
-    } else {
-      if (!_loseLifeIfAny()) return;
-      _snack('direction does not match the arrow');
+      _completeStageSuccess();
+      return;
     }
+    _registerWrongAttempt();
+    _snack('direction does not match the arrow');
   }
 
   void _verifyDeathToHumans() {
-    if (_textCtrl.text.trim().toUpperCase() == 'DEATH TO ALL HUMANS') {
-      _nextStep();
-    } else {
-      if (!_loseLifeIfAny()) return;
-      _snack('text does not match');
+    if (_textCtrl.text.trim() == 'DEATH TO ALL HUMANS') {
+      _completeStageSuccess();
+      return;
     }
+    _registerWrongAttempt();
+    _snack('text does not match');
   }
 
   void _verifyConfirmHuman() {
-    if (_textCtrl.text.trim().toLowerCase() == 'i confirm') {
-      _playSw.stop();
-      widget.onComplete(LevelOutcome(
-        score: 1,
-        metrics: {
-          'duration_ms': _playSw.elapsedMilliseconds,
-          'lives_left': _lives,
-        },
-      ));
-    } else {
-      if (!_loseLifeIfAny()) return;
-      _snack('please type the confirmation exactly');
+    if (_textCtrl.text.trim() == 'I confirm') {
+      _completeStageSuccess();
+      return;
     }
+    _registerWrongAttempt();
+    _snack('please type the confirmation exactly');
   }
 
-  void _snack(String m) {
+  void _snack(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(m),
+        content: Text(message),
         backgroundColor: Colors.red.shade700,
         duration: const Duration(seconds: 2),
       ),
     );
   }
-
-  // ─── BUILD ─────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -235,15 +337,38 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (_step != _CaptchaStep.gate) _buildLivesBar(),
-                if (_step != _CaptchaStep.gate) const SizedBox(height: 12),
-                _buildStep(),
-              ],
+              children: [_buildStageHeader(), const SizedBox(height: 12), _buildStep()],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildStageHeader() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          'stage $_stageNumber of $_totalStages',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const Spacer(),
+        TextButton(
+          onPressed: _canSkipStage ? _skipStage : null,
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.white70,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          child: const Text('skip stage'),
+        ),
+      ],
     );
   }
 
@@ -252,17 +377,17 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
       case _CaptchaStep.gate:
         return _wrapCard(_buildGate());
       case _CaptchaStep.textCaptcha1:
-        return _wrapCard(_buildTextCaptcha(
-          assetPath: 'assets/captcha/text_1.png',
-          onVerify: _verifyText1,
-        ));
+        return _wrapCard(
+          _buildTextCaptcha(assetPath: 'assets/captcha/text_1.png', onVerify: _verifyText1),
+        );
       case _CaptchaStep.imageGrid:
         return _buildImageGrid();
       case _CaptchaStep.textCaptcha2:
-        return _wrapCard(_buildTextCaptcha(
-          assetPath: 'assets/captcha/text_2.png',
-          onVerify: _verifyText2,
-        ));
+        return _wrapCard(
+          _buildTextCaptcha(assetPath: 'assets/captcha/text_2.png', onVerify: _verifyText2),
+        );
+      case _CaptchaStep.trafficLightsGrid:
+        return _buildTrafficLightsGrid();
       case _CaptchaStep.matchFacing:
         return _wrapCard(_buildMatchFacing());
       case _CaptchaStep.matchFacing2:
@@ -272,28 +397,6 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
       case _CaptchaStep.confirmHuman:
         return _wrapCard(_buildConfirmHuman());
     }
-  }
-
-  Widget _buildLivesBar() {
-    return Row(
-      children: [
-        Icon(Icons.favorite, color: Colors.red.shade400, size: 22),
-        const SizedBox(width: 8),
-        Text(
-          '$_lives',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          _lives == 1 ? 'life left' : 'lives left',
-          style: TextStyle(color: Colors.white70, fontSize: 14),
-        ),
-      ],
-    );
   }
 
   Widget _wrapCard(Widget child) {
@@ -308,29 +411,20 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
     );
   }
 
-  // ─── GATE ──────────────────────────────────────────────
-
   Widget _buildGate() {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         const Text(
           'before you continue!',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
         ),
         const SizedBox(height: 24),
         GestureDetector(
           onTap: _gateTap,
           child: Container(
             padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-            ),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -365,12 +459,7 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
     );
   }
 
-  // ─── TEXT CAPTCHA (uses actual images) ─────────────────
-
-  Widget _buildTextCaptcha({
-    required String assetPath,
-    required VoidCallback onVerify,
-  }) {
+  Widget _buildTextCaptcha({required String assetPath, required VoidCallback onVerify}) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -386,21 +475,13 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(4),
-            child: Image.asset(
-              assetPath,
-              fit: BoxFit.contain,
-              width: double.infinity,
-            ),
+            child: Image.asset(assetPath, fit: BoxFit.contain, width: double.infinity),
           ),
         ),
         const SizedBox(height: 16),
         TextField(
           controller: _textCtrl,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            letterSpacing: 2,
-          ),
+          style: const TextStyle(color: Colors.white, fontSize: 18, letterSpacing: 2),
           textCapitalization: TextCapitalization.none,
           autocorrect: false,
           decoration: InputDecoration(
@@ -408,137 +489,186 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
             hintStyle: TextStyle(color: Colors.grey.shade500),
             filled: true,
             fillColor: Colors.black38,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
         const SizedBox(height: 12),
         Align(
           alignment: Alignment.centerRight,
-          child: FilledButton(
-            onPressed: onVerify,
-            child: const Text('submit'),
-          ),
+          child: FilledButton(onPressed: onVerify, child: const Text('submit')),
         ),
       ],
     );
   }
 
-  // ─── IMAGE GRID (reCAPTCHA overlay on actual photo) ───
-
-  // Fractional positions of the 3x3 grid within the 546×818 image (calibrated to asset).
-  static const double _gridTopFrac = 200 / 818;
-  static const double _gridBottomFrac = 695 / 818;
-  static const double _gridLeftFrac = 18 / 546;
-  static const double _gridRightFrac = 520 / 546;
-  // VERIFY button area (blue chip, lower right)
-  static const double _verifyTopFrac = 728 / 818;
-  static const double _verifyBottomFrac = 790 / 818;
-  static const double _verifyLeftFrac = 369 / 546;
-  static const double _verifyRightFrac = 518 / 546;
-  static const double _imageAspect = 546 / 818;
+  // taxi grid image geometry (546 x 818)
+  static const double _taxiGridTopFrac = 200 / 818;
+  static const double _taxiGridBottomFrac = 695 / 818;
+  static const double _taxiGridLeftFrac = 18 / 546;
+  static const double _taxiGridRightFrac = 520 / 546;
+  static const double _taxiAspect = 546 / 818;
 
   Widget _buildImageGrid() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final w = constraints.maxWidth;
-        final h = w / _imageAspect;
-
-        final gridTop = h * _gridTopFrac;
-        final gridHeight = h * (_gridBottomFrac - _gridTopFrac);
-        final gridLeft = w * _gridLeftFrac;
-        final gridWidth = w * (_gridRightFrac - _gridLeftFrac);
-
+        final width = constraints.maxWidth;
+        final height = width / _taxiAspect;
+        final gridTop = height * _taxiGridTopFrac;
+        final gridHeight = height * (_taxiGridBottomFrac - _taxiGridTopFrac);
+        final gridLeft = width * _taxiGridLeftFrac;
+        final gridWidth = width * (_taxiGridRightFrac - _taxiGridLeftFrac);
         final cellW = gridWidth / 3;
         final cellH = gridHeight / 3;
 
-        return SizedBox(
-          width: w,
-          height: h,
-          child: Stack(
-            children: [
-              // Full reCAPTCHA image
-              Positioned.fill(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: Image.asset(
-                    'assets/captcha/grid_taxis.png',
-                    fit: BoxFit.fill,
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: width,
+              height: height,
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: Image.asset('assets/captcha/grid_taxis.png', fit: BoxFit.fill),
+                    ),
                   ),
-                ),
+                  for (var row = 0; row < 3; row++)
+                    for (var col = 0; col < 3; col++)
+                      _buildGridTileTap(
+                        selectedSet: _gridSelected,
+                        index: row * 3 + col,
+                        left: gridLeft + col * cellW,
+                        top: gridTop + row * cellH,
+                        width: cellW,
+                        height: cellH,
+                      ),
+                ],
               ),
-              // Selection overlays + tap targets for each tile
-              for (var row = 0; row < 3; row++)
-                for (var col = 0; col < 3; col++)
-                  _buildTileTap(
-                    index: row * 3 + col,
-                    left: gridLeft + col * cellW,
-                    top: gridTop + row * cellH,
-                    width: cellW,
-                    height: cellH,
-                  ),
-              // Transparent VERIFY tap target over the image's VERIFY button
-              Positioned(
-                top: h * _verifyTopFrac,
-                left: w * _verifyLeftFrac,
-                width: w * (_verifyRightFrac - _verifyLeftFrac),
-                height: h * (_verifyBottomFrac - _verifyTopFrac),
-                child: GestureDetector(
-                  onTap: _gridSelected.isEmpty ? null : _verifyGrid,
-                  child: Container(color: Colors.transparent),
-                ),
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton(
+                onPressed: _gridSelected.isEmpty ? null : _verifyGrid,
+                child: const Text('submit'),
               ),
-            ],
-          ),
+            ),
+          ],
         );
       },
     );
   }
 
-  Widget _buildTileTap({
+  // traffic lights asset is a cropped 768 x 1024 screenshot without the footer strip.
+  static const double _trafficNaturalW = 768;
+  static const double _trafficNaturalH = 1024;
+  static const double _trafficGridTopFrac = 282 / 1024;
+  static const double _trafficGridBottomFrac = 1012 / 1024;
+  static const double _trafficGridLeftFrac = 17 / 768;
+  static const double _trafficGridRightFrac = 751 / 768;
+
+  Widget _buildTrafficLightsGrid() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final fullImageH = width * _trafficNaturalH / _trafficNaturalW;
+        final gridTop = fullImageH * _trafficGridTopFrac;
+        final gridHeight = fullImageH * (_trafficGridBottomFrac - _trafficGridTopFrac);
+        final gridLeft = width * _trafficGridLeftFrac;
+        final gridWidth = width * (_trafficGridRightFrac - _trafficGridLeftFrac);
+        final cellW = gridWidth / 4;
+        final cellH = gridHeight / 4;
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: SizedBox(
+                width: width,
+                height: fullImageH,
+                child: Stack(
+                  clipBehavior: Clip.hardEdge,
+                  children: [
+                    Align(
+                      alignment: Alignment.topCenter,
+                      child: SizedBox(
+                        width: width,
+                        height: fullImageH,
+                        child: Image.asset(
+                          'assets/captcha/grid_traffic_lights.png',
+                          fit: BoxFit.fill,
+                        ),
+                      ),
+                    ),
+                    for (var row = 0; row < 4; row++)
+                      for (var col = 0; col < 4; col++)
+                        _buildGridTileTap(
+                          selectedSet: _trafficSelected,
+                          index: row * 4 + col,
+                          left: gridLeft + col * cellW,
+                          top: gridTop + row * cellH,
+                          width: cellW,
+                          height: cellH,
+                        ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton(
+                onPressed: _trafficSelected.isEmpty ? null : _verifyTrafficGrid,
+                child: const Text('submit'),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildGridTileTap({
+    required Set<int> selectedSet,
     required int index,
     required double left,
     required double top,
     required double width,
     required double height,
   }) {
-    final selected = _gridSelected.contains(index);
+    final selected = selectedSet.contains(index);
     return Positioned(
       left: left,
       top: top,
       width: width,
       height: height,
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: () {
+          if (_isFinished) return;
           setState(() {
             if (selected) {
-              _gridSelected.remove(index);
+              selectedSet.remove(index);
             } else {
-              _gridSelected.add(index);
+              selectedSet.add(index);
             }
           });
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           decoration: BoxDecoration(
-            color: selected
-                ? const Color(0xFF4285F4).withValues(alpha: 0.4)
-                : Colors.transparent,
-            border: selected
-                ? Border.all(color: const Color(0xFF4285F4), width: 3)
-                : null,
+            color: selected ? const Color(0xFF4285F4).withValues(alpha: 0.4) : Colors.transparent,
+            border: selected ? Border.all(color: const Color(0xFF4285F4), width: 3) : null,
           ),
           child: selected
               ? const Align(
                   alignment: Alignment.bottomRight,
                   child: Padding(
                     padding: EdgeInsets.all(4),
-                    child: Icon(
-                      Icons.check_circle,
-                      color: Colors.white,
-                      size: 24,
-                    ),
+                    child: Icon(Icons.check_circle, color: Colors.white, size: 24),
                   ),
                 )
               : null,
@@ -547,8 +677,7 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
     );
   }
 
-  // ─── MATCH FACING (hand reference + rotatable animal) ─
-
+  // --- Match facing ---
   static const Color _floorGreen = Color(0xFF1A3D2E);
   static const Color _floorGreenLight = Color(0xFF244A38);
 
@@ -572,10 +701,7 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
                 floorB: _floorGreenLight,
                 child: Transform.rotate(
                   angle: _targetFacing * (pi / 4),
-                  child: CustomPaint(
-                    size: const Size(88, 88),
-                    painter: _HandPointerPainter(),
-                  ),
+                  child: CustomPaint(size: const Size(88, 88), painter: _HandPointerPainter()),
                 ),
               ),
             ),
@@ -590,21 +716,14 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
                   children: [
                     Transform.rotate(
                       angle: _animalFacing * (pi / 4),
-                      child: CustomPaint(
-                        size: const Size(88, 88),
-                        painter: _DogFacingPainter(),
-                      ),
+                      child: CustomPaint(size: const Size(88, 88), painter: _DogFacingPainter()),
                     ),
                     const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         IconButton.filled(
-                          onPressed: () {
-                            setState(
-                              () => _animalFacing = (_animalFacing + 7) % 8,
-                            );
-                          },
+                          onPressed: () => setState(() => _animalFacing = (_animalFacing + 7) % 8),
                           icon: const Icon(Icons.arrow_back),
                           style: IconButton.styleFrom(
                             backgroundColor: Colors.white24,
@@ -612,11 +731,7 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
                           ),
                         ),
                         IconButton.filled(
-                          onPressed: () {
-                            setState(
-                              () => _animalFacing = (_animalFacing + 1) % 8,
-                            );
-                          },
+                          onPressed: () => setState(() => _animalFacing = (_animalFacing + 1) % 8),
                           icon: const Icon(Icons.arrow_forward),
                           style: IconButton.styleFrom(
                             backgroundColor: Colors.white24,
@@ -634,16 +749,11 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
         const SizedBox(height: 18),
         SizedBox(
           width: double.infinity,
-          child: FilledButton(
-            onPressed: _verifyMatchFacing,
-            child: const Text('submit'),
-          ),
+          child: FilledButton(onPressed: _verifyMatchFacing, child: const Text('submit')),
         ),
       ],
     );
   }
-
-  // ─── MATCH FACING 2 (arrow + cat) ─────────────────────
 
   Widget _buildMatchFacing2() {
     return Column(
@@ -665,10 +775,7 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
                 floorB: _floorGreenLight,
                 child: Transform.rotate(
                   angle: _targetFacing * (pi / 4),
-                  child: CustomPaint(
-                    size: const Size(88, 88),
-                    painter: _ArrowPainter(),
-                  ),
+                  child: CustomPaint(size: const Size(88, 88), painter: _ArrowPainter()),
                 ),
               ),
             ),
@@ -683,21 +790,14 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
                   children: [
                     Transform.rotate(
                       angle: _animalFacing * (pi / 4),
-                      child: CustomPaint(
-                        size: const Size(88, 88),
-                        painter: _CatFacingPainter(),
-                      ),
+                      child: CustomPaint(size: const Size(88, 88), painter: _CatFacingPainter()),
                     ),
                     const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         IconButton.filled(
-                          onPressed: () {
-                            setState(
-                              () => _animalFacing = (_animalFacing + 7) % 8,
-                            );
-                          },
+                          onPressed: () => setState(() => _animalFacing = (_animalFacing + 7) % 8),
                           icon: const Icon(Icons.arrow_back),
                           style: IconButton.styleFrom(
                             backgroundColor: Colors.white24,
@@ -705,11 +805,7 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
                           ),
                         ),
                         IconButton.filled(
-                          onPressed: () {
-                            setState(
-                              () => _animalFacing = (_animalFacing + 1) % 8,
-                            );
-                          },
+                          onPressed: () => setState(() => _animalFacing = (_animalFacing + 1) % 8),
                           icon: const Icon(Icons.arrow_forward),
                           style: IconButton.styleFrom(
                             backgroundColor: Colors.white24,
@@ -727,50 +823,59 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
         const SizedBox(height: 18),
         SizedBox(
           width: double.infinity,
-          child: FilledButton(
-            onPressed: _verifyMatchFacing2,
-            child: const Text('submit'),
-          ),
+          child: FilledButton(onPressed: _verifyMatchFacing2, child: const Text('submit')),
         ),
       ],
     );
   }
-
-  // ─── DEATH TO ALL HUMANS (distorted text captcha) ─────
 
   Widget _buildDeathToHumans() {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         const Text(
-          'type the characters you see',
-          style: TextStyle(color: Colors.white70, fontSize: 14),
+          'additional security check',
+          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.white24),
+          ),
+          child: const Text(
+            'to confirm you are not a robot,\nplease type the following phrase exactly as shown:',
+            style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
+            textAlign: TextAlign.center,
+          ),
         ),
         const SizedBox(height: 12),
         Container(
-          height: 100,
           width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: Colors.grey.shade600),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey.shade400),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: CustomPaint(
-              painter: _DistortedTextPainter('DEATH TO ALL HUMANS'),
-              child: const SizedBox.expand(),
+          child: const Text(
+            'DEATH TO ALL HUMANS',
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1,
             ),
+            textAlign: TextAlign.center,
           ),
         ),
         const SizedBox(height: 16),
         TextField(
           controller: _textCtrl,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            letterSpacing: 2,
-          ),
+          style: const TextStyle(color: Colors.white, fontSize: 18, letterSpacing: 1),
           textCapitalization: TextCapitalization.none,
           autocorrect: false,
           decoration: InputDecoration(
@@ -778,24 +883,17 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
             hintStyle: TextStyle(color: Colors.grey.shade500),
             filled: true,
             fillColor: Colors.black38,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
         const SizedBox(height: 12),
         Align(
           alignment: Alignment.centerRight,
-          child: FilledButton(
-            onPressed: _verifyDeathToHumans,
-            child: const Text('submit'),
-          ),
+          child: FilledButton(onPressed: _verifyDeathToHumans, child: const Text('submit')),
         ),
       ],
     );
   }
-
-  // ─── CONFIRM HUMAN ────────────────────────────────────
 
   Widget _buildConfirmHuman() {
     return Column(
@@ -803,11 +901,7 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
       children: [
         const Text(
           'final verification',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
         Container(
@@ -836,11 +930,7 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
         const SizedBox(height: 12),
         TextField(
           controller: _textCtrl,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            letterSpacing: 1,
-          ),
+          style: const TextStyle(color: Colors.white, fontSize: 18, letterSpacing: 1),
           textCapitalization: TextCapitalization.none,
           autocorrect: false,
           decoration: InputDecoration(
@@ -848,18 +938,13 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
             hintStyle: TextStyle(color: Colors.grey.shade500),
             filled: true,
             fillColor: Colors.black38,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
         const SizedBox(height: 12),
         Align(
           alignment: Alignment.centerRight,
-          child: FilledButton(
-            onPressed: _verifyConfirmHuman,
-            child: const Text('submit'),
-          ),
+          child: FilledButton(onPressed: _verifyConfirmHuman, child: const Text('submit')),
         ),
       ],
     );
@@ -949,43 +1034,110 @@ class _DiamondFloorPainter extends CustomPainter {
       oldDelegate.colorA != colorA || oldDelegate.colorB != colorB;
 }
 
-/// Simple hand with index finger pointing to the right (+x); rotated by parent.
+/// Pointing hand whose index finger points in the +x direction (right).
+/// Rotated by parent. Drawn with a dark wrist cuff at the back, knuckle bumps,
+/// a thumb, an extended index finger, and a bright fingertip tip indicator so
+/// the facing direction is unambiguous.
 class _HandPointerPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final cx = size.width * 0.45;
-    final cy = size.height * 0.52;
-    final skin = const Color(0xFFE8D5C4);
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    const skin = Color(0xFFE8D5C4);
+    const skinShade = Color(0xFFCDB298);
+    const cuff = Color(0xFF4A6E9E);
     final outline = Paint()
-      ..color = const Color(0xFF8B7355).withValues(alpha: 0.35)
+      ..color = const Color(0xFF7A5C3A).withValues(alpha: 0.85)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2;
+      ..strokeWidth = 1.4
+      ..strokeJoin = StrokeJoin.round;
 
-    final palm = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromCenter(
-            center: Offset(cx - 6, cy + 4),
-            width: size.width * 0.38,
-            height: size.height * 0.22,
-          ),
-          const Radius.circular(6),
-        ),
-      );
-    canvas.drawPath(
-      palm,
-      Paint()..color = skin,
+    final fillSkin = Paint()..color = skin;
+    final fillCuff = Paint()..color = cuff;
+    final fillShade = Paint()..color = skinShade;
+
+    // Wrist cuff at the back (-x side) — a colored band identifies orientation.
+    final cuffRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(
+        center: Offset(cx - 26, cy + 1),
+        width: 16,
+        height: 26,
+      ),
+      const Radius.circular(3),
     );
-    canvas.drawPath(palm, outline);
+    canvas.drawRRect(cuffRect, fillCuff);
+    canvas.drawRRect(
+      cuffRect,
+      Paint()
+        ..color = const Color(0xFF2E4B6B)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.4,
+    );
 
-    final finger = Path()
-      ..moveTo(cx + 2, cy - 4)
-      ..quadraticBezierTo(cx + 28, cy - 18, cx + 36, cy - 6)
-      ..lineTo(cx + 34, cy + 2)
-      ..quadraticBezierTo(cx + 22, cy - 8, cx + 4, cy + 6)
+    // Closed fist / palm.
+    final fist = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: Offset(cx - 8, cy + 2), width: 28, height: 30),
+      const Radius.circular(8),
+    );
+    canvas.drawRRect(fist, fillSkin);
+    canvas.drawRRect(fist, outline);
+
+    // Thumb — points up and slightly forward, anchors orientation.
+    final thumb = Path()
+      ..moveTo(cx - 16, cy - 8)
+      ..quadraticBezierTo(cx - 12, cy - 22, cx - 2, cy - 18)
+      ..quadraticBezierTo(cx + 2, cy - 10, cx - 4, cy - 6)
       ..close();
-    canvas.drawPath(finger, Paint()..color = skin);
-    canvas.drawPath(finger, outline);
+    canvas.drawPath(thumb, fillSkin);
+    canvas.drawPath(thumb, outline);
+
+    // Index finger — long, extending in +x.
+    final finger = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: Offset(cx + 16, cy - 4), width: 32, height: 12),
+      const Radius.circular(6),
+    );
+    canvas.drawRRect(finger, fillSkin);
+    canvas.drawRRect(finger, outline);
+
+    // Knuckle bump where the finger meets the fist.
+    canvas.drawCircle(Offset(cx + 2, cy - 4), 3, fillShade);
+
+    // Curled second/third/fourth finger ridges along the front of the fist.
+    for (var i = 0; i < 3; i++) {
+      canvas.drawCircle(
+        Offset(cx + 4, cy + 2 + i * 6.0),
+        2.2,
+        fillShade,
+      );
+    }
+
+    // Fingernail highlight near the tip.
+    final nail = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: Offset(cx + 26, cy - 4), width: 6, height: 7),
+      const Radius.circular(2),
+    );
+    canvas.drawRRect(
+      nail,
+      Paint()..color = const Color(0xFFFFF3E2),
+    );
+
+    // Bright tip marker in front of the fingertip — strongest direction cue.
+    final tipPath = Path()
+      ..moveTo(cx + 32, cy - 4)
+      ..lineTo(cx + 40, cy - 9)
+      ..lineTo(cx + 40, cy + 1)
+      ..close();
+    canvas.drawPath(
+      tipPath,
+      Paint()..color = const Color(0xFFE55CD8),
+    );
+    canvas.drawPath(
+      tipPath,
+      Paint()
+        ..color = const Color(0xFF7A1F73)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2,
+    );
   }
 
   @override
@@ -1092,24 +1244,27 @@ class _CatFacingPainter extends CustomPainter {
       ..strokeWidth = 1.2;
 
     final body = Path()
-      ..addOval(Rect.fromCenter(
-        center: Offset(cx - 4, cy + 2),
-        width: size.width * 0.40,
-        height: size.height * 0.24,
-      ));
+      ..addOval(
+        Rect.fromCenter(
+          center: Offset(cx - 4, cy + 2),
+          width: size.width * 0.40,
+          height: size.height * 0.24,
+        ),
+      );
     canvas.drawPath(body, Paint()..color = fur);
     canvas.drawPath(body, outline);
 
     final head = Path()
-      ..addOval(Rect.fromCenter(
-        center: Offset(cx + 16, cy - 6),
-        width: size.width * 0.28,
-        height: size.height * 0.24,
-      ));
+      ..addOval(
+        Rect.fromCenter(
+          center: Offset(cx + 16, cy - 6),
+          width: size.width * 0.28,
+          height: size.height * 0.24,
+        ),
+      );
     canvas.drawPath(head, Paint()..color = fur);
     canvas.drawPath(head, outline);
 
-    // Pointy ears
     final earL = Path()
       ..moveTo(cx + 6, cy - 16)
       ..lineTo(cx + 4, cy - 30)
@@ -1126,7 +1281,6 @@ class _CatFacingPainter extends CustomPainter {
     canvas.drawPath(earR, Paint()..color = const Color(0xFF6B6B6B));
     canvas.drawPath(earR, outline);
 
-    // Tail curving up from the back
     final tail = Paint()
       ..color = fur
       ..style = PaintingStyle.stroke
@@ -1140,74 +1294,4 @@ class _CatFacingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-/// Draws distorted CAPTCHA-style text with noise lines and character jitter.
-class _DistortedTextPainter extends CustomPainter {
-  _DistortedTextPainter(this.text);
-  final String text;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rng = Random(42);
-
-    // Background noise lines
-    final noisePaint = Paint()
-      ..color = Colors.grey.shade400
-      ..strokeWidth = 1.0;
-    for (var i = 0; i < 8; i++) {
-      canvas.drawLine(
-        Offset(rng.nextDouble() * size.width, rng.nextDouble() * size.height),
-        Offset(rng.nextDouble() * size.width, rng.nextDouble() * size.height),
-        noisePaint,
-      );
-    }
-
-    // Draw each character with jitter
-    final charWidth = size.width / (text.length + 2);
-    for (var i = 0; i < text.length; i++) {
-      final tp = TextPainter(
-        text: TextSpan(
-          text: text[i],
-          style: TextStyle(
-            fontSize: 22 + rng.nextDouble() * 6,
-            fontWeight: FontWeight.bold,
-            color: Color.fromRGBO(
-              30 + rng.nextInt(60),
-              30 + rng.nextInt(60),
-              30 + rng.nextInt(60),
-              1,
-            ),
-            fontFamily: 'monospace',
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-
-      canvas.save();
-      final x = charWidth * (i + 1);
-      final y = size.height / 2 - tp.height / 2 + (rng.nextDouble() - 0.5) * 14;
-      canvas.translate(x, y);
-      canvas.rotate((rng.nextDouble() - 0.5) * 0.3);
-      tp.paint(canvas, Offset.zero);
-      canvas.restore();
-    }
-
-    // Strikethrough lines
-    final strikePaint = Paint()
-      ..color = Colors.grey.shade500.withValues(alpha: 0.6)
-      ..strokeWidth = 1.5;
-    for (var i = 0; i < 3; i++) {
-      final y = size.height * (0.3 + rng.nextDouble() * 0.4);
-      canvas.drawLine(
-        Offset(0, y + rng.nextDouble() * 10),
-        Offset(size.width, y + rng.nextDouble() * 10),
-        strikePaint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DistortedTextPainter oldDelegate) =>
-      oldDelegate.text != text;
 }
