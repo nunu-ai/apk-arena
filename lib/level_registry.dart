@@ -61,6 +61,7 @@ import 'package:apk_arena/widgets/levels/level_reactor_stabilization.dart';
 import 'package:apk_arena/widgets/levels/level_rhythm.dart';
 import 'package:apk_arena/widgets/levels/level_royal_match.dart';
 import 'package:apk_arena/widgets/levels/level_rush_hour.dart';
+import 'package:apk_arena/widgets/levels/level_tiny_factory.dart';
 import 'package:apk_arena/widgets/levels/level_tower_defense.dart';
 import 'package:apk_arena/widgets/levels/level_scroll_mastery.dart';
 import 'package:apk_arena/widgets/levels/level_sequence_memory.dart';
@@ -95,7 +96,6 @@ import 'package:apk_arena/widgets/levels/level_woodoku.dart';
 import 'package:apk_arena/widgets/levels/level_scrabble.dart';
 import 'package:apk_arena/widgets/levels/level_scrabble_hard.dart';
 import 'package:apk_arena/widgets/levels/level_signup_gauntlet.dart';
-import 'package:apk_arena/widgets/levels/level_space_colony_tycoon.dart';
 
 import '../models/level_data.dart';
 import '../models/level_outcome.dart';
@@ -220,16 +220,6 @@ final List<LevelEntry> gamesLevels = [
   ),
   LevelEntry(
     data: LevelData(
-      title: "vacuum homestead",
-      instructions:
-          "clear the tutorial, then earn as much space money as possible.",
-      timeLimit: Duration(hours: 1),
-    ),
-    widgetBuilder: (onComplete) =>
-        LevelSpaceColonyTycoon(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
       title: "traffic jam",
       instructions:
       "clear all rush hour jams.",
@@ -246,6 +236,15 @@ final List<LevelEntry> gamesLevels = [
     ),
     widgetBuilder: (onComplete) =>
         LevelTowerDefense(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "tiny factory",
+      instructions:
+          "build a factory. mine ore, route belts, fill the hub's orders. 30 minutes.",
+      timeLimit: Duration(minutes: 30),
+    ),
+    widgetBuilder: (onComplete) => LevelTinyFactory(onComplete: onComplete),
   ),
 ];
 final List<LevelEntry> tasksLevels = [
