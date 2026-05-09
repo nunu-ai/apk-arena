@@ -179,6 +179,14 @@ final List<LevelEntry> visionLevels = [
     ),
     widgetBuilder: (onComplete) => LevelCaptcha(onComplete: onComplete),
   ),
+  LevelEntry(
+    data: LevelData(
+      title: "Spot the Bug",
+      instructions:
+          "Compare the Reference Design with the Production Build. Are they the same or different?",
+    ),
+    widgetBuilder: (onComplete) => LevelSpotDifference(onComplete: onComplete),
+  ),
 ];
 final List<LevelEntry> memoryLevels = [
   LevelEntry(
@@ -252,6 +260,30 @@ final List<LevelEntry> tempospatialLevels = [
     ),
     widgetBuilder: (onComplete) => LevelDoubleMaze(onComplete: onComplete),
   ),
+  LevelEntry(
+    data: LevelData(
+      title: "Sequence Memory",
+      instructions: "memorize and repeat the sequence.",
+      timeLimit: Duration(hours: 1),
+    ),
+    widgetBuilder: (onComplete) => LevelSequenceMemory(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Space Collector",
+      instructions:
+          "explore the map, collect every coin, then tap done.",
+    ),
+    widgetBuilder: (onComplete) => LevelCoinCollector(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "reflex arena",
+      instructions:
+          "whack the moles! 5 minutes — they get faster every minute.",
+    ),
+    widgetBuilder: (onComplete) => LevelWhackAMole(onComplete: onComplete),
+  ),
 ];
 final List<LevelEntry> gamesLevels = [
   LevelEntry(
@@ -318,14 +350,6 @@ final List<LevelEntry> unsortedLevels = [
   ),
   LevelEntry(
     data: LevelData(
-      title: "Spot the Bug",
-      instructions:
-          "Compare the Reference Design with the Production Build. Are they the same or different?",
-    ),
-    widgetBuilder: (onComplete) => LevelSpotDifference(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
       title: "Coordinate Clicker",
       instructions:
           "Click the object at the given (row, column) three times in a row! (1,1) is bottom-left!",
@@ -368,13 +392,6 @@ final List<LevelEntry> unsortedLevels = [
       instructions: "Explore the galaxy and count all the gold coins!",
     ),
     widgetBuilder: (onComplete) => LevelCoinMap(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "Space Collector",
-      instructions: "Collect all coins and enter the total count!",
-    ),
-    widgetBuilder: (onComplete) => LevelCoinCollector(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
@@ -654,13 +671,6 @@ final List<LevelEntry> unsortedLevels = [
   ),
   LevelEntry(
     data: LevelData(
-      title: "Sequence Memory",
-      instructions: "Memorize and repeat the sequence!",
-    ),
-    widgetBuilder: (onComplete) => LevelSequenceMemory(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
       title: "Place the Cards",
       instructions: "Solve this card puzzle",
     ),
@@ -770,13 +780,6 @@ final List<LevelEntry> unsortedLevels = [
       instructions: "collect all the coins.",
     ),
     widgetBuilder: (onComplete) => LevelFpsCollector(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "reflex arena",
-      instructions: "whack the moles! 30 seconds on the clock.",
-    ),
-    widgetBuilder: (onComplete) => LevelWhackAMole(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(

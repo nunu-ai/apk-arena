@@ -23,7 +23,7 @@ enum ModificationType {
   legacyCustId,
   legacyExtraTab,
   legacyIcon,
-  legacyAmount,
+  legacyServer,
   legacyVersion,
   // mission control (animated)
   missionNameTypo,
@@ -115,7 +115,7 @@ class _LevelSpotDifferenceState extends State<LevelSpotDifference> {
     ModificationType.legacyCustId,
     ModificationType.legacyExtraTab,
     ModificationType.legacyIcon,
-    ModificationType.legacyAmount,
+    ModificationType.legacyServer,
     ModificationType.legacyVersion,
   };
   static const Set<ModificationType> _missionDiffs = {
@@ -225,12 +225,19 @@ class _LevelSpotDifferenceState extends State<LevelSpotDifference> {
     });
     final s1 = _binaryS1Correct / _binaryRoundsPerStage;
     final s2 = _binaryS2Correct / _binaryRoundsPerStage;
+    // For find-all stages: misclicks subtract a found, BUT each found diff
+    // guarantees at least 1% of the total score (= 4% of the stage's score,
+    // since each stage contributes 25% to the total).
     final s3Net = (_legacyFound.length - _legacyMisclicks)
         .clamp(0, _legacyDiffs.length);
-    final s3 = s3Net / _legacyDiffs.length;
+    final s3FromNet = s3Net / _legacyDiffs.length;
+    final s3Floor = (0.04 * _legacyFound.length).clamp(0.0, 1.0);
+    final s3 = math.max(s3FromNet, s3Floor);
     final s4Net = (_missionFound.length - _missionMisclicks)
         .clamp(0, _missionDiffs.length);
-    final s4 = s4Net / _missionDiffs.length;
+    final s4FromNet = s4Net / _missionDiffs.length;
+    final s4Floor = (0.04 * _missionFound.length).clamp(0.0, 1.0);
+    final s4 = math.max(s4FromNet, s4Floor);
     final score = (s1 + s2 + s3 + s4) / _superStageCount;
     widget.onComplete(
       LevelOutcome(
@@ -499,7 +506,7 @@ class _LevelSpotDifferenceState extends State<LevelSpotDifference> {
           ),
           const SizedBox(height: 2),
           Text(
-            misses == 1 ? "MISS" : "MISSES",
+            "MISSES",
             style: TextStyle(
               color: isHot ? NunuColors.errorMain : Colors.white38,
               fontSize: 8,
@@ -1368,14 +1375,11 @@ class _LegacyScreen extends StatelessWidget {
                           status: "OK ",
                           info: Text("#00831 SHIPPED"),
                         ),
-                        _LogRow(
+                        const _LogRow(
                           date: "2024-11-02",
                           action: "PAYMENT",
                           status: "ERR",
-                          info: _wrap(
-                            Text(isProd ? "\$128.05" : "\$128.50"),
-                            ModificationType.legacyAmount,
-                          ),
+                          info: Text("\$128.50"),
                           isError: true,
                         ),
                         const _LogRow(
@@ -1413,7 +1417,20 @@ class _LegacyScreen extends StatelessWidget {
                 const SizedBox(width: 4),
                 const _Mono(text: "Connected", fontSize: 9),
                 const _StatusSep(),
-                const _Mono(text: "Server: PROD-03", fontSize: 9),
+                // Only the host name (PROD-03 / DEV-03) is tappable.
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const _Mono(text: "Server: ", fontSize: 9),
+                    _wrap(
+                      _Mono(
+                        text: isProd ? "DEV-03" : "PROD-03",
+                        fontSize: 9,
+                      ),
+                      ModificationType.legacyServer,
+                    ),
+                  ],
+                ),
                 const _StatusSep(),
                 const _Mono(text: "DB: ACME01", fontSize: 9),
                 const Spacer(),
@@ -2058,6 +2075,8 @@ class _MissionControlScreenState extends State<_MissionControlScreen>
                     isProd ? _amber : _green,
                     animation: _led,
                     diff: ModificationType.missionLedColor,
+                    // Both the dot and label colour change → whole unit is the diff.
+                    wrapEntireIndicator: true,
                   ),
                   _ledIndicator("COMMS", _green, animation: _led),
                   _ledIndicator(
@@ -2238,13 +2257,15 @@ class _MissionControlScreenState extends State<_MissionControlScreen>
     );
   }
 
-  // The dot animates from `animation`. The label stays static. When `diff` is
-  // provided, only the dot is tappable (with a 16×16 hit area for usability).
+  // The dot animates from `animation`. By default, when `diff` is provided
+  // only the dot is tappable. Set `wrapEntireIndicator: true` when the label
+  // also reflects the difference (e.g. GUIDANCE's color affects both).
   Widget _ledIndicator(
     String label,
     Color color, {
     required Animation<double> animation,
     ModificationType? diff,
+    bool wrapEntireIndicator = false,
   }) {
     Widget dot = SizedBox(
       width: 16,
@@ -2273,10 +2294,10 @@ class _MissionControlScreenState extends State<_MissionControlScreen>
         ),
       ),
     );
-    if (diff != null) {
+    if (diff != null && !wrapEntireIndicator) {
       dot = _wrap(dot, diff);
     }
-    return Row(
+    Widget result = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         dot,
@@ -2293,6 +2314,10 @@ class _MissionControlScreenState extends State<_MissionControlScreen>
         ),
       ],
     );
+    if (diff != null && wrapEntireIndicator) {
+      result = _wrap(result, diff);
+    }
+    return result;
   }
 
   Widget _gaugeBar(String label, double value, Color color) {

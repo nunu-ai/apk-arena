@@ -16,9 +16,20 @@ class LevelWhackAMole extends LevelWidget {
 class _LevelWhackAMoleState extends State<LevelWhackAMole> {
   static const int _rows = 4;
   static const int _cols = 4;
-  static const int _timeLimitSeconds = 30;
-  static const Duration _moleLifetime = Duration(milliseconds: 1800);
+  static const int _timeLimitSeconds = 300; // 5 minutes
   static const Duration _spawnInterval = Duration(milliseconds: 900);
+
+  // Mole lifetime curve: (elapsed_seconds, lifetime_seconds).
+  // Linearly interpolated between waypoints. Past the last point we hold
+  // the final value (0.5s) until the run ends.
+  static const List<List<double>> _lifetimeCurve = [
+    [0, 10.0],
+    [60, 5.0],
+    [120, 2.5],
+    [180, 1.75],
+    [240, 1.0],
+    [300, 0.5],
+  ];
 
   Timer? _gameTimer;
   Timer? _spawnTimer;
@@ -26,17 +37,13 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
   bool _started = false;
   bool _done = false;
 
-  // Track active moles: cell index -> spawn timestamp
   final Map<int, DateTime> _activeMoles = {};
-  // Track scheduled removals
   final Map<int, Timer> _removalTimers = {};
 
   int _hits = 0;
-  int _missed = 0; // moles that expired without being whacked
+  int _missed = 0;
   int _totalSpawned = 0;
-  double _totalReactionMs = 0;
 
-  // Whack feedback
   int? _lastWhackedIndex;
   Timer? _whackFeedbackTimer;
 
@@ -53,9 +60,37 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
     super.dispose();
   }
 
+  Duration _currentMoleLifetime() {
+    final elapsed = (_timeLimitSeconds - _secondsRemaining)
+        .clamp(0, _timeLimitSeconds)
+        .toDouble();
+    // Before the first keyframe.
+    if (elapsed <= _lifetimeCurve.first[0]) {
+      return Duration(
+          milliseconds: (_lifetimeCurve.first[1] * 1000).round());
+    }
+    // Past the last keyframe — hold the final value.
+    if (elapsed >= _lifetimeCurve.last[0]) {
+      return Duration(
+          milliseconds: (_lifetimeCurve.last[1] * 1000).round());
+    }
+    for (int i = 0; i < _lifetimeCurve.length - 1; i++) {
+      final t0 = _lifetimeCurve[i][0];
+      final t1 = _lifetimeCurve[i + 1][0];
+      if (elapsed >= t0 && elapsed <= t1) {
+        final frac = (elapsed - t0) / (t1 - t0);
+        final lifeSec = _lifetimeCurve[i][1] +
+            (_lifetimeCurve[i + 1][1] - _lifetimeCurve[i][1]) * frac;
+        return Duration(milliseconds: (lifeSec * 1000).round());
+      }
+    }
+    return Duration(
+        milliseconds: (_lifetimeCurve.last[1] * 1000).round());
+  }
+
   void _startGame() {
-    if (_started) return;
-    _started = true;
+    if (_started || _done) return;
+    setState(() => _started = true);
 
     _gameTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
@@ -72,7 +107,6 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
   void _spawnMole() {
     if (_done || !mounted) return;
 
-    // Find an empty cell
     final occupied = _activeMoles.keys.toSet();
     final available = <int>[];
     for (int i = 0; i < _rows * _cols; i++) {
@@ -87,9 +121,9 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
       _activeMoles[pos] = DateTime.now();
     });
 
-    // Schedule auto-removal
+    final lifetime = _currentMoleLifetime();
     _removalTimers[pos]?.cancel();
-    _removalTimers[pos] = Timer(_moleLifetime, () {
+    _removalTimers[pos] = Timer(lifetime, () {
       if (_activeMoles.containsKey(pos) && mounted) {
         setState(() {
           _activeMoles.remove(pos);
@@ -100,20 +134,14 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
   }
 
   void _whack(int pos) {
-    if (!_started) _startGame();
-    if (_done) return;
+    if (!_started || _done) return;
 
     if (_activeMoles.containsKey(pos)) {
-      final spawnTime = _activeMoles[pos]!;
-      final reactionMs =
-          DateTime.now().difference(spawnTime).inMilliseconds.toDouble();
-      _totalReactionMs += reactionMs;
       _hits++;
       _activeMoles.remove(pos);
       _removalTimers[pos]?.cancel();
       _removalTimers.remove(pos);
 
-      // Visual feedback
       _lastWhackedIndex = pos;
       _whackFeedbackTimer?.cancel();
       _whackFeedbackTimer = Timer(const Duration(milliseconds: 300), () {
@@ -134,19 +162,21 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
       t.cancel();
     }
 
-    final avgReaction = _hits > 0 ? (_totalReactionMs / _hits).round() : 0;
-    final accuracy =
-        _totalSpawned > 0 ? (_hits / _totalSpawned * 100) : 0.0;
-    final success = _hits >= 1;
+    final score = _totalSpawned > 0 ? _hits / _totalSpawned : 0.0;
 
     Future.delayed(const Duration(milliseconds: 400), () {
-      widget.onComplete(LevelOutcome(score: success ? 1 : 0, metrics: {
-        'score': _hits,
-        'accuracy': '${accuracy.toStringAsFixed(1)}%',
-        'avg_reaction': '${avgReaction}ms',
-        'total_moles': _totalSpawned,
+      widget.onComplete(LevelOutcome(score: score, metrics: {
+        'hits': _hits,
+        'missed': _missed,
       }));
     });
+  }
+
+  String _formatTime(int seconds) {
+    final s = seconds.clamp(0, _timeLimitSeconds);
+    final m = s ~/ 60;
+    final r = s % 60;
+    return '$m:${r.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -161,18 +191,14 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
             const SizedBox(height: 8),
             _buildTimerBar(),
             const SizedBox(height: 16),
-            Expanded(child: _buildGrid()),
-            const SizedBox(height: 12),
-            _buildStats(),
-            const SizedBox(height: 8),
-            if (!_started)
-              const Text(
-                'tap any hole to start!',
-                style: TextStyle(
-                  color: NunuColors.textSecondary,
-                  fontSize: 14,
-                ),
+            Expanded(
+              child: Stack(
+                children: [
+                  _buildGrid(),
+                  if (!_started) _buildStartOverlay(),
+                ],
               ),
+            ),
             const SizedBox(height: 8),
           ],
         ),
@@ -181,17 +207,16 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
   }
 
   Widget _buildHeader() {
+    final lowTime = _started && _secondsRemaining <= 10;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          '${_secondsRemaining}s',
+          _formatTime(_secondsRemaining),
           style: TextStyle(
             fontSize: 36,
             fontWeight: FontWeight.bold,
-            color: _secondsRemaining <= 5
-                ? NunuColors.errorMain
-                : NunuColors.primaryMain,
+            color: lowTime ? NunuColors.errorMain : NunuColors.primaryMain,
           ),
         ),
         Container(
@@ -238,7 +263,7 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      pct < 0.2 ? NunuColors.errorMain : NunuColors.primaryMain,
+                      pct < 0.1 ? NunuColors.errorMain : NunuColors.primaryMain,
                       NunuColors.secondaryMain,
                     ],
                   ),
@@ -276,7 +301,7 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
                 final wasJustWhacked = _lastWhackedIndex == i;
 
                 return GestureDetector(
-                  onTap: () => _whack(i),
+                  onTap: _started && !_done ? () => _whack(i) : null,
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
                     decoration: BoxDecoration(
@@ -336,34 +361,67 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
     );
   }
 
-  Widget _buildStats() {
-    final avgReaction = _hits > 0 ? (_totalReactionMs / _hits).round() : 0;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _statChip('hits', '$_hits'),
-        _statChip('missed', '$_missed'),
-        _statChip('avg speed', '${avgReaction}ms'),
-      ],
+  Widget _buildStartOverlay() {
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+        decoration: BoxDecoration(
+          color: NunuColors.backgroundPaper.withOpacity(0.96),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: NunuColors.primaryMain, width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: NunuColors.primaryMain.withOpacity(0.4),
+              blurRadius: 24,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'ready?',
+              style: TextStyle(
+                color: NunuColors.textSecondary,
+                fontSize: 14,
+                letterSpacing: 2,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: _startGame,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: NunuColors.primaryMain,
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 56, vertical: 18),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 8,
+              ),
+              child: const Text(
+                'GO',
+                style: TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 6,
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              '5 minutes — moles get faster',
+              style: TextStyle(
+                color: NunuColors.textSecondary,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _statChip(String label, String value) {
-    return Column(
-      children: [
-        Text(label,
-            style: const TextStyle(
-                color: NunuColors.textSecondary, fontSize: 11)),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          style: const TextStyle(
-            color: NunuColors.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
 }

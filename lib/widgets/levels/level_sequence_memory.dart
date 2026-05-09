@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:apk_arena/models/level_outcome.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -15,8 +16,10 @@ class LevelSequenceMemory extends LevelWidget {
 class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
     with SingleTickerProviderStateMixin {
   static const int _gridSize = 9; // 3x3 grid
-  static const int _sequencesToWin = 3;
-  static const int _startingLength = 4;
+  static const int _startingLength = 1;
+  static const int _maxBonusLength = 10; // last length that grants time bonus
+  static const Duration _initialTime = Duration(minutes: 10);
+  static const Duration _bonusTime = Duration(minutes: 3);
 
   final Random _random = Random();
 
@@ -26,7 +29,11 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
   bool _isShowingSequence = true;
   bool _isComplete = false;
   bool _showingError = false;
+  bool _bonusFlash = false;
   int _highlightedButton = -1;
+
+  late DateTime _deadline;
+  Timer? _countdownTimer;
 
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
@@ -42,13 +49,114 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
       begin: 1.0,
       end: 1.1,
     ).animate(CurvedAnimation(parent: _pulseController, curve: Curves.easeOut));
+
+    _deadline = DateTime.now().add(_initialTime);
+    _countdownTimer = Timer.periodic(const Duration(milliseconds: 200), (_) {
+      if (!mounted || _isComplete) return;
+      if (DateTime.now().isAfter(_deadline) ||
+          DateTime.now().isAtSameMomentAs(_deadline)) {
+        _onTimeUp();
+      } else {
+        setState(() {});
+      }
+    });
+
     _startNewSequence();
   }
 
   @override
   void dispose() {
+    _countdownTimer?.cancel();
     _pulseController.dispose();
     super.dispose();
+  }
+
+  Duration get _remaining {
+    final r = _deadline.difference(DateTime.now());
+    return r.isNegative ? Duration.zero : r;
+  }
+
+  String _formatRemaining() {
+    final r = _remaining;
+    final m = r.inMinutes.toString().padLeft(2, '0');
+    final s = (r.inSeconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  void _finishRun({required bool timedOut}) {
+    if (_isComplete) return;
+    _countdownTimer?.cancel();
+    setState(() {
+      _isComplete = true;
+      _isShowingSequence = false;
+      _showingError = false;
+      _highlightedButton = -1;
+    });
+    final score = 0.10 * _completedSequences;
+    final metrics = <String, dynamic>{
+      'stages_completed': _completedSequences,
+      'reached_length': _completedSequences + 1,
+    };
+    if (timedOut) {
+      metrics['timed_out'] = true;
+    } else {
+      metrics['gave_up'] = true;
+    }
+    widget.onComplete(
+      LevelOutcome(
+        score: score,
+        metrics: metrics,
+        visibleMetricKeys: const ['stages_completed', 'reached_length'],
+      ),
+    );
+  }
+
+  void _onTimeUp() => _finishRun(timedOut: true);
+
+  Future<void> _showGiveUpDialog() async {
+    if (_isComplete) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text(
+          'GIVE UP?',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'lock in ${(_completedSequences * 10)}% (${_completedSequences} stage${_completedSequences == 1 ? '' : 's'}) and end the run?',
+          style: const TextStyle(color: NunuColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text(
+              'CANCEL',
+              style: TextStyle(
+                color: NunuColors.secondaryMain,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: NunuColors.errorMain.withValues(alpha: 0.2),
+              foregroundColor: NunuColors.errorMain,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              'GIVE UP',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      _finishRun(timedOut: false);
+    }
   }
 
   void _startNewSequence() {
@@ -62,17 +170,17 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
   Future<void> _showSequence() async {
     await Future.delayed(const Duration(milliseconds: 600));
 
-    for (int i = 0; i < _sequence.length && mounted; i++) {
-      if (!mounted) return;
+    for (int i = 0; i < _sequence.length; i++) {
+      if (!mounted || _isComplete) return;
       setState(() => _highlightedButton = _sequence[i]);
       _pulseController.forward(from: 0);
       await Future.delayed(const Duration(milliseconds: 450));
-      if (!mounted) return;
+      if (!mounted || _isComplete) return;
       setState(() => _highlightedButton = -1);
       await Future.delayed(const Duration(milliseconds: 150));
     }
 
-    if (mounted) {
+    if (mounted && !_isComplete) {
       setState(() {
         _isShowingSequence = false;
         _highlightedButton = -1;
@@ -91,28 +199,27 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
     });
 
     if (_sequence[_currentInputIndex] == index) {
-      // Correct input
       _currentInputIndex++;
 
       if (_currentInputIndex >= _sequence.length) {
-        // Completed this sequence
+        final justCompletedLength = _sequence.length;
         _completedSequences++;
 
-        if (_completedSequences >= _sequencesToWin) {
-          // Won the level
-          setState(() => _isComplete = true);
-          widget.onComplete(LevelOutcome(score: 1));
-        } else {
-          // Start next sequence
-          _startNewSequence();
+        if (justCompletedLength <= _maxBonusLength) {
+          _deadline = _deadline.add(_bonusTime);
+          setState(() => _bonusFlash = true);
+          Future.delayed(const Duration(milliseconds: 900), () {
+            if (mounted) setState(() => _bonusFlash = false);
+          });
         }
+
+        _startNewSequence();
       }
     } else {
-      // Wrong input - show error and restart
       setState(() => _showingError = true);
 
       Future.delayed(const Duration(milliseconds: 700), () {
-        if (mounted) {
+        if (mounted && !_isComplete) {
           setState(() {
             _showingError = false;
             _currentInputIndex = 0;
@@ -131,75 +238,123 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
       child: SafeArea(
         child: Column(
           children: [
-            const SizedBox(height: 32),
-            // Progress indicators
-            _buildProgressIndicators(),
-            const SizedBox(height: 24),
-            // Status text
+            const SizedBox(height: 20),
+            _buildHeader(),
+            const SizedBox(height: 12),
             _buildStatusText(),
-            // Main button grid
             Expanded(child: _buildButtonGrid()),
-            const SizedBox(height: 32),
+            const SizedBox(height: 16),
+            _buildGiveUpButton(),
+            const SizedBox(height: 16),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildProgressIndicators() {
+  Widget _buildGiveUpButton() {
+    return TextButton.icon(
+      onPressed: _isComplete ? null : _showGiveUpDialog,
+      icon: const Icon(
+        Icons.flag_outlined,
+        size: 16,
+        color: NunuColors.textSecondary,
+      ),
+      label: const Text(
+        'GIVE UP',
+        style: TextStyle(
+          color: NunuColors.textSecondary,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.5,
+          fontSize: 12,
+        ),
+      ),
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(
+            color: NunuColors.textSecondary.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    final remaining = _remaining;
+    final lowTime = remaining < const Duration(minutes: 1);
+    final timerColor = _bonusFlash
+        ? NunuColors.successMain
+        : lowTime
+        ? NunuColors.errorMain
+        : NunuColors.textPrimary;
+
+    final currentLength = _sequence.isEmpty
+        ? _startingLength
+        : _sequence.length;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _statBlock('STAGE', '${_completedSequences + 1}'),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
+                style: TextStyle(
+                  color: timerColor,
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+                child: Text(_formatRemaining()),
+              ),
+              _statBlock('LENGTH', '$currentLength'),
+            ],
+          ),
+          const SizedBox(height: 4),
+          AnimatedOpacity(
+            opacity: _bonusFlash ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 200),
+            child: const Text(
+              '+3:00',
+              style: TextStyle(
+                color: NunuColors.successMain,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.5,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statBlock(String label, String value) {
     return Column(
       children: [
         Text(
-          "SEQUENCE ${_completedSequences + 1} OF $_sequencesToWin",
+          label,
           style: const TextStyle(
             color: NunuColors.textSecondary,
-            fontSize: 12,
+            fontSize: 11,
             letterSpacing: 1.5,
           ),
         ),
-        const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(_sequencesToWin, (index) {
-            final isCompleted = index < _completedSequences;
-            final isCurrent = index == _completedSequences && !_isComplete;
-
-            return Container(
-              margin: const EdgeInsets.symmetric(horizontal: 8),
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isCompleted
-                    ? NunuColors.successMain
-                    : isCurrent
-                    ? NunuColors.primaryMain.withValues(alpha: 0.2)
-                    : NunuColors.backgroundPaper,
-                border: Border.all(
-                  color: isCompleted
-                      ? NunuColors.successMain
-                      : isCurrent
-                      ? NunuColors.primaryMain
-                      : NunuColors.primaryDark.withValues(alpha: 0.4),
-                  width: 2,
-                ),
-              ),
-              child: Center(
-                child: isCompleted
-                    ? const Icon(Icons.check, color: Colors.white, size: 20)
-                    : Text(
-                        "${index + 1}",
-                        style: TextStyle(
-                          color: isCurrent
-                              ? NunuColors.primaryMain
-                              : NunuColors.textSecondary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-              ),
-            );
-          }),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            color: NunuColors.textPrimary,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ],
     );
@@ -210,7 +365,7 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
     Color statusColor;
 
     if (_showingError) {
-      statusText = "WRONG! TRY AGAIN";
+      statusText = "WRONG! WATCH AGAIN";
       statusColor = NunuColors.errorMain;
     } else if (_isShowingSequence) {
       statusText = "WATCH THE SEQUENCE";
@@ -221,7 +376,7 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 24),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: AnimatedSwitcher(
         duration: const Duration(milliseconds: 200),
         child: Text(

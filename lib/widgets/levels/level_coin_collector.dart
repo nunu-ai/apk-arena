@@ -19,20 +19,13 @@ class _LevelCoinCollectorState extends State<LevelCoinCollector> {
   late List<_SpaceObject> _spaceObjects;
   final double _mapWidth = 2000.0;
   final double _mapHeight = 2000.0;
-  final TextEditingController _controller = TextEditingController();
-  
+
   int get _collectedCount => _coinCollected.where((c) => c).length;
 
   @override
   void initState() {
     super.initState();
     _generateLevel();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
   }
 
   void _generateLevel() {
@@ -93,8 +86,8 @@ class _LevelCoinCollectorState extends State<LevelCoinCollector> {
       ));
     }
 
-    // Generate between 8 and 20 coins
-    _targetCoinCount = 8 + _random.nextInt(13); // 8 to 20
+    // Generate between 15 and 20 coins
+    _targetCoinCount = 15 + _random.nextInt(6); // 15 to 20 inclusive
     _coinPositions = [];
     _coinCollected = [];
 
@@ -129,27 +122,25 @@ class _LevelCoinCollectorState extends State<LevelCoinCollector> {
     }
   }
 
-  void _checkAnswer() {
-    final input = int.tryParse(_controller.text);
-    if (input == _targetCoinCount) {
-      widget.onComplete(LevelOutcome(score: 1));
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Incorrect! Count again.'),
-          backgroundColor: NunuColors.errorMain,
-          duration: const Duration(seconds: 1),
-        ),
-      );
-      widget.onComplete(LevelOutcome(score: 0));
-    }
+  void _finish() {
+    final missed = _targetCoinCount - _collectedCount;
+    final score = missed == 0
+        ? 1.0
+        : (1.0 - sqrt(missed / _targetCoinCount)).clamp(0.0, 1.0);
+    widget.onComplete(LevelOutcome(
+      score: score,
+      metrics: {
+        'collected': _collectedCount,
+        'total': _targetCoinCount,
+        'missed': missed,
+      },
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: NunuColors.backgroundDefault,
-      // Input area at the bottom, fixed
       bottomNavigationBar: Container(
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom + 16,
@@ -171,46 +162,25 @@ class _LevelCoinCollectorState extends State<LevelCoinCollector> {
                   Text(
                     'Collected: $_collectedCount',
                     style: TextStyle(
-                      color: NunuColors.primaryMain, 
+                      color: NunuColors.primaryMain,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
                   ),
                   Text(
-                    'Total coins on map?',
+                    'tap done when you think you have them all',
                     style: TextStyle(color: Colors.white70, fontSize: 12),
                   ),
                 ],
               ),
             ),
-            SizedBox(width: 16),
-            SizedBox(
-              width: 80,
-              child: TextField(
-                controller: _controller,
-                keyboardType: TextInputType.number,
-                style: TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: '#',
-                  hintStyle: TextStyle(color: Colors.white30),
-                  filled: true,
-                  fillColor: NunuColors.backgroundDefault,
-                  border: OutlineInputBorder(
-                    borderSide: BorderSide(color: NunuColors.primaryMain),
-                  ),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                ),
-                onSubmitted: (_) => _checkAnswer(),
-              ),
-            ),
-            SizedBox(width: 16),
             ElevatedButton(
-              onPressed: _checkAnswer,
+              onPressed: _finish,
               style: ElevatedButton.styleFrom(
                 backgroundColor: NunuColors.primaryMain,
                 foregroundColor: Colors.white,
               ),
-              child: Text('Submit'),
+              child: Text('Done'),
             ),
           ],
         ),
@@ -219,7 +189,7 @@ class _LevelCoinCollectorState extends State<LevelCoinCollector> {
         children: [
           InteractiveViewer(
             boundaryMargin: const EdgeInsets.all(double.infinity),
-            minScale: 0.1,
+            minScale: 1.0,
             maxScale: 2.0,
             constrained: false, // Allows the child to be larger than the screen
             child: Container(
@@ -305,10 +275,6 @@ class _LevelCoinCollectorState extends State<LevelCoinCollector> {
               ),
             ),
           ),
-          
-          // Floating counter overlay (optional, but requested "somewhere")
-          // I put it in the bottom bar, but having it floating is also nice.
-          // Let's stick to the bottom bar as it's cleaner.
         ],
       ),
     );
