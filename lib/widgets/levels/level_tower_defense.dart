@@ -109,7 +109,7 @@ const Map<_TowerKind, _TowerSpec> _towerSpecs = {
     damage: 20,
     cooldownMs: 420,
     color: Color(0xFFFF5630),
-    blurb: 'camo specialist (2.4× vs camo, 0.6× vs normal)',
+    blurb: 'camo specialist — prioritizes camouflaged bloons',
   ),
 };
 
@@ -915,45 +915,203 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
     showModalBottomSheet(
       context: context,
       backgroundColor: NunuColors.backgroundPaper,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
       builder: (ctx) {
-        return Padding(
-          padding: const EdgeInsets.all(16),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('guide',
-                    style: TextStyle(
-                        color: NunuColors.textPrimary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800)),
-                const SizedBox(height: 10),
-                ..._towerSpecs.values.map(
-                  (s) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Text(
-                      '${s.emoji} ${s.name} — \$${s.cost}. ${s.blurb}',
-                      style: const TextStyle(
-                          color: NunuColors.textPrimary, fontSize: 13),
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.75,
+          maxChildSize: 0.9,
+          minChildSize: 0.4,
+          builder: (ctx, scrollCtrl) {
+            return SingleChildScrollView(
+              controller: scrollCtrl,
+              padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: NunuColors.textSecondary.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
+                  _guideHeader('how to play'),
+                  _guideBullet(
+                      '🛠', 'drag a tower from the bar onto an empty tile.'),
+                  _guideBullet(
+                      '⬆', 'tap a placed tower to view & buy upgrades.'),
+                  _guideBullet('▶', 'press play to start the next wave.'),
+                  _guideBullet('⏱', 'game pauses between waves — plan freely.'),
+                  _guideBullet('💰',
+                      'cash from kills + wave-clear streak bonuses.'),
+                  const SizedBox(height: 18),
+                  _guideHeader('towers'),
+                  ..._towerSpecs.values.map(_guideTower),
+                  const SizedBox(height: 18),
+                  _guideHeader('enemies'),
+                  _guideEnemy(
+                    color: NunuColors.errorMain,
+                    name: 'bloon',
+                    desc: 'standard enemy. health and speed scale each wave.',
+                  ),
+                  _guideEnemy(
+                    color: Colors.deepOrangeAccent,
+                    name: 'elite',
+                    desc:
+                        'every 11th spawn from wave 7+. tougher and slower, but pays out 3× cash.',
+                  ),
+                  _guideEnemy(
+                    color: const Color(0xFF8FBC8F),
+                    name: 'camo',
+                    desc:
+                        'invisible to most towers from wave 8+. ninjas hunt them on sight; the sniper learns to spot them at tier 3.',
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _guideHeader(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: NunuColors.textPrimary,
+          fontSize: 16,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.4,
+        ),
+      ),
+    );
+  }
+
+  Widget _guideBullet(String emoji, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 24,
+            child: Text(emoji, style: const TextStyle(fontSize: 14)),
+          ),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                  color: NunuColors.textSecondary, fontSize: 13, height: 1.35),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _guideTower(_TowerSpec s) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: s.color.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: s.color.withValues(alpha: 0.6)),
+            ),
+            child: Text(s.emoji, style: const TextStyle(fontSize: 20)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      s.name,
+                      style: const TextStyle(
+                          color: NunuColors.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '\$${s.cost}',
+                      style: const TextStyle(
+                          color: NunuColors.warningMain,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 10),
-                const Text(
-                  '• drag a tower onto an open cell.\n'
-                  '• tap a placed tower to upgrade or sell.\n'
-                  '• camo bloons (green ?) — only ninja can hit them.\n'
-                  '• elite bloons (orange) — tougher and slower.\n'
-                  '• press ▶ to start the next wave. game pauses between waves.',
-                  style: TextStyle(
-                      color: NunuColors.textSecondary, fontSize: 12),
+                Text(
+                  s.blurb,
+                  style: const TextStyle(
+                      color: NunuColors.textSecondary,
+                      fontSize: 12,
+                      height: 1.3),
                 ),
               ],
             ),
           ),
-        );
-      },
+        ],
+      ),
+    );
+  }
+
+  Widget _guideEnemy(
+      {required Color color, required String name, required String desc}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 18,
+            height: 18,
+            margin: const EdgeInsets.only(top: 2, right: 10),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: const TextStyle(
+                      color: NunuColors.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800),
+                ),
+                Text(
+                  desc,
+                  style: const TextStyle(
+                      color: NunuColors.textSecondary,
+                      fontSize: 12,
+                      height: 1.3),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1197,69 +1355,69 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
                 const SizedBox(height: 4),
                 SizedBox(
                   height: 36,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: t.tier >= 5
-                          ? NunuColors.backgroundDefault
-                          : NunuColors.primaryMain,
-                      disabledBackgroundColor: NunuColors.backgroundDefault,
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                    ),
-                    onPressed:
-                        (t.tier >= 5 || !canAfford) ? null : _upgradeSelected,
-                    child: Text(
-                      t.tier >= 5
-                          ? 'MAX'
-                          : '⬆ UPGRADE  \$${t.spec.upgCost}',
-                      style: const TextStyle(
-                          fontSize: 13, fontWeight: FontWeight.w800),
-                    ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: t.tier >= 5
+                                ? NunuColors.backgroundDefault
+                                : NunuColors.primaryMain,
+                            disabledBackgroundColor:
+                                NunuColors.backgroundDefault,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.zero,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: (t.tier >= 5 || !canAfford)
+                              ? null
+                              : _upgradeSelected,
+                          child: Text(
+                            t.tier >= 5
+                                ? 'MAX'
+                                : '⬆ UPGRADE  \$${t.spec.upgCost}',
+                            style: const TextStyle(
+                                fontSize: 13, fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      GestureDetector(
+                        onTap: _sellSelected,
+                        child: Container(
+                          height: 36,
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          decoration: BoxDecoration(
+                            color:
+                                NunuColors.errorMain.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                                color: NunuColors.errorMain
+                                    .withValues(alpha: 0.6)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('💸',
+                                  style: TextStyle(fontSize: 14)),
+                              const SizedBox(width: 4),
+                              Text(
+                                '\$${t.refund}',
+                                style: const TextStyle(
+                                    color: NunuColors.textPrimary,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(width: 8),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              GestureDetector(
-                onTap: _sellSelected,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: NunuColors.errorMain.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                        color: NunuColors.errorMain.withValues(alpha: 0.6)),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('💸', style: TextStyle(fontSize: 14)),
-                      Text('\$${t.refund}',
-                          style: const TextStyle(
-                              color: NunuColors.textPrimary,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700)),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 4),
-              GestureDetector(
-                onTap: () => setState(() => _selected = null),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 6),
-                  child: Icon(Icons.close,
-                      color: NunuColors.textSecondary, size: 16),
-                ),
-              ),
-            ],
           ),
         ],
       ),
