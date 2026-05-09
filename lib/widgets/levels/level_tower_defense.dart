@@ -44,7 +44,7 @@ const Map<_TowerKind, _TowerSpec> _towerSpecs = {
     name: 'dart',
     emoji: '🎯',
     cost: 70,
-    upgCost: 75,
+    upgCost: 45,
     range: 2.2,
     damage: 11,
     cooldownMs: 460,
@@ -56,7 +56,7 @@ const Map<_TowerKind, _TowerSpec> _towerSpecs = {
     name: 'ice',
     emoji: '❄',
     cost: 110,
-    upgCost: 120,
+    upgCost: 70,
     range: 1.9,
     damage: 4,
     cooldownMs: 850,
@@ -68,7 +68,7 @@ const Map<_TowerKind, _TowerSpec> _towerSpecs = {
     name: 'boom',
     emoji: '🪃',
     cost: 130,
-    upgCost: 145,
+    upgCost: 85,
     range: 2.6,
     damage: 16,
     cooldownMs: 1100,
@@ -80,7 +80,7 @@ const Map<_TowerKind, _TowerSpec> _towerSpecs = {
     name: 'tack',
     emoji: '✴',
     cost: 90,
-    upgCost: 100,
+    upgCost: 60,
     range: 1.5,
     damage: 7,
     cooldownMs: 380,
@@ -92,7 +92,7 @@ const Map<_TowerKind, _TowerSpec> _towerSpecs = {
     name: 'sniper',
     emoji: '🦅',
     cost: 210,
-    upgCost: 235,
+    upgCost: 140,
     range: 999,
     damage: 46,
     cooldownMs: 1300,
@@ -104,7 +104,7 @@ const Map<_TowerKind, _TowerSpec> _towerSpecs = {
     name: 'ninja',
     emoji: '🥷',
     cost: 175,
-    upgCost: 195,
+    upgCost: 115,
     range: 2.4,
     damage: 20,
     cooldownMs: 420,
@@ -113,43 +113,49 @@ const Map<_TowerKind, _TowerSpec> _towerSpecs = {
   ),
 };
 
-// per-tier upgrade descriptions (tier 1..4)
+// per-tier upgrade descriptions (tier 1..5)
 const Map<_TowerKind, List<String>> _upgradeDescs = {
   _TowerKind.dart: [
-    '+25% damage',
+    '+50% damage',
     '−20% cooldown',
     '+0.4 range',
-    '+50% damage',
+    '+70% damage',
+    'master fletcher: +100% damage',
   ],
   _TowerKind.ice: [
     'deeper slow (50%)',
     'larger splash radius',
     'longer freeze duration',
     '+0.5 range',
+    'permafrost: 2× slow duration',
   ],
   _TowerKind.boomerang: [
     '+1 pierce target',
     '−15% cooldown',
     '+1 pierce target',
-    '+30% damage',
+    '+50% damage',
+    '+2 pierce, −20% cooldown',
   ],
   _TowerKind.tack: [
     '−20% cooldown',
-    '+30% damage',
+    '+50% damage',
     '+0.4 splash radius',
     '−25% cooldown',
+    'shockwave: +0.5 splash, +40% damage',
   ],
   _TowerKind.sniper: [
-    '+40% damage',
+    '+60% damage',
     '−20% cooldown',
     'sees & hits camo bloons',
-    '+60% damage',
+    '+80% damage',
+    'orbital: ×2 damage',
   ],
   _TowerKind.ninja: [
-    '+30% damage',
+    '+50% damage',
     '−20% cooldown',
     'shuriken pierces 2 enemies',
-    '+50% damage vs camo',
+    '+40% damage, +50% vs camo',
+    'shadow clone: +1 pierce, −20% cooldown',
   ],
 };
 
@@ -185,28 +191,31 @@ class _Tower {
     switch (kind) {
       case _TowerKind.dart:
         var d = base.toDouble();
-        if (tier >= 1) d *= 1.25;
-        if (tier >= 4) d *= 1.5;
+        if (tier >= 1) d *= 1.5;
+        if (tier >= 4) d *= 1.7;
+        if (tier >= 5) d *= 2.0;
         return d.round();
       case _TowerKind.ice:
-        return base; // ice damage stays minor
+        return base;
       case _TowerKind.boomerang:
         var d = base.toDouble();
-        if (tier >= 4) d *= 1.3;
+        if (tier >= 4) d *= 1.5;
         return d.round();
       case _TowerKind.tack:
         var d = base.toDouble();
-        if (tier >= 2) d *= 1.3;
+        if (tier >= 2) d *= 1.5;
+        if (tier >= 5) d *= 1.4;
         return d.round();
       case _TowerKind.sniper:
         var d = base.toDouble();
-        if (tier >= 1) d *= 1.4;
-        if (tier >= 4) d *= 1.6;
+        if (tier >= 1) d *= 1.6;
+        if (tier >= 4) d *= 1.8;
+        if (tier >= 5) d *= 2.0;
         return d.round();
       case _TowerKind.ninja:
         var d = base.toDouble();
-        if (tier >= 1) d *= 1.3;
-        // tier 4 boost is handled in damageVs (vs-camo bonus)
+        if (tier >= 1) d *= 1.5;
+        if (tier >= 4) d *= 1.4;
         return d.round();
     }
   }
@@ -219,7 +228,10 @@ class _Tower {
       case _TowerKind.ice:
         return base.round();
       case _TowerKind.boomerang:
-        return (base * (tier >= 2 ? 0.85 : 1)).round();
+        var c = base;
+        if (tier >= 2) c *= 0.85;
+        if (tier >= 5) c *= 0.8;
+        return c.round();
       case _TowerKind.tack:
         var c = base;
         if (tier >= 1) c *= 0.8;
@@ -228,13 +240,16 @@ class _Tower {
       case _TowerKind.sniper:
         return (base * (tier >= 2 ? 0.8 : 1)).round();
       case _TowerKind.ninja:
-        return (base * (tier >= 2 ? 0.8 : 1)).round();
+        var c = base;
+        if (tier >= 2) c *= 0.8;
+        if (tier >= 5) c *= 0.8;
+        return c.round();
     }
   }
 
   double get splash {
     if (kind == _TowerKind.tack) {
-      return 1.4 + (tier >= 3 ? 0.4 : 0);
+      return 1.4 + (tier >= 3 ? 0.4 : 0) + (tier >= 5 ? 0.5 : 0);
     }
     if (kind == _TowerKind.ice) {
       return 1.6 + (tier >= 2 ? 0.4 : 0);
@@ -244,9 +259,17 @@ class _Tower {
 
   int get pierce {
     if (kind == _TowerKind.boomerang) {
-      return 4 + (tier >= 1 ? 1 : 0) + (tier >= 3 ? 1 : 0);
+      return 4 +
+          (tier >= 1 ? 1 : 0) +
+          (tier >= 3 ? 1 : 0) +
+          (tier >= 5 ? 2 : 0);
     }
-    if (kind == _TowerKind.ninja && tier >= 3) return 2;
+    if (kind == _TowerKind.ninja) {
+      var p = 1;
+      if (tier >= 3) p = 2;
+      if (tier >= 5) p = 3;
+      return p;
+    }
     return 1;
   }
 
@@ -257,11 +280,13 @@ class _Tower {
 
   double get slowDuration {
     if (kind != _TowerKind.ice) return 0;
-    return 1.5 + (tier >= 3 ? 0.8 : 0);
+    var d = 1.5 + (tier >= 3 ? 0.8 : 0);
+    if (tier >= 5) d *= 2.0;
+    return d;
   }
 
   String? get nextUpgradeDesc {
-    if (tier >= 4) return null;
+    if (tier >= 5) return null;
     final list = _upgradeDescs[kind];
     if (list == null) return null;
     return list[tier];
@@ -307,6 +332,14 @@ class _Shot {
   double life = 0.13;
 }
 
+class _Burst {
+  _Burst({required this.center, required this.radius, required this.color});
+  final Offset center;
+  final double radius;
+  final Color color;
+  double life = 0.25;
+}
+
 class LevelTowerDefense extends LevelWidget {
   const LevelTowerDefense({super.key, required super.onComplete});
 
@@ -319,7 +352,7 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
   static const int _gridCols = 11;
   static const int _gridRows = 16;
   static const int _totalWaves = 24;
-  static const double _maxEnemiesBenchmark = 680;
+  static const double _maxEnemiesBenchmark = 1064;
 
   // arknights-style: shared paths with entry/exit boxes, more turns.
   static const List<List<Point<int>>> _paths = [
@@ -347,16 +380,16 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
       Point(5, 12),
       Point(5, 15),
     ],
-    // path 3 — center entry, sweeps right then exits far right
+    // path 3 — center entry, weaves left, joins central spine
     [
       Point(5, 0),
-      Point(5, 2),
-      Point(9, 2),
-      Point(9, 6),
-      Point(7, 6),
-      Point(7, 10),
-      Point(9, 10),
-      Point(9, 15),
+      Point(5, 4),
+      Point(1, 4),
+      Point(1, 8),
+      Point(2, 8),
+      Point(2, 12),
+      Point(5, 12),
+      Point(5, 15),
     ],
   ];
 
@@ -394,6 +427,7 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
   final List<_Tower> _towers = [];
   final List<_Bloon> _bloons = [];
   final List<_Shot> _shots = [];
+  final List<_Burst> _bursts = [];
 
   _Tower? _selected;
   _TowerKind? _dragKind;
@@ -527,11 +561,15 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
       t.cooldownLeft = t.cooldownMs.toDouble();
     }
 
-    // shot fade
+    // shot/burst fade
     for (final s in _shots) {
       s.life -= dt;
     }
     _shots.removeWhere((s) => s.life <= 0);
+    for (final b in _bursts) {
+      b.life -= dt;
+    }
+    _bursts.removeWhere((b) => b.life <= 0);
 
     // dead bloons
     final dead = _bloons.where((b) => b.hp <= 0).toList();
@@ -597,7 +635,6 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
 
   void _fireTower(_Tower t, _Bloon target) {
     final from = _cellCenterFractional(t.cell.x + 0.5, t.cell.y + 0.5);
-    _shots.add(_Shot(from: from, to: target.position, color: t.spec.color));
 
     if (t.kind == _TowerKind.boomerang) {
       final hits = _bloons.toList()
@@ -605,17 +642,51 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
             .distance
             .compareTo((b.position - from).distance));
       int n = 0;
+      Offset prev = from;
       for (final b in hits) {
         if (n >= t.pierce) break;
         if ((b.position - from).distance > t.range * _cellSizeCached) break;
         if (b.kind == _BloonKind.camo && !_canHitCamo(t)) continue;
+        _shots.add(_Shot(from: prev, to: b.position, color: t.spec.color));
+        prev = b.position;
         b.hp -= _damageVs(t, b);
+        n++;
+      }
+      if (n == 0) {
+        _shots.add(
+            _Shot(from: from, to: target.position, color: t.spec.color));
+      }
+      return;
+    }
+
+    _shots.add(_Shot(from: from, to: target.position, color: t.spec.color));
+
+    if (t.kind == _TowerKind.ninja && t.pierce > 1) {
+      // tier 3 ninja: shuriken pierces two
+      final hits = _bloons.toList()
+        ..sort((a, b) => (a.position - target.position)
+            .distance
+            .compareTo((b.position - target.position).distance));
+      int n = 0;
+      for (final b in hits) {
+        if (n >= t.pierce) break;
+        if (b.kind == _BloonKind.camo && !_canHitCamo(t)) continue;
+        if ((b.position - from).distance > t.range * _cellSizeCached) continue;
+        b.hp -= _damageVs(t, b);
+        if (b != target) {
+          _shots.add(_Shot(from: target.position, to: b.position, color: t.spec.color));
+        }
         n++;
       }
       return;
     }
 
     if (t.splash > 0) {
+      _bursts.add(_Burst(
+        center: target.position,
+        radius: t.splash * _cellSizeCached,
+        color: t.spec.color,
+      ));
       for (final b in _bloons) {
         if (b.kind == _BloonKind.camo && !_canHitCamo(t)) continue;
         if ((b.position - target.position).distance <=
@@ -636,7 +707,7 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
   void _spawnBloon() {
     final wave = _wave + 1;
     final stage = _stage;
-    final hp = (22 + pow(wave, 1.75) * 5.5 + (stage - 1) * 16).toInt();
+    final hp = (22 + pow(wave, 1.7) * 5.4 + (stage - 1) * 16).toInt();
     final speed =
         0.90 + min(0.70, wave * 0.024) + (stage - 1) * 0.04;
     final reward = max(4, 10 - wave ~/ 4);
@@ -811,7 +882,7 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
   void _upgradeSelected() {
     final t = _selected;
     if (t == null) return;
-    if (t.tier >= 4) {
+    if (t.tier >= 5) {
       _status = 'max tier';
       return;
     }
@@ -1078,7 +1149,7 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
   Widget _buildTowerPanel() {
     final t = _selected!;
     final desc = t.nextUpgradeDesc;
-    final canAfford = _cash >= t.spec.upgCost && t.tier < 4;
+    final canAfford = _cash >= t.spec.upgCost && t.tier < 5;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -1093,7 +1164,7 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(t.spec.emoji, style: const TextStyle(fontSize: 28)),
-              Text('tier ${t.tier}/4',
+              Text('tier ${t.tier}/5',
                   style: const TextStyle(
                       color: NunuColors.textSecondary,
                       fontSize: 10,
@@ -1128,7 +1199,7 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
                   height: 36,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: t.tier >= 4
+                      backgroundColor: t.tier >= 5
                           ? NunuColors.backgroundDefault
                           : NunuColors.primaryMain,
                       disabledBackgroundColor: NunuColors.backgroundDefault,
@@ -1138,9 +1209,9 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
                           borderRadius: BorderRadius.circular(8)),
                     ),
                     onPressed:
-                        (t.tier >= 4 || !canAfford) ? null : _upgradeSelected,
+                        (t.tier >= 5 || !canAfford) ? null : _upgradeSelected,
                     child: Text(
-                      t.tier >= 4
+                      t.tier >= 5
                           ? 'MAX'
                           : '⬆ UPGRADE  \$${t.spec.upgCost}',
                       style: const TextStyle(
@@ -1235,6 +1306,7 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
                           towers: _towers,
                           bloons: _bloons,
                           shots: _shots,
+                          bursts: _bursts,
                           selected: _selected,
                           isPathCell: _isPathCell,
                           isActivePathCell: _isActivePathCell,
@@ -1245,6 +1317,7 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
                           activePaths: _paths.sublist(0, _activePathCount),
                           pulseT: _animT,
                           terrain: _terrain,
+                          showPreview: !_waveActive,
                         ),
                         size: Size(w, h),
                       ),
@@ -1379,6 +1452,7 @@ class _TDPainter extends CustomPainter {
     required this.towers,
     required this.bloons,
     required this.shots,
+    required this.bursts,
     required this.selected,
     required this.isPathCell,
     required this.isActivePathCell,
@@ -1389,6 +1463,7 @@ class _TDPainter extends CustomPainter {
     required this.activePaths,
     required this.pulseT,
     required this.terrain,
+    required this.showPreview,
   });
 
   final double cellSize;
@@ -1400,6 +1475,7 @@ class _TDPainter extends CustomPainter {
   final List<_Tower> towers;
   final List<_Bloon> bloons;
   final List<_Shot> shots;
+  final List<_Burst> bursts;
   final _Tower? selected;
   final bool Function(int, int) isPathCell;
   final bool Function(int, int) isActivePathCell;
@@ -1410,6 +1486,7 @@ class _TDPainter extends CustomPainter {
   final List<List<Point<int>>> activePaths;
   final double pulseT;
   final Set<Point<int>> terrain;
+  final bool showPreview;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1490,7 +1567,10 @@ class _TDPainter extends CustomPainter {
       tp.paint(canvas, rect.center - Offset(tp.width / 2, tp.height / 2));
     }
 
-    // path lines + pulses
+    // path lines + pulses (only between waves)
+    if (!showPreview) {
+      // skip preview rendering during active waves
+    } else {
     final linePaint = Paint()
       ..color = Colors.white.withValues(alpha: 0.18)
       ..strokeWidth = 2.0
@@ -1546,6 +1626,7 @@ class _TDPainter extends CustomPainter {
         }
       }
     }
+    }
 
     // shots
     for (final s in shots) {
@@ -1553,6 +1634,27 @@ class _TDPainter extends CustomPainter {
         ..color = s.color.withValues(alpha: (s.life / 0.13).clamp(0.0, 1.0))
         ..strokeWidth = 2.5;
       canvas.drawLine(s.from, s.to, p);
+    }
+
+    // bursts (splash visuals)
+    for (final br in bursts) {
+      final t = (br.life / 0.25).clamp(0.0, 1.0);
+      final r = br.radius * (1.0 - t * 0.6);
+      canvas.drawCircle(
+        br.center,
+        r,
+        Paint()
+          ..color = br.color.withValues(alpha: 0.25 * t)
+          ..style = PaintingStyle.fill,
+      );
+      canvas.drawCircle(
+        br.center,
+        r,
+        Paint()
+          ..color = br.color.withValues(alpha: 0.7 * t)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
     }
 
     // bloons
