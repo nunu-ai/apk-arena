@@ -61,6 +61,7 @@ import 'package:apk_arena/widgets/levels/level_reactor_stabilization.dart';
 import 'package:apk_arena/widgets/levels/level_rhythm.dart';
 import 'package:apk_arena/widgets/levels/level_royal_match.dart';
 import 'package:apk_arena/widgets/levels/level_rush_hour.dart';
+import 'package:apk_arena/widgets/levels/level_tower_defense.dart';
 import 'package:apk_arena/widgets/levels/level_scroll_mastery.dart';
 import 'package:apk_arena/widgets/levels/level_sequence_memory.dart';
 import 'package:apk_arena/widgets/levels/level_calendar_alarm_planner.dart';
@@ -235,6 +236,16 @@ final List<LevelEntry> gamesLevels = [
       timeLimit: Duration(hours: 1),
     ),
     widgetBuilder: (onComplete) => LevelRushHour(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "sector defense",
+      instructions:
+          "drag towers onto the grid to defend against waves. press ▶ to start each wave. survive 24 waves.",
+      timeLimit: Duration(minutes: 30),
+    ),
+    widgetBuilder: (onComplete) =>
+        LevelTowerDefense(onComplete: onComplete),
   ),
 ];
 final List<LevelEntry> tasksLevels = [
