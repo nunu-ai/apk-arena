@@ -15,6 +15,9 @@ enum _Item {
   copperOre,
   coal,
   stone,
+  ironBar,
+  copperBar,
+  stoneSlab,
   ironPlate,
   copperWire,
   stoneBrick,
@@ -37,6 +40,12 @@ extension _ItemX on _Item {
         return 'coal';
       case _Item.stone:
         return 'stone';
+      case _Item.ironBar:
+        return 'iron bar';
+      case _Item.copperBar:
+        return 'copper bar';
+      case _Item.stoneSlab:
+        return 'stone slab';
       case _Item.ironPlate:
         return 'plate';
       case _Item.copperWire:
@@ -62,14 +71,17 @@ extension _ItemX on _Item {
     switch (this) {
       case _Item.ironOre:
       case _Item.ironPlate:
+      case _Item.ironBar:
         return const Color(0xFFA8896C);
       case _Item.copperOre:
       case _Item.copperWire:
+      case _Item.copperBar:
         return const Color(0xFFC97B5C);
       case _Item.coal:
         return const Color(0xFF3A3A48);
       case _Item.stone:
       case _Item.stoneBrick:
+      case _Item.stoneSlab:
         return const Color(0xFF9CA3AF);
       case _Item.gear:
         return const Color(0xFFD1B07A);
@@ -93,10 +105,14 @@ extension _ItemX on _Item {
       case _Item.coal:
       case _Item.stone:
         return 1;
+      case _Item.ironBar:
+      case _Item.copperBar:
+      case _Item.stoneSlab:
+        return 2;
       case _Item.ironPlate:
       case _Item.copperWire:
       case _Item.stoneBrick:
-        return 2;
+        return 4;
       case _Item.gear:
         return 8;
       case _Item.circuit:
@@ -180,37 +196,64 @@ class _Recipe {
 
 const List<_Recipe> _allRecipes = [
   _Recipe(
+    id: 'iron_bar',
+    name: 'iron bar',
+    emoji: '▰',
+    tier: 1,
+    inputs: {_Item.ironOre: 1},
+    output: _Item.ironBar,
+    cycleSec: 5,
+  ),
+  _Recipe(
+    id: 'copper_bar',
+    name: 'copper bar',
+    emoji: '▰',
+    tier: 1,
+    inputs: {_Item.copperOre: 1},
+    output: _Item.copperBar,
+    cycleSec: 5,
+  ),
+  _Recipe(
+    id: 'stone_slab',
+    name: 'stone slab',
+    emoji: '▰',
+    tier: 1,
+    inputs: {_Item.stone: 1},
+    output: _Item.stoneSlab,
+    cycleSec: 5,
+  ),
+  _Recipe(
     id: 'plate',
     name: 'iron plate',
     emoji: '🟫',
-    tier: 1,
-    inputs: {_Item.ironOre: 1},
+    tier: 2,
+    inputs: {_Item.ironBar: 1},
     output: _Item.ironPlate,
-    cycleSec: 5,
+    cycleSec: 6,
   ),
   _Recipe(
     id: 'wire',
     name: 'copper wire',
     emoji: '🟧',
-    tier: 1,
-    inputs: {_Item.copperOre: 1},
+    tier: 2,
+    inputs: {_Item.copperBar: 1},
     output: _Item.copperWire,
-    cycleSec: 5,
+    cycleSec: 6,
   ),
   _Recipe(
     id: 'brick',
     name: 'stone brick',
     emoji: '⬜',
-    tier: 1,
-    inputs: {_Item.stone: 1},
+    tier: 2,
+    inputs: {_Item.stoneSlab: 1},
     output: _Item.stoneBrick,
-    cycleSec: 5,
+    cycleSec: 6,
   ),
   _Recipe(
     id: 'gear',
     name: 'gear',
     emoji: '⚙',
-    tier: 2,
+    tier: 3,
     inputs: {_Item.ironPlate: 3},
     output: _Item.gear,
     cycleSec: 15,
@@ -219,7 +262,7 @@ const List<_Recipe> _allRecipes = [
     id: 'circuit',
     name: 'circuit',
     emoji: '🟢',
-    tier: 2,
+    tier: 3,
     inputs: {_Item.copperWire: 2, _Item.ironPlate: 1},
     output: _Item.circuit,
     cycleSec: 12,
@@ -228,7 +271,7 @@ const List<_Recipe> _allRecipes = [
     id: 'reinforced',
     name: 'reinforced plate',
     emoji: '🟪',
-    tier: 3,
+    tier: 4,
     inputs: {_Item.ironPlate: 2, _Item.stoneBrick: 3},
     output: _Item.reinforced,
     cycleSec: 18,
@@ -237,7 +280,7 @@ const List<_Recipe> _allRecipes = [
     id: 'engine',
     name: 'engine',
     emoji: '🟡',
-    tier: 4,
+    tier: 5,
     inputs: {_Item.gear: 2, _Item.ironPlate: 3, _Item.coal: 4},
     output: _Item.engine,
     cycleSec: 45,
@@ -246,7 +289,7 @@ const List<_Recipe> _allRecipes = [
     id: 'computer',
     name: 'computer',
     emoji: '🟦',
-    tier: 4,
+    tier: 5,
     inputs: {_Item.circuit: 3, _Item.copperWire: 2, _Item.reinforced: 1},
     output: _Item.computer,
     cycleSec: 40,
@@ -255,7 +298,7 @@ const List<_Recipe> _allRecipes = [
     id: 'rocket',
     name: 'rocket part',
     emoji: '🚀',
-    tier: 5,
+    tier: 6,
     inputs: {_Item.engine: 2, _Item.computer: 1, _Item.reinforced: 5},
     output: _Item.rocketPart,
     cycleSec: 90,
@@ -274,7 +317,14 @@ List<_Recipe> _recipesFor(_MachineKind kind) {
     case _MachineKind.smelter:
       return _allRecipes.where((r) => r.tier == 1).toList();
     case _MachineKind.assembler:
-      return [_recipeById('gear')!, _recipeById('circuit')!, _recipeById('reinforced')!];
+      return [
+        _recipeById('plate')!,
+        _recipeById('wire')!,
+        _recipeById('brick')!,
+        _recipeById('gear')!,
+        _recipeById('circuit')!,
+        _recipeById('reinforced')!,
+      ];
     case _MachineKind.constructor:
       return [_recipeById('engine')!, _recipeById('computer')!, _recipeById('rocket')!];
     default:
@@ -326,7 +376,6 @@ class _MachineSpec {
   final String emoji;
   final int w;
   final int h;
-  final int cost;
   final List<_PortSpec> basePorts;
   const _MachineSpec({
     required this.kind,
@@ -334,7 +383,6 @@ class _MachineSpec {
     required this.emoji,
     required this.w,
     required this.h,
-    required this.cost,
     required this.basePorts,
   });
 }
@@ -345,7 +393,6 @@ const _MachineSpec _minerSpec = _MachineSpec(
   emoji: '⛏',
   w: 1,
   h: 1,
-  cost: 5,
   basePorts: [_PortSpec(0, 0, 1, 0, false, 0)],
 );
 const _MachineSpec _smelterSpec = _MachineSpec(
@@ -354,7 +401,6 @@ const _MachineSpec _smelterSpec = _MachineSpec(
   emoji: '🔥',
   w: 1,
   h: 1,
-  cost: 5,
   basePorts: [
     _PortSpec(0, 0, -1, 0, true, 0),
     _PortSpec(0, 0, 1, 0, false, 0),
@@ -366,7 +412,6 @@ const _MachineSpec _assemblerSpec = _MachineSpec(
   emoji: '🔧',
   w: 2,
   h: 1,
-  cost: 10,
   basePorts: [
     _PortSpec(0, 0, -1, 0, true, 0),
     _PortSpec(0, 0, 0, -1, true, 1),
@@ -379,7 +424,6 @@ const _MachineSpec _constructorSpec = _MachineSpec(
   emoji: '🏭',
   w: 2,
   h: 2,
-  cost: 20,
   basePorts: [
     _PortSpec(0, 0, -1, 0, true, 0),
     _PortSpec(0, 1, -1, 0, true, 1),
@@ -393,7 +437,6 @@ const _MachineSpec _hubSpec = _MachineSpec(
   emoji: '🏛',
   w: 3,
   h: 3,
-  cost: 0,
   basePorts: [
     _PortSpec(0, 0, -1, 0, true, 0),
     _PortSpec(0, 1, -1, 0, true, 1),
@@ -526,6 +569,38 @@ class _Order {
   const _Order(this.item, this.qty);
 }
 
+class _PendingPlacement {
+  final _MachineKind kind;
+  int x;
+  int y;
+  int rot;
+
+  _PendingPlacement({
+    required this.kind,
+    required this.x,
+    required this.y,
+    required this.rot,
+  });
+}
+
+class _TerrainInspect {
+  final Point<int> cell;
+  final _OreKind? ore;
+  final bool rock;
+
+  const _TerrainInspect({
+    required this.cell,
+    this.ore,
+    this.rock = false,
+  });
+}
+
+class _BeltInspect {
+  final Point<int> cell;
+
+  const _BeltInspect({required this.cell});
+}
+
 const List<_Order> _orderSequence = [
   _Order(_Item.ironPlate, 5),
   _Order(_Item.copperWire, 5),
@@ -559,11 +634,18 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
 
   String? _buildMode;
   int _placeRot = 0;
-  int _credits = 30;
+  int _mapRot = 0;
+  final Map<_MachineKind, int> _machineInventory = {
+    _MachineKind.miner: 4,
+    _MachineKind.smelter: 3,
+    _MachineKind.assembler: 2,
+    _MachineKind.constructor: 1,
+  };
+  _PendingPlacement? _pendingPlacement;
 
   int _wealth = 0;
   int _ordersCompleted = 0;
-  int _highestTierUnlocked = 1;
+  int _highestTierUnlocked = 2;
   int _beltsPlaced = 0;
   int _orderIndex = 0;
   int _orderProgress = 0;
@@ -575,15 +657,20 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
 
   Offset? _beltDragLast;
   List<Point<int>> _beltDragPath = [];
-  Offset? _machineDragPos;
 
   _Machine? _inspect;
+  _TerrainInspect? _terrainInspect;
+  _BeltInspect? _beltInspect;
 
   Ticker? _ticker;
   Duration _lastTick = Duration.zero;
   double _animT = 0;
 
   double _cellSize = 24;
+  final TransformationController _mapController = TransformationController();
+  final GlobalKey _mapContentKey = GlobalKey();
+  bool _didCenterHub = false;
+  _MachineKind? _draggingBuildKind;
 
   late Point<int> _hubAnchor;
 
@@ -600,13 +687,14 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
   @override
   void dispose() {
     _ticker?.dispose();
+    _mapController.dispose();
     widget.clearTimeoutBuilder();
     super.dispose();
   }
 
   void _generateMap() {
     final rng = Random();
-    _hubAnchor = const Point(28, 11);
+    _hubAnchor = const Point((_kCols - 3) ~/ 2, (_kRows - 3) ~/ 2);
     final hub = _Machine(
       id: _nextId++,
       kind: _MachineKind.hub,
@@ -865,7 +953,6 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
 
   void _depositHub(_Item item) {
     _wealth += item.value;
-    _credits += (item.value / 2).floor();
     final ord = _orderSequence[_orderIndex.clamp(0, _orderSequence.length - 1)];
     if (item == ord.item) {
       _orderProgress++;
@@ -903,20 +990,24 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
       case _Item.coal:
       case _Item.stone:
         return 0;
+      case _Item.ironBar:
+      case _Item.copperBar:
+      case _Item.stoneSlab:
+        return 1;
       case _Item.ironPlate:
       case _Item.copperWire:
       case _Item.stoneBrick:
-        return 1;
+        return 2;
       case _Item.gear:
       case _Item.circuit:
-        return 2;
-      case _Item.reinforced:
         return 3;
+      case _Item.reinforced:
+        return 4;
       case _Item.engine:
       case _Item.computer:
-        return 4;
-      case _Item.rocketPart:
         return 5;
+      case _Item.rocketPart:
+        return 6;
     }
   }
 
@@ -937,12 +1028,13 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
   }
 
   void _placeMachine(_MachineKind kind, int x, int y, int rot) {
-    final spec = _spec(kind);
-    if (_credits < spec.cost) return;
+    if ((_machineInventory[kind] ?? 0) <= 0) return;
     if (!_canPlaceMachine(kind, x, y, rot)) return;
-    _credits -= spec.cost;
+    _machineInventory[kind] = (_machineInventory[kind] ?? 0) - 1;
     final m = _Machine(id: _nextId++, kind: kind, x: x, y: y, rot: rot);
     if (kind == _MachineKind.smelter) {
+      m.recipeId = 'iron_bar';
+    } else if (kind == _MachineKind.assembler) {
       m.recipeId = 'plate';
     }
     _machines[m.id] = m;
@@ -959,13 +1051,19 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
       for (final c in m.cells()) {
         _occByMachine[c.x][c.y] = null;
       }
+      _machineInventory[m.kind] = (_machineInventory[m.kind] ?? 0) + 1;
       _machines.remove(mid);
+      _inspect = null;
+      _terrainInspect = null;
+      _beltInspect = null;
       return;
     }
     final p = Point(x, y);
     final b = _belts[p];
     if (b != null) {
       _belts.remove(p);
+      _beltInspect = null;
+      _terrainInspect = null;
       _recomputeBeltOutgoing();
     }
   }
@@ -1031,9 +1129,19 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
     }
   }
 
-  Point<int>? _cellAt(Offset local) {
-    final x = (local.dx / _cellSize).floor();
-    final y = (local.dy / _cellSize).floor();
+  Point<int>? _cellAt(Offset local, Size canvasSize) {
+    final mapW = _cellSize * _kCols;
+    final mapH = _cellSize * _kRows;
+    final c = Offset(canvasSize.width / 2, canvasSize.height / 2);
+    final dx = local.dx - c.dx;
+    final dy = local.dy - c.dy;
+    final angle = -(_mapRot & 3) * pi / 2;
+    final unrotated = Offset(
+      dx * cos(angle) - dy * sin(angle) + mapW / 2,
+      dx * sin(angle) + dy * cos(angle) + mapH / 2,
+    );
+    final x = (unrotated.dx / _cellSize).floor();
+    final y = (unrotated.dy / _cellSize).floor();
     if (x < 0 || x >= _kCols || y < 0 || y >= _kRows) return null;
     return Point(x, y);
   }
@@ -1057,20 +1165,21 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
 
   Widget _buildHeader(_Order ord) {
     final score = sqrt((_wealth / 2500).clamp(0.0, 1.0));
-    final hint = _buildMode == null
-        ? 'tap a card → tap a tile to place. drag for belts.'
+    final hint = _pendingPlacement != null
+        ? 'drag the ghost, rotate it, then confirm or cancel.'
+        : _buildMode == null
+        ? 'drag a machine from inventory. drag for belts.'
         : _buildMode == 'belt'
             ? 'drag across tiles to lay belts'
             : _buildMode == 'delete'
                 ? 'tap a machine or belt to remove'
-                : 'tap a tile to place ${_buildMode!} (↻ to rotate)';
+                : 'choose a machine from inventory';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       color: NunuColors.backgroundPaper,
       child: Row(
         children: [
           _stat('💯', score.toStringAsFixed(2)),
-          _stat('💰', '$_credits'),
           _stat('💎', '$_wealth'),
           const SizedBox(width: 8),
           Expanded(
@@ -1123,9 +1232,10 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
             style: TextStyle(color: NunuColors.textPrimary)),
         content: const SingleChildScrollView(
           child: Text(
-            'place miners on ore patches. drag belts from output ▶ to input ◀. '
-            'tap a card in the build bar to enter placement mode; tap again to exit. '
-            'use ↻ to rotate before placing. tap a placed machine to set its recipe. '
+            'place miners on ore patches. smelters refine ore into bars or slabs. '
+            'assemblers turn those refined materials into plates, wire, bricks, and parts. '
+            'drag belts from output ▶ to input ◀. drag a machine from inventory '
+            'onto the map, move the ghost, then confirm or cancel. '
             'fill the hub\'s order. higher tier orders unlock as you complete each one.',
             style: TextStyle(color: NunuColors.textSecondary, fontSize: 13),
           ),
@@ -1144,29 +1254,52 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
       _cellSize = c.maxWidth / 12;
       final w = _cellSize * _kCols;
       final h = _cellSize * _kRows;
+      final side = max(w, h);
+      if (!_didCenterHub && c.maxHeight > 0) {
+        _didCenterHub = true;
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          final mapLeft = (side - w) / 2;
+          final mapTop = (side - h) / 2;
+          final hubCenter = Offset(
+            mapLeft + (_hubAnchor.x + 1.5) * _cellSize,
+            mapTop + (_hubAnchor.y + 1.5) * _cellSize,
+          );
+          _mapController.value = Matrix4.identity()
+            ..translate(c.maxWidth / 2 - hubCenter.dx,
+                c.maxHeight / 2 - hubCenter.dy);
+        });
+      }
       final inBeltMode = _buildMode == 'belt';
+      final inPlacementMode = _pendingPlacement != null;
       return Stack(
         children: [
           Positioned.fill(
             child: InteractiveViewer(
+              transformationController: _mapController,
               minScale: 0.6,
               maxScale: 1.4,
               constrained: false,
               boundaryMargin: const EdgeInsets.all(80),
-              panEnabled: !inBeltMode,
+              panEnabled: !inBeltMode && !inPlacementMode,
               scaleEnabled: true,
               child: SizedBox(
-                width: w,
-                height: h,
+                key: _mapContentKey,
+                width: side,
+                height: side,
                 child: Stack(
                   children: [
                     Positioned.fill(
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
-                        onTapDown: _onTap,
-                        onPanStart: inBeltMode ? _onPanStart : null,
-                        onPanUpdate: inBeltMode ? _onPanUpdate : null,
-                        onPanEnd: inBeltMode ? _onPanEnd : null,
+                        onTapDown: (d) => _onTap(d, Size(side, side)),
+                        onPanStart: inBeltMode || inPlacementMode
+                            ? (d) => _onPanStart(d, Size(side, side))
+                            : null,
+                        onPanUpdate: inBeltMode || inPlacementMode
+                            ? (d) => _onPanUpdate(d, Size(side, side))
+                            : null,
+                        onPanEnd: inBeltMode || inPlacementMode ? _onPanEnd : null,
                         child: CustomPaint(
                           painter: _FactoryPainter(
                             cellSize: _cellSize,
@@ -1177,28 +1310,106 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
                             animT: _animT,
                             buildMode: _buildMode,
                             placeRot: _placeRot,
-                            hoverPos: _machineDragPos,
+                            mapRot: _mapRot,
+                            pendingPlacement: _pendingPlacement,
                             beltDragPath: _beltDragPath,
                             order: _orderSequence[
                                 _orderIndex.clamp(0, _orderSequence.length - 1)],
                             orderProgress: _orderProgress,
                             hubAnchor: _hubAnchor,
                           ),
-                          size: Size(w, h),
+                          size: Size(side, side),
                         ),
                       ),
                     ),
                     if (_inspect != null) _buildInspector(),
+                    if (_terrainInspect != null)
+                      _buildTerrainInspector(Size(side, side)),
+                    if (_beltInspect != null)
+                      _buildBeltInspector(Size(side, side)),
+                    if (_pendingPlacement != null)
+                      _buildPlacementControls(Size(side, side)),
                   ],
                 ),
               ),
             ),
           ),
           Positioned(top: 8, right: 8, child: _buildOrderPanel()),
-          if (_buildMode != null && _buildMode != 'belt' && _buildMode != 'delete')
-            Positioned(top: 8, left: 8, child: _buildPlacementHud()),
+          if (_activeModeText != null)
+            Positioned(top: 8, left: 8, right: 8, child: _buildModeBanner(_activeModeText!)),
         ],
       );
+    });
+  }
+
+  String? get _activeModeText {
+    final pending = _pendingPlacement;
+    if (pending != null) {
+      return 'building ${_spec(pending.kind).name} mode active';
+    }
+    if (_buildMode == 'delete') return 'bulk delete mode active';
+    if (_buildMode == 'belt') return 'belt build mode active';
+    final kind = _buildMode == null ? null : _kindFromMode(_buildMode!);
+    if (kind != null) return 'building ${_spec(kind).name} mode active';
+    return null;
+  }
+
+  Widget _buildModeBanner(String text) {
+    final delete = _buildMode == 'delete';
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.only(left: 12, right: 4, top: 5, bottom: 5),
+        decoration: BoxDecoration(
+          color: (delete ? NunuColors.errorMain : NunuColors.primaryMain)
+              .withValues(alpha: 0.92),
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.35),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              text,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: _exitBuildMode,
+              child: Container(
+                width: 26,
+                height: 26,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(Icons.close, color: Colors.white, size: 16),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _exitBuildMode() {
+    setState(() {
+      _pendingPlacement = null;
+      _buildMode = null;
+      _beltDragPath = [];
+      _beltDragLast = null;
+      _terrainInspect = null;
+      _beltInspect = null;
     });
   }
 
@@ -1210,7 +1421,10 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         width: _orderPanelOpen ? 200 : 56,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        padding: EdgeInsets.symmetric(
+          horizontal: _orderPanelOpen ? 10 : 6,
+          vertical: _orderPanelOpen ? 8 : 6,
+        ),
         decoration: BoxDecoration(
           color: NunuColors.backgroundPaper.withValues(alpha: 0.95),
           borderRadius: BorderRadius.circular(10),
@@ -1271,91 +1485,168 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
                           color: NunuColors.textSecondary, fontSize: 9)),
                 ],
               )
-            : Row(
+            : Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text('📦', style: TextStyle(fontSize: 14)),
-                  const SizedBox(width: 4),
-                  Text('$_orderProgress/${ord.qty}',
-                      style: const TextStyle(
-                          color: NunuColors.warningMain,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 2),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text('$_orderProgress/${ord.qty}',
+                        style: const TextStyle(
+                            color: NunuColors.warningMain,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800)),
+                  ),
                 ],
               ),
       ),
     );
   }
 
-  Widget _buildPlacementHud() {
-    final kind = _kindFromMode(_buildMode!);
-    final spec = kind == null ? null : _spec(kind);
-    final dirArrow = ['▶', '▼', '◀', '▲'][_placeRot & 3];
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: NunuColors.backgroundPaper.withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: NunuColors.primaryMain),
-        boxShadow: [
-          BoxShadow(
+  Widget _buildPlacementControls(Size canvasSize) {
+    final pending = _pendingPlacement!;
+    final valid = _canPlaceMachine(pending.kind, pending.x, pending.y, pending.rot);
+    final rect = _pendingPlacementRect(pending, canvasSize);
+    const button = 36.0;
+    final top = (rect.top - button - 8).clamp(4.0, canvasSize.height - button - 4);
+    final left = (rect.left - button - 8).clamp(4.0, canvasSize.width - button - 4);
+    final right = (rect.right + 8).clamp(4.0, canvasSize.width - button - 4);
+    final midY = (rect.center.dy - button / 2).clamp(4.0, canvasSize.height - button - 4);
+    final midX = (rect.center.dx - button / 2).clamp(4.0, canvasSize.width - button - 4);
+    return Stack(
+      children: [
+        Positioned(
+          left: midX,
+          top: top,
+          child: _placementButton(
+            icon: Icons.rotate_90_degrees_cw,
+            color: NunuColors.primaryMain,
+            onTap: () => setState(() {
+              pending.rot = (pending.rot + 1) & 3;
+              _placeRot = pending.rot;
+            }),
+          ),
+        ),
+        Positioned(
+          left: right,
+          top: midY,
+          child: _placementButton(
+            icon: Icons.check,
+            color: valid ? NunuColors.successMain : NunuColors.errorMain,
+            onTap: valid ? _confirmPendingPlacement : null,
+          ),
+        ),
+        Positioned(
+          left: left,
+          top: midY,
+          child: _placementButton(
+            icon: Icons.close,
+            color: NunuColors.errorMain,
+            onTap: _cancelPendingPlacement,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _placementButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback? onTap,
+  }) {
+    final enabled = onTap != null;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: enabled
+              ? color.withValues(alpha: 0.9)
+              : NunuColors.backgroundDefault.withValues(alpha: 0.92),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: color, width: 1.5),
+          boxShadow: [
+            BoxShadow(
               color: Colors.black.withValues(alpha: 0.4),
               blurRadius: 8,
-              offset: const Offset(0, 2)),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(spec?.emoji ?? '', style: const TextStyle(fontSize: 22)),
-          const SizedBox(width: 6),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(spec?.name ?? '',
-                  style: const TextStyle(
-                      color: NunuColors.textPrimary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800)),
-              Text('output ▶ $dirArrow',
-                  style: const TextStyle(
-                      color: NunuColors.successLight, fontSize: 10)),
-            ],
-          ),
-          const SizedBox(width: 10),
-          GestureDetector(
-            onTap: () => setState(() => _placeRot = (_placeRot + 1) & 3),
-            child: Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: NunuColors.primaryMain.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: NunuColors.primaryMain),
-              ),
-              alignment: Alignment.center,
-              child: const Text('↻',
-                  style: TextStyle(
-                      color: NunuColors.primaryLight,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800)),
+              offset: const Offset(0, 2),
             ),
-          ),
-          const SizedBox(width: 6),
-          GestureDetector(
-            onTap: () => setState(() => _buildMode = null),
-            child: Container(
-              width: 30,
-              height: 38,
-              alignment: Alignment.center,
-              child: const Icon(Icons.close,
-                  color: NunuColors.textSecondary, size: 20),
-            ),
-          ),
-        ],
+          ],
+        ),
+        alignment: Alignment.center,
+        child: Icon(icon, color: Colors.white, size: 20),
       ),
     );
+  }
+
+  Rect _pendingPlacementRect(_PendingPlacement pending, Size canvasSize) {
+    final fake = _Machine(
+      id: -1,
+      kind: pending.kind,
+      x: pending.x,
+      y: pending.y,
+      rot: pending.rot,
+    );
+    final cells = fake.cells();
+    var minX = cells.first.x;
+    var minY = cells.first.y;
+    var maxX = cells.first.x;
+    var maxY = cells.first.y;
+    for (final c in cells) {
+      minX = min(minX, c.x);
+      minY = min(minY, c.y);
+      maxX = max(maxX, c.x);
+      maxY = max(maxY, c.y);
+    }
+    final topLeft = _mapPointToCanvas(
+      Offset(minX * _cellSize, minY * _cellSize),
+      canvasSize,
+    );
+    final bottomRight = _mapPointToCanvas(
+      Offset((maxX + 1) * _cellSize, (maxY + 1) * _cellSize),
+      canvasSize,
+    );
+    return Rect.fromLTRB(
+      min(topLeft.dx, bottomRight.dx),
+      min(topLeft.dy, bottomRight.dy),
+      max(topLeft.dx, bottomRight.dx),
+      max(topLeft.dy, bottomRight.dy),
+    );
+  }
+
+  Offset _mapPointToCanvas(Offset point, Size canvasSize) {
+    final mapCenter = Offset(_kCols * _cellSize / 2, _kRows * _cellSize / 2);
+    final canvasCenter = Offset(canvasSize.width / 2, canvasSize.height / 2);
+    final dx = point.dx - mapCenter.dx;
+    final dy = point.dy - mapCenter.dy;
+    final angle = (_mapRot & 3) * pi / 2;
+    return Offset(
+      canvasCenter.dx + dx * cos(angle) - dy * sin(angle),
+      canvasCenter.dy + dx * sin(angle) + dy * cos(angle),
+    );
+  }
+
+  void _confirmPendingPlacement() {
+    final pending = _pendingPlacement;
+    if (pending == null) return;
+    setState(() {
+      _placeMachine(pending.kind, pending.x, pending.y, pending.rot);
+      _pendingPlacement = null;
+      _buildMode = null;
+      _terrainInspect = null;
+      _beltInspect = null;
+    });
+  }
+
+  void _cancelPendingPlacement() {
+    setState(() {
+      _pendingPlacement = null;
+      _buildMode = null;
+      _terrainInspect = null;
+      _beltInspect = null;
+    });
   }
 
   Widget _buildInspector() {
@@ -1363,6 +1654,7 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
     final recipes = _recipesFor(m.kind)
         .where((r) => r.tier <= _highestTierUnlocked)
         .toList();
+    final recipe = m.recipe;
     final left = (m.x * _cellSize).clamp(0, _kCols * _cellSize - 220);
     final top =
         ((m.y + m.h) * _cellSize).clamp(0, _kRows * _cellSize - 200);
@@ -1373,7 +1665,7 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
         onTap: () {},
         child: Container(
           width: 220,
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.fromLTRB(8, 8, 6, 8),
           decoration: BoxDecoration(
             color: NunuColors.backgroundPaper,
             borderRadius: BorderRadius.circular(8),
@@ -1383,16 +1675,40 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(m.spec.name,
-                  style: const TextStyle(
-                      color: NunuColors.textPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800)),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(m.spec.name,
+                        style: const TextStyle(
+                            color: NunuColors.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800)),
+                  ),
+                  GestureDetector(
+                    onTap: () => setState(() => _inspect = null),
+                    child: const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: Icon(Icons.close,
+                          color: NunuColors.textSecondary, size: 16),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 4),
               if (m.kind == _MachineKind.miner)
-                Text('mining: ${m.minerOre?.label ?? '—'}',
-                    style: const TextStyle(
-                        color: NunuColors.textSecondary, fontSize: 11))
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('mining: ${m.minerOre?.label ?? '—'}',
+                        style: const TextStyle(
+                            color: NunuColors.textSecondary, fontSize: 11)),
+                    Text('ratio: 1 ${m.minerOre?.item.label ?? 'ore'} / 5s',
+                        style: const TextStyle(
+                            color: NunuColors.textSecondary, fontSize: 10)),
+                  ],
+                )
               else if (m.kind == _MachineKind.hub)
                 const Text('hub accepts everything',
                     style: TextStyle(
@@ -1432,6 +1748,16 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
                       });
                     },
                   ),
+                if (recipe != null) ...[
+                  const SizedBox(height: 4),
+                  Text('needs: ${_recipeInputsText(recipe)}',
+                      style: const TextStyle(
+                          color: NunuColors.textSecondary, fontSize: 10)),
+                  Text(
+                      'makes: 1 ${recipe.output.label} / ${recipe.cycleSec.toStringAsFixed(0)}s',
+                      style: const TextStyle(
+                          color: NunuColors.textSecondary, fontSize: 10)),
+                ],
                 const SizedBox(height: 4),
                 Text('buffer: ${_bufferText(m)}',
                     style: const TextStyle(
@@ -1440,13 +1766,167 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
                     style: const TextStyle(
                         color: NunuColors.textSecondary, fontSize: 10)),
               ],
-              const SizedBox(height: 4),
-              Row(children: [
-                TextButton(
-                  onPressed: () => setState(() => _inspect = null),
-                  child: const Text('close'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTerrainInspector(Size canvasSize) {
+    final info = _terrainInspect!;
+    final ore = info.ore;
+    final title = ore != null ? '${ore.label} patch' : 'rock';
+    final subtitle = ore != null ? 'place a miner here' : 'unbuildable';
+    final color = ore?.color ?? const Color(0xFF9CA3AF);
+    final anchor = _mapPointToCanvas(
+      Offset((info.cell.x + 0.5) * _cellSize, (info.cell.y + 0.5) * _cellSize),
+      canvasSize,
+    );
+    final left = (anchor.dx + 12).clamp(4.0, canvasSize.width - 160);
+    final top = (anchor.dy - 20).clamp(4.0, canvasSize.height - 72);
+    return Positioned(
+      left: left,
+      top: top,
+      child: GestureDetector(
+        onTap: () {},
+        child: Container(
+          width: 156,
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: NunuColors.backgroundPaper.withValues(alpha: 0.96),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: color, width: 1.4),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.35),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(color: color),
                 ),
-              ]),
+                alignment: Alignment.center,
+                child: Icon(
+                  ore != null ? Icons.grain : Icons.terrain,
+                  color: color,
+                  size: 15,
+                ),
+              ),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(title,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: NunuColors.textPrimary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800)),
+                    Text(subtitle,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: NunuColors.textSecondary, fontSize: 10)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBeltInspector(Size canvasSize) {
+    final info = _beltInspect!;
+    final belt = _belts[info.cell];
+    if (belt == null) return const SizedBox.shrink();
+    final counts = <_Item, int>{};
+    for (final item in belt.items) {
+      counts[item.item] = (counts[item.item] ?? 0) + 1;
+    }
+    final cargo = counts.isEmpty
+        ? 'empty'
+        : counts.entries
+            .map((e) => e.value == 1 ? e.key.label : '${e.value} ${e.key.label}')
+            .join(', ');
+    final direction = _directionLabel(belt.outDx, belt.outDy);
+    final anchor = _mapPointToCanvas(
+      Offset((info.cell.x + 0.5) * _cellSize, (info.cell.y + 0.5) * _cellSize),
+      canvasSize,
+    );
+    final left = (anchor.dx + 12).clamp(4.0, canvasSize.width - 168);
+    final top = (anchor.dy - 20).clamp(4.0, canvasSize.height - 76);
+    return Positioned(
+      left: left,
+      top: top,
+      child: GestureDetector(
+        onTap: () {},
+        child: Container(
+          width: 164,
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: NunuColors.backgroundPaper.withValues(alpha: 0.96),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: NunuColors.primaryMain, width: 1.4),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.35),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  color: NunuColors.primaryMain.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(color: NunuColors.primaryMain),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(Icons.double_arrow,
+                    color: NunuColors.primaryLight, size: 15),
+              ),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('conveyor belt',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: NunuColors.textPrimary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800)),
+                    Text('cargo: $cargo',
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: NunuColors.textSecondary, fontSize: 10)),
+                    Text('output: $direction',
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: NunuColors.textSecondary, fontSize: 10)),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -1462,36 +1942,72 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
         .join(', ');
   }
 
-  void _onTap(TapDownDetails d) {
-    final cell = _cellAt(d.localPosition);
+  String _recipeInputsText(_Recipe recipe) {
+    return recipe.inputs.entries
+        .map((e) => '${e.value} ${e.key.label}')
+        .join(' + ');
+  }
+
+  String _directionLabel(int dx, int dy) {
+    if (dx > 0) return 'east';
+    if (dx < 0) return 'west';
+    if (dy > 0) return 'south';
+    if (dy < 0) return 'north';
+    return 'none';
+  }
+
+  void _onTap(TapDownDetails d, Size canvasSize) {
+    final cell = _cellAt(d.localPosition, canvasSize);
     if (cell == null) return;
+    final pending = _pendingPlacement;
+    if (pending != null) {
+      setState(() {
+        pending.x = cell.x;
+        pending.y = cell.y;
+      });
+      return;
+    }
     if (_inspect != null) {
-      setState(() => _inspect = null);
+      setState(() {
+        _inspect = null;
+        _terrainInspect = null;
+        _beltInspect = null;
+      });
       return;
     }
     if (_buildMode == null) {
       final mid = _occByMachine[cell.x][cell.y];
       if (mid != null) {
-        setState(() => _inspect = _machines[mid]);
+        setState(() {
+          _inspect = _machines[mid];
+          _terrainInspect = null;
+          _beltInspect = null;
+        });
+        return;
+      }
+      if (_belts.containsKey(cell)) {
+        setState(() {
+          _beltInspect = _BeltInspect(cell: cell);
+          _terrainInspect = null;
+        });
         return;
       }
       final ore = _patches[cell.x][cell.y];
       if (ore != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${ore.label} patch — place a miner here'),
-            duration: const Duration(seconds: 2),
-            backgroundColor: NunuColors.backgroundPaper,
-          ),
-        );
+        setState(() {
+          _terrainInspect = _TerrainInspect(cell: cell, ore: ore);
+          _beltInspect = null;
+        });
       } else if (_rocks[cell.x][cell.y]) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('rock — unbuildable'),
-            duration: Duration(seconds: 1),
-            backgroundColor: NunuColors.backgroundPaper,
-          ),
-        );
+        setState(() {
+          _terrainInspect = _TerrainInspect(cell: cell, rock: true);
+          _beltInspect = null;
+        });
+      } else {
+        setState(() {
+          _terrainInspect = null;
+          _beltInspect = null;
+        });
       }
       return;
     }
@@ -1500,10 +2016,6 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
       return;
     }
     if (_buildMode == 'belt') return;
-    final kind = _kindFromMode(_buildMode!);
-    if (kind != null) {
-      setState(() => _placeMachine(kind, cell.x, cell.y, _placeRot));
-    }
   }
 
   _MachineKind? _kindFromMode(String mode) {
@@ -1520,16 +2032,38 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
     return null;
   }
 
-  void _onPanStart(DragStartDetails d) {
+  void _onPanStart(DragStartDetails d, Size canvasSize) {
+    if (_pendingPlacement != null) {
+      final c = _cellAt(d.localPosition, canvasSize);
+      if (c != null) {
+        setState(() {
+          _pendingPlacement!
+            ..x = c.x
+            ..y = c.y;
+        });
+      }
+      return;
+    }
     if (_buildMode != 'belt') return;
     _beltDragLast = d.localPosition;
-    final c = _cellAt(d.localPosition);
+    final c = _cellAt(d.localPosition, canvasSize);
     if (c != null) _beltDragPath = [c];
   }
 
-  void _onPanUpdate(DragUpdateDetails d) {
+  void _onPanUpdate(DragUpdateDetails d, Size canvasSize) {
+    if (_pendingPlacement != null) {
+      final c = _cellAt(d.localPosition, canvasSize);
+      if (c != null) {
+        setState(() {
+          _pendingPlacement!
+            ..x = c.x
+            ..y = c.y;
+        });
+      }
+      return;
+    }
     if (_buildMode != 'belt') return;
-    final c = _cellAt(d.localPosition);
+    final c = _cellAt(d.localPosition, canvasSize);
     if (c == null) return;
     if (_beltDragPath.isEmpty || _beltDragPath.last != c) {
       final last = _beltDragPath.isEmpty ? c : _beltDragPath.last;
@@ -1549,6 +2083,7 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
   }
 
   void _onPanEnd(DragEndDetails d) {
+    if (_pendingPlacement != null) return;
     if (_buildMode != 'belt') return;
     for (int i = 0; i < _beltDragPath.length; i++) {
       final p = _beltDragPath[i];
@@ -1577,18 +2112,37 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
 
   Widget _buildBuildBar() {
     final cards = [
-      _BarCard('belt', '➤', 'belt', 0),
-      _BarCard('miner', '⛏', 'miner', _minerSpec.cost),
-      _BarCard('smelter', '🔥', 'smelter', _smelterSpec.cost),
-      _BarCard('assembler', '🔧', 'assembler', _assemblerSpec.cost),
-      _BarCard('constructor', '🏭', 'constructor', _constructorSpec.cost),
+      _BarCard('belt', '➤', 'belt'),
+      _BarCard('miner', '⛏', 'miner', _MachineKind.miner),
+      _BarCard('smelter', '🔥', 'smelter', _MachineKind.smelter),
+      _BarCard('assembler', '🔧', 'assembler', _MachineKind.assembler),
+      _BarCard('constructor', '🏭', 'constructor', _MachineKind.constructor),
     ];
     return Container(
-      height: 96,
+      height: 112,
       color: NunuColors.backgroundPaper,
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      child: Row(
+      child: Column(
         children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              _miniButton(Icons.screen_rotation_alt, () {
+                setState(() => _mapRot = (_mapRot + 1) & 3);
+              }, active: _mapRot != 0),
+              _miniButton(Icons.delete_outline, () {
+                setState(() {
+                  _pendingPlacement = null;
+                  _buildMode = _buildMode == 'delete' ? null : 'delete';
+                  _inspect = null;
+                  _terrainInspect = null;
+                  _beltInspect = null;
+                });
+              }, active: _buildMode == 'delete'),
+              _miniButton(Icons.precision_manufacturing_outlined, _showCraftMenu,
+                  active: false),
+            ],
+          ),
           Expanded(
             child: ListView(
               scrollDirection: Axis.horizontal,
@@ -1597,26 +2151,18 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
               ],
             ),
           ),
-          _miniButton('↻', () {
-            setState(() => _placeRot = (_placeRot + 1) & 3);
-          }, active: false),
-          _miniButton('🗑', () {
-            setState(() {
-              _buildMode = _buildMode == 'delete' ? null : 'delete';
-              _inspect = null;
-            });
-          }, active: _buildMode == 'delete'),
         ],
       ),
     );
   }
 
-  Widget _miniButton(String label, VoidCallback onTap, {required bool active}) {
+  Widget _miniButton(IconData icon, VoidCallback onTap, {required bool active}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 44,
-        margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+        width: 34,
+        height: 30,
+        margin: const EdgeInsets.symmetric(horizontal: 2),
         decoration: BoxDecoration(
           color: active
               ? NunuColors.primaryMain.withValues(alpha: 0.3)
@@ -1628,21 +2174,47 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
                   : NunuColors.primaryDark.withValues(alpha: 0.4)),
         ),
         alignment: Alignment.center,
-        child: Text(label, style: const TextStyle(fontSize: 18)),
+        child: Icon(icon,
+            color: active ? NunuColors.primaryLight : NunuColors.textSecondary,
+            size: 18),
       ),
     );
   }
 
   Widget _cardWidget(_BarCard c) {
     final active = _buildMode == c.mode;
-    final canAfford = _credits >= c.cost;
+    final count = c.kind == null ? null : (_machineInventory[c.kind!] ?? 0);
+    final available = count == null || count > 0;
     return GestureDetector(
       onTap: () {
         setState(() {
-          _buildMode = active ? null : c.mode;
           _inspect = null;
+          _terrainInspect = null;
+          _beltInspect = null;
+          if (c.kind == null) {
+            _pendingPlacement = null;
+            _buildMode = active ? null : c.mode;
+          } else if (available) {
+            _pendingPlacement = null;
+            _buildMode = active ? null : c.mode;
+          }
         });
       },
+      onPanStart: c.kind != null && available
+          ? (d) {
+              _draggingBuildKind = c.kind;
+              _moveDraggedMachine(d.globalPosition);
+            }
+          : null,
+      onPanUpdate: c.kind != null && available
+          ? (d) => _moveDraggedMachine(d.globalPosition)
+          : null,
+      onPanEnd: c.kind != null && available
+          ? (_) => setState(() => _draggingBuildKind = null)
+          : null,
+      onPanCancel: c.kind != null && available
+          ? () => setState(() => _draggingBuildKind = null)
+          : null,
       child: Container(
         width: 70,
         margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
@@ -1662,7 +2234,7 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Opacity(
-                opacity: canAfford ? 1 : 0.4,
+                opacity: available ? 1 : 0.35,
                 child: Text(c.emoji,
                     style: const TextStyle(fontSize: 22, height: 1))),
             const SizedBox(height: 2),
@@ -1672,14 +2244,102 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
                     fontSize: 10,
                     height: 1.1,
                     fontWeight: FontWeight.w700)),
-            Text(c.cost == 0 ? 'free' : '\$${c.cost}',
+            Text(count == null ? 'free' : 'x$count',
                 style: TextStyle(
-                    color: canAfford
+                    color: available
                         ? NunuColors.textSecondary
                         : NunuColors.errorLight,
                     height: 1.1,
                     fontSize: 9)),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _beginPlacement(_MachineKind kind) {
+    _beginPlacementAt(kind, Point((_hubAnchor.x - 2).clamp(0, _kCols - 1), _hubAnchor.y));
+  }
+
+  void _beginPlacementAt(_MachineKind kind, Point<int> cell) {
+    _buildMode = _spec(kind).name;
+    _pendingPlacement = _PendingPlacement(
+      kind: kind,
+      x: cell.x,
+      y: cell.y,
+      rot: _placeRot,
+    );
+  }
+
+  void _moveDraggedMachine(Offset globalPosition) {
+    final kind = _draggingBuildKind;
+    if (kind == null) return;
+    final cell = _cellAtGlobal(globalPosition);
+    if (cell == null) return;
+    setState(() {
+      final pending = _pendingPlacement;
+      if (pending == null || pending.kind != kind) {
+        _beginPlacementAt(kind, cell);
+      } else {
+        pending
+          ..x = cell.x
+          ..y = cell.y;
+      }
+      _terrainInspect = null;
+      _beltInspect = null;
+    });
+  }
+
+  Point<int>? _cellAtGlobal(Offset globalPosition) {
+    final box = _mapContentKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return null;
+    return _cellAt(box.globalToLocal(globalPosition), box.size);
+  }
+
+  void _showCraftMenu() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: NunuColors.backgroundPaper,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('craft machines',
+                  style: TextStyle(
+                      color: NunuColors.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800)),
+              const SizedBox(height: 8),
+              for (final kind in const [
+                _MachineKind.miner,
+                _MachineKind.smelter,
+                _MachineKind.assembler,
+                _MachineKind.constructor,
+              ])
+                ListTile(
+                  dense: true,
+                  leading: Text(_spec(kind).emoji,
+                      style: const TextStyle(fontSize: 20)),
+                  title: Text(_spec(kind).name,
+                      style: const TextStyle(color: NunuColors.textPrimary)),
+                  subtitle: Text('inventory: ${_machineInventory[kind] ?? 0}',
+                      style: const TextStyle(color: NunuColors.textSecondary)),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.add_circle_outline,
+                        color: NunuColors.primaryLight),
+                    onPressed: () {
+                      setState(() {
+                        _machineInventory[kind] = (_machineInventory[kind] ?? 0) + 1;
+                      });
+                      Navigator.of(ctx).pop();
+                    },
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -1690,8 +2350,8 @@ class _BarCard {
   final String label;
   final String emoji;
   final String mode;
-  final int cost;
-  _BarCard(this.label, this.emoji, this.mode, this.cost);
+  final _MachineKind? kind;
+  _BarCard(this.label, this.emoji, this.mode, [this.kind]);
 }
 
 class _FactoryPainter extends CustomPainter {
@@ -1703,7 +2363,8 @@ class _FactoryPainter extends CustomPainter {
   final double animT;
   final String? buildMode;
   final int placeRot;
-  final Offset? hoverPos;
+  final int mapRot;
+  final _PendingPlacement? pendingPlacement;
   final List<Point<int>> beltDragPath;
   final _Order order;
   final int orderProgress;
@@ -1718,7 +2379,8 @@ class _FactoryPainter extends CustomPainter {
     required this.animT,
     required this.buildMode,
     required this.placeRot,
-    required this.hoverPos,
+    required this.mapRot,
+    required this.pendingPlacement,
     required this.beltDragPath,
     required this.order,
     required this.orderProgress,
@@ -1729,6 +2391,13 @@ class _FactoryPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final bg = Paint()..color = const Color(0xFF1A1A24);
     canvas.drawRect(Offset.zero & size, bg);
+
+    final mapW = _kCols * cellSize;
+    final mapH = _kRows * cellSize;
+    canvas.save();
+    canvas.translate(size.width / 2, size.height / 2);
+    canvas.rotate((mapRot & 3) * pi / 2);
+    canvas.translate(-mapW / 2, -mapH / 2);
 
     final gridLine = Paint()
       ..color = const Color(0xFF26263A)
@@ -1784,7 +2453,7 @@ class _FactoryPainter extends CustomPainter {
         ..strokeJoin = StrokeJoin.round;
       final bodyPath = Path();
       if (hasIn) {
-        bodyPath.moveTo(cx - b.inDx * cellSize / 2, cy - b.inDy * cellSize / 2);
+        bodyPath.moveTo(cx + b.inDx * cellSize / 2, cy + b.inDy * cellSize / 2);
         bodyPath.lineTo(cx, cy);
       }
       if (hasOut) {
@@ -1805,16 +2474,9 @@ class _FactoryPainter extends CustomPainter {
           ..strokeCap = StrokeCap.round;
         for (int i = 0; i < 2; i++) {
           final t = ((animT * 1.2 + i / 2) % 1.0);
-          double px, py;
-          if (t < 0.5 && hasIn) {
-            final s = t * 2;
-            px = cx - b.inDx * cellSize / 2 * (1 - s);
-            py = cy - b.inDy * cellSize / 2 * (1 - s);
-          } else {
-            final s = hasIn ? (t - 0.5) * 2 : t;
-            px = cx + b.outDx * cellSize / 2 * s;
-            py = cy + b.outDy * cellSize / 2 * s;
-          }
+          final pos = _beltPathPoint(b, t);
+          final px = pos.dx;
+          final py = pos.dy;
           final dx = b.outDx.toDouble();
           final dy = b.outDy.toDouble();
           final csz = cellSize * 0.14;
@@ -1832,25 +2494,16 @@ class _FactoryPainter extends CustomPainter {
         }
       }
 
+    }
+
+    for (final b in belts) {
       for (final it in b.items) {
         final t = it.progress.clamp(0.0, 1.0);
-        double px, py;
-        if (t < 0.5 && hasIn) {
-          final s = t * 2;
-          px = cx - b.inDx * cellSize / 2 * (1 - s);
-          py = cy - b.inDy * cellSize / 2 * (1 - s);
-        } else if (hasOut) {
-          final s = hasIn ? (t - 0.5) * 2 : t;
-          px = cx + b.outDx * cellSize / 2 * s;
-          py = cy + b.outDy * cellSize / 2 * s;
-        } else {
-          px = cx;
-          py = cy;
-        }
+        final pos = _beltPathPoint(b, t);
         canvas.drawCircle(
-            Offset(px, py), cellSize * 0.16, Paint()..color = it.item.color);
+            pos, cellSize * 0.16, Paint()..color = it.item.color);
         canvas.drawCircle(
-            Offset(px, py),
+            pos,
             cellSize * 0.16,
             Paint()
               ..color = Colors.white.withValues(alpha: 0.5)
@@ -1863,6 +2516,11 @@ class _FactoryPainter extends CustomPainter {
       _drawMachine(canvas, m);
     }
 
+    final pending = pendingPlacement;
+    if (pending != null) {
+      _drawPendingPlacement(canvas, pending);
+    }
+
     if (buildMode == 'belt' && beltDragPath.isNotEmpty) {
       for (final p in beltDragPath) {
         final r = Rect.fromLTWH(p.x * cellSize + 2, p.y * cellSize + 2,
@@ -1873,6 +2531,78 @@ class _FactoryPainter extends CustomPainter {
               ..color = NunuColors.primaryMain.withValues(alpha: 0.4));
       }
     }
+    canvas.restore();
+  }
+
+  Offset _beltPathPoint(_Belt b, double t) {
+    final cx = b.x * cellSize + cellSize / 2;
+    final cy = b.y * cellSize + cellSize / 2;
+    final hasIn = b.inDx != 0 || b.inDy != 0;
+    final hasOut = b.outDx != 0 || b.outDy != 0;
+    final center = Offset(cx, cy);
+    final start = hasIn
+        ? Offset(cx + b.inDx * cellSize / 2, cy + b.inDy * cellSize / 2)
+        : center;
+    final end = hasOut
+        ? Offset(cx + b.outDx * cellSize / 2, cy + b.outDy * cellSize / 2)
+        : center;
+    final clamped = t.clamp(0.0, 1.0);
+    if (!hasIn && !hasOut) return center;
+    if (!hasIn) return Offset.lerp(center, end, clamped)!;
+    if (!hasOut) return Offset.lerp(start, center, clamped)!;
+    if (clamped < 0.5) {
+      return Offset.lerp(start, center, clamped * 2)!;
+    }
+    return Offset.lerp(center, end, (clamped - 0.5) * 2)!;
+  }
+
+  void _drawPendingPlacement(Canvas canvas, _PendingPlacement pending) {
+    final fake = _Machine(
+      id: -1,
+      kind: pending.kind,
+      x: pending.x,
+      y: pending.y,
+      rot: pending.rot,
+    );
+    final blocked = fake.cells().any((c) =>
+        c.x < 0 ||
+        c.x >= _kCols ||
+        c.y < 0 ||
+        c.y >= _kRows ||
+        rocks[c.x][c.y] ||
+        machines.any((m) => m.cells().contains(c)) ||
+        belts.any((b) => b.x == c.x && b.y == c.y) ||
+        (pending.kind == _MachineKind.miner
+            ? patches[c.x][c.y] == null
+            : patches[c.x][c.y] != null));
+    final cells = fake.cells();
+    int minX = cells.first.x, minY = cells.first.y, maxX = cells.first.x, maxY = cells.first.y;
+    for (final c in cells) {
+      minX = min(minX, c.x);
+      minY = min(minY, c.y);
+      maxX = max(maxX, c.x);
+      maxY = max(maxY, c.y);
+    }
+    final r = Rect.fromLTWH(
+      minX * cellSize + 1,
+      minY * cellSize + 1,
+      (maxX - minX + 1) * cellSize - 2,
+      (maxY - minY + 1) * cellSize - 2,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(r, const Radius.circular(6)),
+      Paint()
+        ..color = (blocked ? NunuColors.errorMain : NunuColors.successMain)
+            .withValues(alpha: 0.28),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(r, const Radius.circular(6)),
+      Paint()
+        ..color = blocked ? NunuColors.errorMain : NunuColors.successMain
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5,
+    );
+    _drawMachine(canvas, fake);
   }
 
   void _drawMachine(Canvas canvas, _Machine m) {
@@ -1958,8 +2688,12 @@ class _FactoryPainter extends CustomPainter {
         textDirection: TextDirection.ltr,
         textAlign: TextAlign.center,
       )..layout(maxWidth: r.width - 4);
-      ot.paint(canvas,
-          Offset(r.center.dx - ot.width / 2, r.bottom - ot.height - 4));
+      canvas.save();
+      final textCenter = Offset(r.center.dx, r.bottom - ot.height / 2 - 4);
+      canvas.translate(textCenter.dx, textCenter.dy);
+      canvas.rotate(-(mapRot & 3) * pi / 2);
+      ot.paint(canvas, Offset(-ot.width / 2, -ot.height / 2));
+      canvas.restore();
     }
 
     for (final p in m.ports()) {

@@ -1149,6 +1149,7 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
     return LongPressDraggable<_TowerKind>(
       data: kind,
       delay: const Duration(milliseconds: 60),
+      dragAnchorStrategy: pointerDragAnchorStrategy,
       onDragStarted: () {
         setState(() {
           _dragKind = kind;
@@ -1541,13 +1542,13 @@ class _DragLayer extends StatelessWidget {
       onMove: (d) {
         final box = context.findRenderObject() as RenderBox?;
         if (box == null) return;
-        final local = box.globalToLocal(d.offset + Offset(cellSize / 2, cellSize / 2));
+        final local = box.globalToLocal(d.offset);
         onHover(local);
       },
       onAcceptWithDetails: (d) {
         final box = context.findRenderObject() as RenderBox?;
         if (box == null) return;
-        final local = box.globalToLocal(d.offset + Offset(cellSize / 2, cellSize / 2));
+        final local = box.globalToLocal(d.offset);
         onDrop(d.data, local);
       },
       builder: (ctx, _, __) {
