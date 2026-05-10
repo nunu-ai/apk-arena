@@ -9,6 +9,7 @@ import '../level_widget.dart';
 
 const int _kCols = 36;
 const int _kRows = 26;
+const int _scoreWealthTarget = 8000;
 
 enum _Item {
   ironOre,
@@ -67,6 +68,41 @@ extension _ItemX on _Item {
     }
   }
 
+  String get emoji {
+    switch (this) {
+      case _Item.ironOre:
+        return '🪨';
+      case _Item.copperOre:
+        return '🟧';
+      case _Item.coal:
+        return '⚫';
+      case _Item.stone:
+        return '⬜';
+      case _Item.ironBar:
+      case _Item.copperBar:
+      case _Item.stoneSlab:
+        return '▰';
+      case _Item.ironPlate:
+        return '🟫';
+      case _Item.copperWire:
+        return '🧶';
+      case _Item.stoneBrick:
+        return '🧱';
+      case _Item.gear:
+        return '⚙';
+      case _Item.circuit:
+        return '🟢';
+      case _Item.reinforced:
+        return '🟪';
+      case _Item.engine:
+        return '🟡';
+      case _Item.computer:
+        return '🟦';
+      case _Item.rocketPart:
+        return '🚀';
+    }
+  }
+
   Color get color {
     switch (this) {
       case _Item.ironOre:
@@ -108,23 +144,23 @@ extension _ItemX on _Item {
       case _Item.ironBar:
       case _Item.copperBar:
       case _Item.stoneSlab:
-        return 2;
+        return 3;
       case _Item.ironPlate:
       case _Item.copperWire:
       case _Item.stoneBrick:
-        return 4;
+        return 5;
       case _Item.gear:
-        return 8;
+        return 20;
       case _Item.circuit:
-        return 10;
+        return 22;
       case _Item.reinforced:
-        return 18;
+        return 34;
       case _Item.engine:
-        return 60;
+        return 75;
       case _Item.computer:
-        return 70;
+        return 135;
       case _Item.rocketPart:
-        return 250;
+        return 550;
     }
   }
 }
@@ -485,6 +521,8 @@ class _Machine {
   int producedLastCycle = 0;
   double recentRate = 0;
   _OreKind? minerOre;
+  bool waitingForInput = false;
+  bool outputBlocked = false;
 
   _Machine({
     required this.id,
@@ -640,10 +678,12 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
     _MachineKind.smelter: 3,
     _MachineKind.assembler: 2,
     _MachineKind.constructor: 1,
+    _MachineKind.hub: 0,
   };
   _PendingPlacement? _pendingPlacement;
 
   int _wealth = 0;
+  int _parts = 0;
   int _ordersCompleted = 0;
   int _highestTierUnlocked = 2;
   int _beltsPlaced = 0;
@@ -661,6 +701,8 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
   _Machine? _inspect;
   _TerrainInspect? _terrainInspect;
   _BeltInspect? _beltInspect;
+  final Map<_Item, List<double>> _hubDeliveryTimes = {};
+  int _hubInputsReceived = 0;
 
   Ticker? _ticker;
   Duration _lastTick = Duration.zero;
@@ -675,6 +717,8 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
   late Point<int> _hubAnchor;
 
   bool _orderPanelOpen = true;
+
+  bool get _hubUnlocked => _ordersCompleted >= 3 || _highestTierUnlocked >= 4;
 
   @override
   void initState() {
@@ -772,18 +816,19 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
   }
 
   bool _isHub(int x, int y) {
-    return x >= _hubAnchor.x &&
-        x < _hubAnchor.x + 3 &&
-        y >= _hubAnchor.y &&
-        y < _hubAnchor.y + 3;
+    return x >= _hubAnchor.x - 1 &&
+        x < _hubAnchor.x + 4 &&
+        y >= _hubAnchor.y - 1 &&
+        y < _hubAnchor.y + 4;
   }
 
   LevelOutcome _buildOutcome() {
-    final score = sqrt((_wealth / 2500).clamp(0.0, 1.0));
+    final score = sqrt((_wealth / _scoreWealthTarget).clamp(0.0, 1.0));
     return LevelOutcome(
       score: score,
       metrics: {
         'wealth': _wealth,
+        'parts': _parts,
         'orders_completed': _ordersCompleted,
         'highest_tier_unlocked': _highestTierUnlocked,
         'belts_placed': _beltsPlaced,
@@ -817,6 +862,8 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
     const beltStep = 0.7;
 
     for (final m in _machines.values) {
+      m.waitingForInput = false;
+      m.outputBlocked = false;
       if (m.flashT > 0) {
         m.flashT -= dt;
         if (m.flashT <= 0) m.flashRed = false;
@@ -836,12 +883,16 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
           final emitted = m.minerOre!.item;
           if (_emitFromMachine(m, emitted)) {
             m.producedLastCycle++;
+          } else {
+            m.outputBlocked = true;
           }
         }
         continue;
       }
 
-      if (m.kind == _MachineKind.hub) continue;
+      if (m.kind == _MachineKind.hub) {
+        continue;
+      }
       final r = m.recipe;
       if (r == null) continue;
       bool can = true;
@@ -852,6 +903,7 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
         }
       }
       if (!can) {
+        m.waitingForInput = true;
         m.cycleProgress = 0;
         continue;
       }
@@ -864,6 +916,8 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
         }
         if (_emitFromMachine(m, r.output)) {
           m.producedLastCycle++;
+        } else {
+          m.outputBlocked = true;
         }
       }
     }
@@ -919,8 +973,15 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
     if (mid != null) {
       final m = _machines[mid]!;
       if (m.kind == _MachineKind.hub) {
-        _depositHub(item);
-        return true;
+        for (final p in m.ports()) {
+          if (p.x == tx && p.y == ty && p.isInput) {
+            if (p.x + p.outDx == fromX && p.y + p.outDy == fromY) {
+              _depositHub(item);
+              return true;
+            }
+          }
+        }
+        return false;
       }
       for (final p in m.ports()) {
         if (p.x == tx && p.y == ty && p.isInput) {
@@ -931,7 +992,7 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
               return true;
             } else {
               m.flashRed = true;
-              m.flashT = 0.4;
+              m.flashT = 1.4;
               return true;
             }
           }
@@ -953,6 +1014,11 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
 
   void _depositHub(_Item item) {
     _wealth += item.value;
+    _parts += item.value;
+    _hubInputsReceived++;
+    final times = _hubDeliveryTimes.putIfAbsent(item, () => <double>[]);
+    times.add(_elapsed);
+    times.removeWhere((t) => _elapsed - t > 10);
     final ord = _orderSequence[_orderIndex.clamp(0, _orderSequence.length - 1)];
     if (item == ord.item) {
       _orderProgress++;
@@ -974,7 +1040,7 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
     final ord = _orderSequence[_orderIndex.clamp(0, _orderSequence.length - 1)];
     final completedTier = _tierOf(ord.item);
     if (completedTier + 1 > _highestTierUnlocked) {
-      _highestTierUnlocked = (completedTier + 1).clamp(1, 5);
+      _highestTierUnlocked = (completedTier + 1).clamp(1, 6);
     }
     if (_orderIndex < _orderSequence.length - 1) {
       _orderIndex++;
@@ -1148,13 +1214,12 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
 
   @override
   Widget build(BuildContext context) {
-    final ord = _orderSequence[_orderIndex.clamp(0, _orderSequence.length - 1)];
     return Container(
       color: const Color(0xFF1A1A24),
       child: SafeArea(
         child: Column(
           children: [
-            _buildHeader(ord),
+            _buildHeader(),
             Expanded(child: _buildMap()),
             _buildBuildBar(),
           ],
@@ -1163,17 +1228,8 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
     );
   }
 
-  Widget _buildHeader(_Order ord) {
-    final score = sqrt((_wealth / 2500).clamp(0.0, 1.0));
-    final hint = _pendingPlacement != null
-        ? 'drag the ghost, rotate it, then confirm or cancel.'
-        : _buildMode == null
-        ? 'drag a machine from inventory. drag for belts.'
-        : _buildMode == 'belt'
-            ? 'drag across tiles to lay belts'
-            : _buildMode == 'delete'
-                ? 'tap a machine or belt to remove'
-                : 'choose a machine from inventory';
+  Widget _buildHeader() {
+    final score = sqrt((_wealth / _scoreWealthTarget).clamp(0.0, 1.0));
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       color: NunuColors.backgroundPaper,
@@ -1181,17 +1237,9 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
         children: [
           _stat('💯', score.toStringAsFixed(2)),
           _stat('💎', '$_wealth'),
+          _stat('🔩', '$_parts'),
           const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              hint,
-              style: const TextStyle(
-                color: NunuColors.textSecondary,
-                fontSize: 11,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
+          const Spacer(),
           IconButton(
             visualDensity: VisualDensity.compact,
             padding: EdgeInsets.zero,
@@ -1224,26 +1272,138 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
   }
 
   void _showGuide() {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: NunuColors.backgroundPaper,
-        title: const Text('tiny factory',
-            style: TextStyle(color: NunuColors.textPrimary)),
-        content: const SingleChildScrollView(
-          child: Text(
-            'place miners on ore patches. smelters refine ore into bars or slabs. '
-            'assemblers turn those refined materials into plates, wire, bricks, and parts. '
-            'drag belts from output ▶ to input ◀. drag a machine from inventory '
-            'onto the map, move the ghost, then confirm or cancel. '
-            'fill the hub\'s order. higher tier orders unlock as you complete each one.',
-            style: TextStyle(color: NunuColors.textSecondary, fontSize: 13),
+      backgroundColor: NunuColors.backgroundPaper,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.68,
+          minChildSize: 0.38,
+          maxChildSize: 0.9,
+          builder: (ctx, scrollCtrl) => SingleChildScrollView(
+            controller: scrollCtrl,
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: NunuColors.textSecondary.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                _guideHeader('how to play'),
+                _guideBullet('🏛', 'deliver the hub order shown on the map.'),
+                _guideBullet('🛠', 'drag a machine from inventory onto a tile, then confirm.'),
+                _guideBullet('↻', 'rotate the pending machine or rotate the whole map.'),
+                _guideBullet('➤', 'drag belts from outputs to inputs. tap a belt to inspect cargo.'),
+                _guideBullet('🗑', 'delete mode removes machines and belts.'),
+                const SizedBox(height: 18),
+                _guideHeader('production'),
+                _guideMachine(_minerSpec, 'mine ore patches into raw ore.'),
+                _guideMachine(_smelterSpec, 'refine ore into bars and slabs.'),
+                _guideMachine(_assemblerSpec, 'make plates, wire, bricks, and early parts.'),
+                _guideMachine(_constructorSpec, 'build engines, computers, and rocket parts.'),
+                const SizedBox(height: 18),
+                _guideHeader('recipe chain'),
+                _guideBullet('▰', 'ore → smelter → bars/slabs.'),
+                _guideBullet('🟫', 'bars/slabs → assembler → plates, wire, bricks.'),
+                _guideBullet('📦', 'finished items score when they reach the hub.'),
+              ],
+            ),
           ),
+        );
+      },
+    );
+  }
+
+  Widget _guideHeader(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: NunuColors.textPrimary,
+          fontSize: 16,
+          fontWeight: FontWeight.w900,
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('ok')),
+      ),
+    );
+  }
+
+  Widget _guideBullet(String emoji, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 24, child: Text(emoji, style: const TextStyle(fontSize: 14))),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                color: NunuColors.textSecondary,
+                fontSize: 13,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _guideMachine(_MachineSpec spec, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: NunuColors.primaryMain.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: NunuColors.primaryMain.withValues(alpha: 0.6)),
+            ),
+            child: Text(spec.emoji, style: const TextStyle(fontSize: 20)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  spec.name,
+                  style: const TextStyle(
+                    color: NunuColors.textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Text(
+                  text,
+                  style: const TextStyle(
+                    color: NunuColors.textSecondary,
+                    fontSize: 12,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -1313,15 +1473,12 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
                             mapRot: _mapRot,
                             pendingPlacement: _pendingPlacement,
                             beltDragPath: _beltDragPath,
-                            order: _orderSequence[
-                                _orderIndex.clamp(0, _orderSequence.length - 1)],
-                            orderProgress: _orderProgress,
-                            hubAnchor: _hubAnchor,
                           ),
                           size: Size(side, side),
                         ),
                       ),
                     ),
+                    _buildHubOrderLabel(Size(side, side)),
                     if (_inspect != null) _buildInspector(),
                     if (_terrainInspect != null)
                       _buildTerrainInspector(Size(side, side)),
@@ -1397,6 +1554,62 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHubOrderLabel(Size canvasSize) {
+    final ord = _orderSequence[_orderIndex.clamp(0, _orderSequence.length - 1)];
+    final center = _mapPointToCanvas(
+      Offset((_hubAnchor.x + 1.5) * _cellSize, (_hubAnchor.y + 1.65) * _cellSize),
+      canvasSize,
+    );
+    final width = max(82.0, _cellSize * 3.1);
+    final left = (center.dx - width / 2).clamp(4.0, canvasSize.width - width - 4);
+    final top = (center.dy - 20).clamp(4.0, canvasSize.height - 44);
+    return Positioned(
+      left: left,
+      top: top,
+      width: width,
+      child: IgnorePointer(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.42),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: NunuColors.warningMain.withValues(alpha: 0.8),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '${ord.qty} ${ord.item.label}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: NunuColors.warningMain,
+                  fontWeight: FontWeight.w800,
+                  height: 1.05,
+                ),
+              ),
+              Text(
+                '$_orderProgress/${ord.qty}',
+                maxLines: 1,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: NunuColors.warningMain,
+                  fontWeight: FontWeight.w800,
+                  height: 1.05,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1710,9 +1923,20 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
                   ],
                 )
               else if (m.kind == _MachineKind.hub)
-                const Text('hub accepts everything',
-                    style: TextStyle(
-                        color: NunuColors.textSecondary, fontSize: 11))
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('input-only delivery hub',
+                        style: TextStyle(
+                            color: NunuColors.textSecondary, fontSize: 11)),
+                    Text('in: $_hubInputsReceived total',
+                        style: const TextStyle(
+                            color: NunuColors.textSecondary, fontSize: 10)),
+                    const SizedBox(height: 4),
+                    ..._buildHubRateRows(),
+                  ],
+                )
               else ...[
                 const Text('recipe:',
                     style: TextStyle(
@@ -1942,6 +2166,35 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
         .join(', ');
   }
 
+  List<Widget> _buildHubRateRows() {
+    _pruneHubRates();
+    final entries = _hubDeliveryTimes.entries
+        .where((e) => e.value.isNotEmpty)
+        .map((e) => MapEntry(e.key, e.value.length / 10.0))
+        .toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    if (entries.isEmpty) {
+      return const [
+        Text('rates: no recent deliveries',
+            style: TextStyle(color: NunuColors.textSecondary, fontSize: 10)),
+      ];
+    }
+    return [
+      const Text('input rate, last 10s:',
+          style: TextStyle(color: NunuColors.textSecondary, fontSize: 10)),
+      for (final e in entries.take(5))
+        Text('${e.key.emoji} ${e.key.label}: ${e.value.toStringAsFixed(1)}/s',
+            style: const TextStyle(
+                color: NunuColors.textSecondary, fontSize: 10)),
+    ];
+  }
+
+  void _pruneHubRates() {
+    for (final times in _hubDeliveryTimes.values) {
+      times.removeWhere((t) => _elapsed - t > 10);
+    }
+  }
+
   String _recipeInputsText(_Recipe recipe) {
     return recipe.inputs.entries
         .map((e) => '${e.value} ${e.key.label}')
@@ -2028,6 +2281,8 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
         return _MachineKind.assembler;
       case 'constructor':
         return _MachineKind.constructor;
+      case 'hub':
+        return _MachineKind.hub;
     }
     return null;
   }
@@ -2117,6 +2372,8 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
       _BarCard('smelter', '🔥', 'smelter', _MachineKind.smelter),
       _BarCard('assembler', '🔧', 'assembler', _MachineKind.assembler),
       _BarCard('constructor', '🏭', 'constructor', _MachineKind.constructor),
+      if (_hubUnlocked || (_machineInventory[_MachineKind.hub] ?? 0) > 0)
+        _BarCard('hub', '🏛', 'hub', _MachineKind.hub),
     ];
     return Container(
       height: 112,
@@ -2239,9 +2496,11 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
                     style: const TextStyle(fontSize: 22, height: 1))),
             const SizedBox(height: 2),
             Text(c.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                     color: NunuColors.textPrimary,
-                    fontSize: 10,
+                    fontSize: 9,
                     height: 1.1,
                     fontWeight: FontWeight.w700)),
             Text(count == null ? 'free' : 'x$count',
@@ -2300,49 +2559,85 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: NunuColors.backgroundPaper,
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('craft machines',
-                  style: TextStyle(
-                      color: NunuColors.textPrimary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800)),
-              const SizedBox(height: 8),
-              for (final kind in const [
-                _MachineKind.miner,
-                _MachineKind.smelter,
-                _MachineKind.assembler,
-                _MachineKind.constructor,
-              ])
-                ListTile(
-                  dense: true,
-                  leading: Text(_spec(kind).emoji,
-                      style: const TextStyle(fontSize: 20)),
-                  title: Text(_spec(kind).name,
-                      style: const TextStyle(color: NunuColors.textPrimary)),
-                  subtitle: Text('inventory: ${_machineInventory[kind] ?? 0}',
-                      style: const TextStyle(color: NunuColors.textSecondary)),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.add_circle_outline,
-                        color: NunuColors.primaryLight),
-                    onPressed: () {
-                      setState(() {
-                        _machineInventory[kind] = (_machineInventory[kind] ?? 0) + 1;
-                      });
-                      Navigator.of(ctx).pop();
-                    },
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, sheetSetState) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('craft machines',
+                    style: TextStyle(
+                        color: NunuColors.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800)),
+                const SizedBox(height: 8),
+                if (!_hubUnlocked)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 8),
+                    child: Text('extra hubs unlock after more orders',
+                        style: TextStyle(
+                            color: NunuColors.textSecondary, fontSize: 11)),
                   ),
-                ),
-            ],
+                for (final kind in [
+                  _MachineKind.miner,
+                  _MachineKind.smelter,
+                  _MachineKind.assembler,
+                  _MachineKind.constructor,
+                  if (_hubUnlocked) _MachineKind.hub,
+                ])
+                  _craftTile(ctx, kind, sheetSetState),
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  Widget _craftTile(
+      BuildContext ctx, _MachineKind kind, StateSetter sheetSetState) {
+    final cost = _craftCost(kind);
+    final canCraft = _parts >= cost;
+    return ListTile(
+      dense: true,
+      leading: Text(_spec(kind).emoji, style: const TextStyle(fontSize: 20)),
+      title: Text(_spec(kind).name,
+          style: const TextStyle(color: NunuColors.textPrimary)),
+      subtitle: Text('inventory: ${_machineInventory[kind] ?? 0}   cost: $cost parts',
+          style: const TextStyle(color: NunuColors.textSecondary)),
+      trailing: IconButton(
+        icon: Icon(Icons.add_circle_outline,
+            color: canCraft
+                ? NunuColors.primaryLight
+                : NunuColors.textSecondary.withValues(alpha: 0.45)),
+        onPressed: canCraft
+            ? () {
+                setState(() {
+                  _parts -= cost;
+                  _machineInventory[kind] = (_machineInventory[kind] ?? 0) + 1;
+                });
+                sheetSetState(() {});
+              }
+            : null,
+      ),
+    );
+  }
+
+  int _craftCost(_MachineKind kind) {
+    switch (kind) {
+      case _MachineKind.miner:
+        return 32;
+      case _MachineKind.smelter:
+        return 40;
+      case _MachineKind.assembler:
+        return 64;
+      case _MachineKind.constructor:
+        return 112;
+      case _MachineKind.hub:
+        return 180;
+    }
   }
 }
 
@@ -2366,9 +2661,6 @@ class _FactoryPainter extends CustomPainter {
   final int mapRot;
   final _PendingPlacement? pendingPlacement;
   final List<Point<int>> beltDragPath;
-  final _Order order;
-  final int orderProgress;
-  final Point<int> hubAnchor;
 
   _FactoryPainter({
     required this.cellSize,
@@ -2382,9 +2674,6 @@ class _FactoryPainter extends CustomPainter {
     required this.mapRot,
     required this.pendingPlacement,
     required this.beltDragPath,
-    required this.order,
-    required this.orderProgress,
-    required this.hubAnchor,
   });
 
   @override
@@ -2466,34 +2755,10 @@ class _FactoryPainter extends CustomPainter {
       }
       canvas.drawPath(bodyPath, body);
 
-      if (hasOut) {
-        final chev = Paint()
-          ..color = NunuColors.primaryMain
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.0
-          ..strokeCap = StrokeCap.round;
-        for (int i = 0; i < 2; i++) {
-          final t = ((animT * 1.2 + i / 2) % 1.0);
-          final pos = _beltPathPoint(b, t);
-          final px = pos.dx;
-          final py = pos.dy;
-          final dx = b.outDx.toDouble();
-          final dy = b.outDy.toDouble();
-          final csz = cellSize * 0.14;
-          final p = Path();
-          if (dx != 0) {
-            p.moveTo(px - dx * csz, py - csz);
-            p.lineTo(px, py);
-            p.lineTo(px - dx * csz, py + csz);
-          } else if (dy != 0) {
-            p.moveTo(px - csz, py - dy * csz);
-            p.lineTo(px, py);
-            p.lineTo(px + csz, py - dy * csz);
-          }
-          canvas.drawPath(p, chev);
-        }
-      }
+    }
 
+    for (final b in belts) {
+      _drawBeltChevrons(canvas, b);
     }
 
     for (final b in belts) {
@@ -2554,6 +2819,35 @@ class _FactoryPainter extends CustomPainter {
       return Offset.lerp(start, center, clamped * 2)!;
     }
     return Offset.lerp(center, end, (clamped - 0.5) * 2)!;
+  }
+
+  void _drawBeltChevrons(Canvas canvas, _Belt b) {
+    if (b.outDx == 0 && b.outDy == 0) return;
+    final chev = Paint()
+      ..color = NunuColors.primaryMain
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round;
+    for (int i = 0; i < 2; i++) {
+      final t = ((animT * 1.2 + i / 2) % 1.0);
+      final pos = _beltPathPoint(b, t);
+      final px = pos.dx;
+      final py = pos.dy;
+      final dx = b.outDx.toDouble();
+      final dy = b.outDy.toDouble();
+      final csz = cellSize * 0.14;
+      final p = Path();
+      if (dx != 0) {
+        p.moveTo(px - dx * csz, py - csz);
+        p.lineTo(px, py);
+        p.lineTo(px - dx * csz, py + csz);
+      } else if (dy != 0) {
+        p.moveTo(px - csz, py - dy * csz);
+        p.lineTo(px, py);
+        p.lineTo(px + csz, py - dy * csz);
+      }
+      canvas.drawPath(p, chev);
+    }
   }
 
   void _drawPendingPlacement(Canvas canvas, _PendingPlacement pending) {
@@ -2675,25 +2969,29 @@ class _FactoryPainter extends CustomPainter {
       bp.paint(canvas, Offset(r.right - 16, r.top + 2));
     }
 
-    if (m.kind == _MachineKind.hub) {
-      final ot = TextPainter(
+    final status = _machineStatusText(m);
+    if (status != null) {
+      final isError = status == '!!';
+      final sp = TextPainter(
         text: TextSpan(
-          text: '${order.qty} ${order.item.label}\n$orderProgress/${order.qty}',
-          style: const TextStyle(
-              fontSize: 10,
-              color: NunuColors.warningMain,
-              fontWeight: FontWeight.w800,
-              height: 1.1),
+          text: status,
+          style: TextStyle(
+            fontSize: status == 'zzz' ? 10 : 12,
+            color: isError ? NunuColors.errorMain : NunuColors.warningMain,
+            fontWeight: FontWeight.w900,
+          ),
         ),
         textDirection: TextDirection.ltr,
-        textAlign: TextAlign.center,
-      )..layout(maxWidth: r.width - 4);
-      canvas.save();
-      final textCenter = Offset(r.center.dx, r.bottom - ot.height / 2 - 4);
-      canvas.translate(textCenter.dx, textCenter.dy);
-      canvas.rotate(-(mapRot & 3) * pi / 2);
-      ot.paint(canvas, Offset(-ot.width / 2, -ot.height / 2));
-      canvas.restore();
+      )..layout();
+      final sr = RRect.fromRectAndRadius(
+        Rect.fromLTWH(r.left + 3, r.top + 3, sp.width + 6, sp.height + 4),
+        const Radius.circular(5),
+      );
+      canvas.drawRRect(
+        sr,
+        Paint()..color = Colors.black.withValues(alpha: 0.62),
+      );
+      sp.paint(canvas, Offset(r.left + 6, r.top + 5));
     }
 
     for (final p in m.ports()) {
@@ -2726,6 +3024,15 @@ class _FactoryPainter extends CustomPainter {
             ..style = PaintingStyle.stroke
             ..strokeWidth = 1);
     }
+  }
+
+  String? _machineStatusText(_Machine m) {
+    if (m.kind == _MachineKind.hub) return null;
+    if (m.flashRed) return '!!';
+    if (m.outputBlocked) return '!!';
+    if (m.kind == _MachineKind.miner) return m.outputBlocked ? '!!' : null;
+    if (m.recipe == null || m.waitingForInput) return 'zzz';
+    return null;
   }
 
   @override
