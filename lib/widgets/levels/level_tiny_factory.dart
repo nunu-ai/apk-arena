@@ -1090,6 +1090,15 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
         if (_patches[c.x][c.y] != null) return false;
       }
     }
+    for (final p in fake.ports()) {
+      if (p.isInput) continue;
+      final tx = p.x + p.outDx;
+      final ty = p.y + p.outDy;
+      if (tx < 0 || tx >= _kCols || ty < 0 || ty >= _kRows) return false;
+      if (_rocks[tx][ty]) return false;
+      if (_occByMachine[tx][ty] != null) return false;
+      if (_patches[tx][ty] != null) return false;
+    }
     return true;
   }
 
@@ -2723,38 +2732,111 @@ class _FactoryPainter extends CustomPainter {
       }
     }
 
+    final beltByCell = <Point<int>, _Belt>{};
     for (final b in belts) {
+      beltByCell[Point(b.x, b.y)] = b;
+    }
+    final upstreamDir = <Point<int>, List<int>>{};
+    for (final m in machines) {
+      for (final p in m.ports()) {
+        if (p.isInput) continue;
+        final tx = p.x + p.outDx;
+        final ty = p.y + p.outDy;
+        final key = Point(tx, ty);
+        if (beltByCell.containsKey(key)) {
+          upstreamDir[key] = [-p.outDx, -p.outDy];
+        }
+      }
+    }
+    for (final b in belts) {
+      if (b.outDx == 0 && b.outDy == 0) continue;
+      final key = Point(b.x + b.outDx, b.y + b.outDy);
+      if (beltByCell.containsKey(key)) {
+        upstreamDir[key] = [-b.outDx, -b.outDy];
+      }
+    }
+
+    for (final b in belts) {
+      final cell = Point(b.x, b.y);
+      final up = upstreamDir[cell];
+      final hasUp = up != null;
+      final hasOut = b.outDx != 0 || b.outDy != 0;
+      final connected = hasUp && hasOut;
+      final orphan = !hasUp && !hasOut;
+
+      Color tileColor;
+      Color bodyColor;
+      if (connected) {
+        tileColor = const Color(0xFF2C2C40);
+        bodyColor = const Color(0xFF3F3F58);
+      } else if (orphan) {
+        tileColor = const Color(0xFF3A1F22);
+        bodyColor = const Color(0xFF6E2C2C);
+      } else {
+        tileColor = const Color(0xFF3A2E1F);
+        bodyColor = const Color(0xFF7A5A2A);
+      }
+
       final r = Rect.fromLTWH(
           b.x * cellSize + 2, b.y * cellSize + 2, cellSize - 4, cellSize - 4);
       final rr = RRect.fromRectAndRadius(r, const Radius.circular(3));
-      canvas.drawRRect(rr, Paint()..color = const Color(0xFF2C2C40));
+      canvas.drawRRect(rr, Paint()..color = tileColor);
+      if (!connected) {
+        final pulse = 0.55 + 0.45 * sin(animT * 2 * pi * 1.6);
+        canvas.drawRRect(
+          rr,
+          Paint()
+            ..color = (orphan
+                    ? NunuColors.errorMain
+                    : NunuColors.warningMain)
+                .withValues(alpha: 0.55 * pulse)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2.0,
+        );
+      }
 
       final cx = b.x * cellSize + cellSize / 2;
       final cy = b.y * cellSize + cellSize / 2;
-      final hasIn = b.inDx != 0 || b.inDy != 0;
-      final hasOut = b.outDx != 0 || b.outDy != 0;
 
       final body = Paint()
-        ..color = const Color(0xFF3F3F58)
+        ..color = bodyColor
         ..style = PaintingStyle.stroke
         ..strokeWidth = cellSize * 0.42
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round;
       final bodyPath = Path();
-      if (hasIn) {
-        bodyPath.moveTo(cx + b.inDx * cellSize / 2, cy + b.inDy * cellSize / 2);
+      if (hasUp) {
+        bodyPath.moveTo(cx + up[0] * cellSize / 2, cy + up[1] * cellSize / 2);
         bodyPath.lineTo(cx, cy);
       }
       if (hasOut) {
-        if (!hasIn) bodyPath.moveTo(cx, cy);
+        if (!hasUp) bodyPath.moveTo(cx, cy);
         bodyPath.lineTo(cx + b.outDx * cellSize / 2, cy + b.outDy * cellSize / 2);
       }
-      if (!hasIn && !hasOut) {
+      if (orphan) {
         bodyPath.addOval(
             Rect.fromCircle(center: Offset(cx, cy), radius: cellSize * 0.18));
       }
       canvas.drawPath(bodyPath, body);
 
+      if (!connected) {
+        final markColor = orphan
+            ? NunuColors.errorMain
+            : NunuColors.warningMain;
+        if (!hasUp && hasOut) {
+          final ex = cx - b.outDx * cellSize * 0.36;
+          final ey = cy - b.outDy * cellSize * 0.36;
+          _drawDeadEnd(canvas, Offset(ex, ey), cellSize * 0.13, markColor);
+        }
+        if (hasUp && !hasOut) {
+          final ex = cx - up[0] * cellSize * 0.36;
+          final ey = cy - up[1] * cellSize * 0.36;
+          _drawDeadEnd(canvas, Offset(ex, ey), cellSize * 0.13, markColor);
+        }
+        if (orphan) {
+          _drawDeadEnd(canvas, Offset(cx, cy), cellSize * 0.16, markColor);
+        }
+      }
     }
 
     for (final b in belts) {
@@ -2821,6 +2903,19 @@ class _FactoryPainter extends CustomPainter {
     return Offset.lerp(center, end, (clamped - 0.5) * 2)!;
   }
 
+  void _drawDeadEnd(Canvas canvas, Offset c, double radius, Color color) {
+    canvas.drawCircle(
+        c, radius + 1.2, Paint()..color = Colors.black.withValues(alpha: 0.7));
+    canvas.drawCircle(c, radius, Paint()..color = color);
+    final p = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 1.6
+      ..strokeCap = StrokeCap.round;
+    final d = radius * 0.55;
+    canvas.drawLine(Offset(c.dx - d, c.dy - d), Offset(c.dx + d, c.dy + d), p);
+    canvas.drawLine(Offset(c.dx - d, c.dy + d), Offset(c.dx + d, c.dy - d), p);
+  }
+
   void _drawBeltChevrons(Canvas canvas, _Belt b) {
     if (b.outDx == 0 && b.outDy == 0) return;
     final chev = Paint()
@@ -2858,7 +2953,7 @@ class _FactoryPainter extends CustomPainter {
       y: pending.y,
       rot: pending.rot,
     );
-    final blocked = fake.cells().any((c) =>
+    bool blocked = fake.cells().any((c) =>
         c.x < 0 ||
         c.x >= _kCols ||
         c.y < 0 ||
@@ -2869,6 +2964,23 @@ class _FactoryPainter extends CustomPainter {
         (pending.kind == _MachineKind.miner
             ? patches[c.x][c.y] == null
             : patches[c.x][c.y] != null));
+    if (!blocked) {
+      for (final p in fake.ports()) {
+        if (p.isInput) continue;
+        final tx = p.x + p.outDx;
+        final ty = p.y + p.outDy;
+        if (tx < 0 || tx >= _kCols || ty < 0 || ty >= _kRows) {
+          blocked = true;
+          break;
+        }
+        if (rocks[tx][ty] ||
+            patches[tx][ty] != null ||
+            machines.any((m) => m.cells().any((c) => c.x == tx && c.y == ty))) {
+          blocked = true;
+          break;
+        }
+      }
+    }
     final cells = fake.cells();
     int minX = cells.first.x, minY = cells.first.y, maxX = cells.first.x, maxY = cells.first.y;
     for (final c in cells) {
@@ -2997,32 +3109,66 @@ class _FactoryPainter extends CustomPainter {
     for (final p in m.ports()) {
       final px = p.x * cellSize + cellSize / 2;
       final py = p.y * cellSize + cellSize / 2;
-      final ex = px + p.outDx * cellSize * 0.42;
-      final ey = py + p.outDy * cellSize * 0.42;
-      final size = cellSize * 0.16;
+      final ex = px + p.outDx * cellSize * 0.46;
+      final ey = py + p.outDy * cellSize * 0.46;
+      final size = cellSize * 0.21;
       final dirX = p.isInput ? -p.outDx.toDouble() : p.outDx.toDouble();
       final dirY = p.isInput ? -p.outDy.toDouble() : p.outDy.toDouble();
       final perpX = -dirY;
       final perpY = dirX;
-      final tipX = ex + dirX * size;
-      final tipY = ey + dirY * size;
-      final baseAX = ex - dirX * size * 0.4 + perpX * size * 0.8;
-      final baseAY = ey - dirY * size * 0.4 + perpY * size * 0.8;
-      final baseBX = ex - dirX * size * 0.4 - perpX * size * 0.8;
-      final baseBY = ey - dirY * size * 0.4 - perpY * size * 0.8;
+
+      final color = p.isInput
+          ? const Color(0xFF4DD0E1)
+          : const Color(0xFF4ADE80);
+      final glowColor = p.isInput
+          ? const Color(0xFF00E5FF)
+          : const Color(0xFF22FF88);
+
+      final pulse = 0.6 + 0.4 * sin(animT * 2 * pi * 1.4);
+
+      canvas.drawCircle(
+        Offset(ex, ey),
+        size * 1.55,
+        Paint()..color = glowColor.withValues(alpha: 0.22 * pulse),
+      );
+      canvas.drawCircle(
+        Offset(ex, ey),
+        size * 1.15,
+        Paint()..color = Colors.black.withValues(alpha: 0.55),
+      );
+      canvas.drawCircle(
+        Offset(ex, ey),
+        size * 1.15,
+        Paint()
+          ..color = glowColor.withValues(alpha: 0.9)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.0,
+      );
+
+      final tipX = ex + dirX * size * 0.95;
+      final tipY = ey + dirY * size * 0.95;
+      final baseAX = ex - dirX * size * 0.55 + perpX * size * 0.85;
+      final baseAY = ey - dirY * size * 0.55 + perpY * size * 0.85;
+      final baseBX = ex - dirX * size * 0.55 - perpX * size * 0.85;
+      final baseBY = ey - dirY * size * 0.55 - perpY * size * 0.85;
       final tri = Path()
         ..moveTo(tipX, tipY)
         ..lineTo(baseAX, baseAY)
         ..lineTo(baseBX, baseBY)
         ..close();
-      final color = p.isInput ? NunuColors.infoMain : NunuColors.successMain;
+      canvas.drawPath(
+          tri,
+          Paint()
+            ..color = Colors.black.withValues(alpha: 0.85)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2.5);
       canvas.drawPath(tri, Paint()..color = color);
       canvas.drawPath(
           tri,
           Paint()
-            ..color = Colors.black.withValues(alpha: 0.5)
+            ..color = Colors.white.withValues(alpha: 0.6)
             ..style = PaintingStyle.stroke
-            ..strokeWidth = 1);
+            ..strokeWidth = 1.0);
     }
   }
 
