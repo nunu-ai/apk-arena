@@ -1,30 +1,43 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:apk_arena/models/level_outcome.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 
 class Platform {
-  final double x; // normalized 0.0-1.0
-  final double y; // normalized 0.0-1.0 (0 = top, 1 = bottom)
-  final double width; // normalized width
+  double x;
+  final double y;
+  final double width;
+  final int altitude;
+  final double speed;
+  final double minX;
+  final double maxX;
+  double direction;
+  double prevX;
+  /// Doodle-jump style: breaks on contact; does not support the player.
+  final bool brittle;
 
-  Platform({required this.x, required this.y, required this.width});
-}
-
-class Enemy {
-  double x; // normalized position
-  final double y; // normalized position (on platform)
-  final double minX; // patrol left bound
-  final double maxX; // patrol right bound
-  double direction; // 1 = right, -1 = left
-
-  Enemy({
+  Platform({
     required this.x,
     required this.y,
-    required this.minX,
-    required this.maxX,
+    required this.width,
+    required this.altitude,
+    this.speed = 0,
+    double? minX,
+    double? maxX,
     this.direction = 1,
-  });
+    this.brittle = false,
+  })  : minX = minX ?? 0.05,
+        maxX = maxX ?? 0.95 - width,
+        prevX = x;
+
+  void capturePrev() {
+    prevX = x;
+  }
+
+  double get deltaX => x - prevX;
 }
 
 class LevelMarioPlatformer extends LevelWidget {
@@ -40,107 +53,278 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
 
   // Player state
   double _playerX = 0.08;
-  double _playerY = 0.84; // Start on ground (ground at 0.92 - playerHeight 0.08)
+  double _playerY = 0.84;
   double _velocityX = 0;
   double _velocityY = 0;
-  bool _isGrounded = true; // Start grounded
+  bool _isGrounded = true;
 
   // Controls
   bool _isPressingLeft = false;
   bool _isPressingRight = false;
   bool _isChargingJump = false;
   DateTime? _jumpChargeStart;
-  double _jumpChargePercent = 0.0; // For visual indicator
+  double _jumpChargePercent = 0.0;
 
   // Game state
-  bool _gameOver = false;
+  bool _sessionEnded = false;
+  double _cameraY = 0;
+  int _altitude = 0;
+  int _bestAltitude = 0;
+  int _lives = 3;
+  int _highestSpawnedAltitude = 0;
+  Timer? _sessionTimer;
+  /// Horizontal center (0–1) of the last spawned row; used after lower platforms are culled.
+  double _prevSpawnCenter = 0.5;
+  /// Solid platform the player last stood on (launch anchor for jump grace).
+  Platform? _lastGroundedPlatform;
+  /// Preserved until solid landing or fall below the launch platform.
+  Platform? _jumpStartPlatform;
+  final Random _rng = Random();
 
   // Physics constants
   final double _gravity = 0.0010;
-  final double _jumpVelocity = -0.032; // Higher jump
+  final double _jumpVelocity = -0.032;
   final double _moveSpeed = 0.009;
   final double _terminalVelocity = 0.022;
   final double _friction = 0.85;
 
-  // Player dimensions (normalized)
   final double _playerWidth = 0.08;
   final double _playerHeight = 0.08;
 
-  // Platform height (normalized)
   final double _platformHeight = 0.025;
+  static const double _groundY = 0.92;
+  static const double _verticalSpacing = 0.14;
+  static const int _winAltitude = 200;
+  static const int _spawnBufferAhead = 36;
+  static const double _cameraFollowLerp = 0.12;
+  static const double _playerViewportY = 0.58;
+  /// Screen-space Y (playerY - cameraY) above this = fell off the bottom.
+  static const double _fallDeathScreenY = 1.02;
+  /// How far below the launch platform's bottom before a protected fall counts as death.
+  static const double _fallPastStartPlatformMargin = 0.06;
+  /// Keep launch platform on screen: (platformY - cameraY) must stay at or below this.
+  static const double _jumpStartPlatformMaxScreenY = 0.95;
+  static const int _startingLives = 3;
+  static const Duration _sessionDuration = Duration(minutes: 30);
 
-  // Flag position (on the final platform)
-  final double _flagX = 0.88;
-  final double _flagY = 0.18;
-
-  // Platforms
-  late List<Platform> _platforms;
-
-  // Enemies
-  late List<Enemy> _enemies;
+  List<Platform> _platforms = [];
 
   Size _screenSize = Size.zero;
 
   @override
   void initState() {
     super.initState();
-    _initLevel();
+    _initSession();
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(days: 1),
     )..addListener(_gameLoop);
     _controller.repeat();
+    _sessionTimer = Timer(_sessionDuration, _onSessionTimeUp);
   }
 
-  void _initLevel() {
-    // Create platforms - easier ascending staircase to the flag
-    _platforms = [
-      // Ground - full width
-      Platform(x: 0, y: 0.92, width: 1.0),
-      // Easy stepping platforms - wider and closer together
-      Platform(x: 0.10, y: 0.78, width: 0.22),
-      Platform(x: 0.38, y: 0.66, width: 0.22),
-      Platform(x: 0.15, y: 0.52, width: 0.22),
-      Platform(x: 0.45, y: 0.40, width: 0.25),
-      Platform(x: 0.72, y: 0.30, width: 0.25), // Flag platform
-    ];
+  void _initSession() {
+    _sessionEnded = false;
+    _lives = _startingLives;
+    _bestAltitude = 0;
+    _startRun();
+  }
 
-    // Just one enemy on a middle platform
-    _enemies = [
-      Enemy(x: 0.48, y: 0.40 - 0.06, minX: 0.46, maxX: 0.66),
+  /// Fresh climb from the ground (one life).
+  void _startRun() {
+    _platforms = [
+      Platform(
+        x: 0,
+        y: _groundY,
+        width: 1.0,
+        altitude: 0,
+        speed: 0,
+        minX: 0,
+        maxX: 0,
+        brittle: false,
+      ),
     ];
+    _highestSpawnedAltitude = 0;
+    _prevSpawnCenter = 0.5;
+    _altitude = 0;
+    _cameraY = 0;
+    _playerX = 0.08;
+    _playerY = _groundY - _playerHeight;
+    _velocityX = 0;
+    _velocityY = 0;
+    _isGrounded = true;
+    _isChargingJump = false;
+    _jumpChargeStart = null;
+    _jumpChargePercent = 0.0;
+    _jumpStartPlatform = null;
+    _lastGroundedPlatform = _platforms.first;
+    _ensurePlatformsAbove();
+  }
+
+  void _recordBestAltitude() {
+    if (_altitude > _bestAltitude) {
+      _bestAltitude = _altitude;
+    }
+  }
+
+  void _onSessionTimeUp() {
+    if (_sessionEnded || !mounted) return;
+    _recordBestAltitude();
+    _finishSession();
+  }
+
+  void _finishSession({bool perfectWin = false}) {
+    if (_sessionEnded) return;
+    _sessionEnded = true;
+    _sessionTimer?.cancel();
+    _controller.stop();
+
+    final score = perfectWin
+        ? 1.0
+        : (_bestAltitude / _winAltitude).clamp(0.0, 1.0);
+    final bestAlt = perfectWin ? _winAltitude : _bestAltitude;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      widget.onComplete(
+        LevelOutcome(
+          score: score,
+          metrics: {
+            'altitude': bestAlt,
+            'lives_used': _startingLives - _lives,
+          },
+          visibleMetricKeys: const {'altitude'},
+        ),
+      );
+    });
+  }
+
+  double _worldYForAltitude(int a) {
+    return _groundY - a * _verticalSpacing;
+  }
+
+  void _spawnPlatformAtAltitude(int a) {
+    if (a <= 0) return;
+
+    final y = _worldYForAltitude(a);
+    final prevCenter = _prevSpawnCenter;
+
+    double width;
+    double moveChance;
+    double spd;
+    if (a < 20) {
+      width = 0.22;
+      moveChance = 0;
+      spd = 0;
+    } else if (a < 50) {
+      width = 0.20;
+      moveChance = 0.4;
+      spd = 0.0015;
+    } else if (a < 80) {
+      width = 0.16;
+      moveChance = 0.7;
+      spd = 0.0025;
+    } else {
+      width = 0.12;
+      moveChance = 0.95;
+      spd = 0.0035;
+    }
+
+    final speedRamp = 1.0 + (a / 250.0).clamp(0.0, 8.0);
+    spd *= speedRamp;
+
+    final brittleChance = a < 6 ? 0.0 : (0.06 + a / 2500.0).clamp(0.06, 0.32);
+    final brittle = _rng.nextDouble() < brittleChance;
+
+    final bool moving = !brittle && _rng.nextDouble() < moveChance && spd > 0;
+    const double minPatrol = 0.05;
+    final double patrolMaxLeft = 1.0 - width - 0.05;
+
+    const double maxStep = 0.14;
+    final double minCx = minPatrol + width / 2;
+    final double maxCx = patrolMaxLeft + width / 2;
+    final double drift = (_rng.nextDouble() * 2 - 1) * maxStep;
+    final double towardCenter = (0.5 - prevCenter) * 0.12;
+    final double cx = (prevCenter + drift + towardCenter).clamp(minCx, maxCx);
+    final double left = cx - width / 2;
+
+    _platforms.add(
+      Platform(
+        x: left,
+        y: y,
+        width: width,
+        altitude: a,
+        speed: moving ? spd : 0,
+        minX: minPatrol,
+        maxX: patrolMaxLeft,
+        direction: 1,
+        brittle: brittle,
+      ),
+    );
+    _prevSpawnCenter = left + width / 2;
+    _highestSpawnedAltitude = a;
+  }
+
+  void _ensurePlatformsAbove() {
+    final target = min(
+      _winAltitude + _spawnBufferAhead,
+      max(
+        _highestSpawnedAltitude,
+        _altitude + _spawnBufferAhead,
+      ),
+    );
+    while (_highestSpawnedAltitude < target) {
+      _spawnPlatformAtAltitude(_highestSpawnedAltitude + 1);
+    }
+  }
+
+  /// Remove rows that have scrolled below the viewport so there is open air to fall through.
+  static const double _cullBelowViewport = 1.06;
+
+  void _cullPlatformsBelowViewport() {
+    _platforms.removeWhere((p) {
+      if (identical(p, _jumpStartPlatform)) return false;
+      return (p.y - _cameraY) > _cullBelowViewport;
+    });
   }
 
   @override
   void dispose() {
+    _sessionTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
 
-  void _resetPlayer() {
-    setState(() {
-      _playerX = 0.08;
-      _playerY = 0.84;
-      _velocityX = 0;
-      _velocityY = 0;
-      _isGrounded = true;
-      _isChargingJump = false;
-      _jumpChargeStart = null;
-      _jumpChargePercent = 0.0;
-    });
-  }
-
   void _gameLoop() {
-    if (!mounted || _screenSize == Size.zero || _gameOver) return;
+    if (!mounted || _screenSize == Size.zero || _sessionEnded) return;
+
+    var endSession = false;
+    var perfectWin = false;
 
     setState(() {
-      // Update jump charge indicator
+      for (final p in _platforms) {
+        p.capturePrev();
+      }
+
+      for (final p in _platforms) {
+        if (p.speed <= 0) continue;
+        p.x += p.speed * p.direction;
+        if (p.x < p.minX) {
+          p.x = p.minX;
+          p.direction = 1;
+        } else if (p.x > p.maxX) {
+          p.x = p.maxX;
+          p.direction = -1;
+        }
+
+      }
+
       if (_isChargingJump && _jumpChargeStart != null) {
-        final chargeDuration = DateTime.now().difference(_jumpChargeStart!).inMilliseconds;
+        final chargeDuration =
+            DateTime.now().difference(_jumpChargeStart!).inMilliseconds;
         _jumpChargePercent = (chargeDuration / 500.0).clamp(0.0, 1.0);
       }
 
-      // Horizontal movement
       if (_isPressingLeft && !_isPressingRight) {
         _velocityX = -_moveSpeed;
       } else if (_isPressingRight && !_isPressingLeft) {
@@ -150,7 +334,6 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
         if (_velocityX.abs() < 0.001) _velocityX = 0;
       }
 
-      // Apply gravity
       if (!_isGrounded) {
         _velocityY += _gravity;
         if (_velocityY > _terminalVelocity) {
@@ -158,56 +341,95 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
         }
       }
 
-      // Update position
       _playerX += _velocityX;
       _playerY += _velocityY;
 
-      // Clamp horizontal position
       _playerX = _playerX.clamp(0.0, 1.0 - _playerWidth);
 
-      // Platform collision
       _isGrounded = false;
+      Platform? landed;
+
       for (final platform in _platforms) {
         if (_checkPlatformCollision(platform)) {
-          _playerY = platform.y - _playerHeight;
+          if (landed == null || platform.y < landed.y) {
+            landed = platform;
+          }
+        }
+      }
+
+      if (landed != null) {
+        if (landed.brittle) {
+          _platforms.remove(landed);
+          _isGrounded = false;
+          if (_velocityY < 0.012) {
+            _velocityY = 0.012;
+          }
+        } else {
+          _playerY = landed.y - _playerHeight;
           _velocityY = 0;
           _isGrounded = true;
-          break;
+          _playerX += landed.deltaX;
+          _playerX = _playerX.clamp(0.0, 1.0 - _playerWidth);
+
+          _lastGroundedPlatform = landed;
+          _jumpStartPlatform = null;
+
+          if (landed.altitude > _altitude) {
+            _altitude = landed.altitude;
+            _ensurePlatformsAbove();
+          }
         }
       }
 
-      // Update enemies
-      for (final enemy in _enemies) {
-        enemy.x += 0.002 * enemy.direction; // Slower patrol
-        if (enemy.x <= enemy.minX || enemy.x >= enemy.maxX) {
-          enemy.direction *= -1;
-        }
+      final targetCam = _playerY - _playerViewportY;
+      // Only scroll up while climbing; falling leaves the camera fixed so you can drop off-screen.
+      if (targetCam < _cameraY) {
+        _cameraY += (targetCam - _cameraY) * _cameraFollowLerp;
+      }
 
-        // Check enemy collision - reset instead of fail
-        if (_checkEnemyCollision(enemy)) {
-          _resetPlayer();
+      if (_jumpStartPlatform != null) {
+        final maxCamY =
+            _jumpStartPlatform!.y - _jumpStartPlatformMaxScreenY;
+        if (_cameraY < maxCamY) {
+          _cameraY = maxCamY;
+        }
+      }
+
+      final startPlatform = _jumpStartPlatform;
+      final fellOff = startPlatform != null
+          ? _playerY >
+              startPlatform.y +
+                  _platformHeight +
+                  _fallPastStartPlatformMargin
+          : _playerY - _cameraY > _fallDeathScreenY;
+
+      if (fellOff) {
+        _jumpStartPlatform = null;
+        _recordBestAltitude();
+        _lives--;
+        if (_lives <= 0) {
+          endSession = true;
           return;
         }
-      }
-
-      // Check fall off screen - reset instead of fail
-      if (_playerY > 1.1) {
-        _resetPlayer();
+        _startRun();
         return;
       }
 
-      // Check win condition (touch the flag)
-      if (_checkFlagCollision()) {
-        _gameOver = true;
-        _controller.stop();
-        widget.onComplete(LevelOutcome(score: 1));
-        return;
+      _cullPlatformsBelowViewport();
+
+      if (_altitude >= _winAltitude) {
+        _bestAltitude = _winAltitude;
+        endSession = true;
+        perfectWin = true;
       }
     });
+
+    if (endSession) {
+      _finishSession(perfectWin: perfectWin);
+    }
   }
 
   bool _checkPlatformCollision(Platform platform) {
-    // Only collide when falling or standing still
     if (_velocityY < 0) return false;
 
     final playerBottom = _playerY + _playerHeight;
@@ -219,72 +441,29 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
     final platformLeft = platform.x;
     final platformRight = platform.x + platform.width;
 
-    // Check horizontal overlap
     final horizontalOverlap =
         playerRight > platformLeft && playerLeft < platformRight;
-
     if (!horizontalOverlap) return false;
 
-    // Check if player is landing on platform (feet near platform top)
-    final feetNearPlatform = playerBottom >= platformTop && 
+    final feetNearPlatform = playerBottom >= platformTop &&
         playerBottom <= platformBottom + 0.02;
 
     return feetNearPlatform;
   }
 
-  bool _checkEnemyCollision(Enemy enemy) {
-    const enemyWidth = 0.06;
-    const enemyHeight = 0.06;
-
-    final playerLeft = _playerX;
-    final playerRight = _playerX + _playerWidth;
-    final playerTop = _playerY;
-    final playerBottom = _playerY + _playerHeight;
-
-    final enemyLeft = enemy.x;
-    final enemyRight = enemy.x + enemyWidth;
-    final enemyTop = enemy.y;
-    final enemyBottom = enemy.y + enemyHeight;
-
-    return playerLeft < enemyRight &&
-        playerRight > enemyLeft &&
-        playerTop < enemyBottom &&
-        playerBottom > enemyTop;
-  }
-
-  bool _checkFlagCollision() {
-    const flagWidth = 0.06;
-    const flagHeight = 0.12;
-
-    final playerLeft = _playerX;
-    final playerRight = _playerX + _playerWidth;
-    final playerTop = _playerY;
-    final playerBottom = _playerY + _playerHeight;
-
-    final flagLeft = _flagX;
-    final flagRight = _flagX + flagWidth;
-    final flagTop = _flagY;
-    final flagBottom = _flagY + flagHeight;
-
-    return playerLeft < flagRight &&
-        playerRight > flagLeft &&
-        playerTop < flagBottom &&
-        playerBottom > flagTop;
-  }
-
   void _onJumpPressed() {
-    if (_isGrounded && !_gameOver) {
+    if (_isGrounded && !_sessionEnded) {
       _isChargingJump = true;
       _jumpChargeStart = DateTime.now();
     }
   }
 
   void _onJumpReleased() {
-    if (_isChargingJump && _isGrounded && !_gameOver) {
-      // Use the tracked charge percent (min 20%)
+    if (_isChargingJump && _isGrounded && !_sessionEnded) {
       final chargePercent = _jumpChargePercent.clamp(0.2, 1.0);
-      
+
       setState(() {
+        _jumpStartPlatform = _lastGroundedPlatform;
         _velocityY = _jumpVelocity * chargePercent;
         _isGrounded = false;
       });
@@ -294,34 +473,31 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
     _jumpChargePercent = 0.0;
   }
 
+  double _screenTop(Platform p) => (p.y - _cameraY) * _screenSize.height;
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         _screenSize = Size(constraints.maxWidth, constraints.maxHeight);
 
-        return Container(
-          color: NunuColors.backgroundDefault,
-          child: Stack(
-            children: [
-              // Background decorations
-              _buildBackground(),
-
-              // Platforms
-              ..._platforms.map((p) => _buildPlatform(p)),
-
-              // Flag
-              _buildFlag(),
-
-              // Enemies
-              ..._enemies.map((e) => _buildEnemy(e)),
-
-              // Player
-              _buildPlayer(),
-
-              // Controls
-              _buildControls(),
-            ],
+        return ClipRect(
+          child: Container(
+            color: NunuColors.backgroundDefault,
+            child: Stack(
+              children: [
+                _buildBackground(),
+                ..._platforms
+                    .where((p) {
+                      final t = p.y - _cameraY;
+                      return t > -0.05 && t < 1.05;
+                    })
+                    .map((p) => _buildPlatform(p)),
+                _buildPlayer(),
+                _buildHud(),
+                _buildControls(),
+              ],
+            ),
           ),
         );
       },
@@ -331,31 +507,45 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
   Widget _buildBackground() {
     return CustomPaint(
       size: _screenSize,
-      painter: BackgroundPainter(),
+      painter: BackgroundPainter(scrollOffset: _cameraY),
     );
   }
 
   Widget _buildPlatform(Platform platform) {
     return Positioned(
       left: platform.x * _screenSize.width,
-      top: platform.y * _screenSize.height,
+      top: _screenTop(platform),
       child: Container(
         width: platform.width * _screenSize.width,
         height: _platformHeight * _screenSize.height,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              NunuColors.secondaryMain,
-              NunuColors.secondaryDark,
-            ],
+            colors: platform.brittle
+                ? [
+                    NunuColors.warningMain,
+                    const Color(0xFFB45309),
+                    NunuColors.warningDark,
+                  ]
+                : const [
+                    NunuColors.secondaryMain,
+                    NunuColors.secondaryDark,
+                  ],
           ),
           borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: NunuColors.secondaryLight, width: 2),
+          border: Border.all(
+            color: platform.brittle
+                ? NunuColors.warningLight
+                : NunuColors.secondaryLight,
+            width: 2,
+          ),
           boxShadow: [
             BoxShadow(
-              color: NunuColors.secondaryMain.withValues(alpha: 0.4),
+              color: (platform.brittle
+                      ? NunuColors.warningMain
+                      : NunuColors.secondaryMain)
+                  .withValues(alpha: 0.4),
               blurRadius: 8,
               spreadRadius: 1,
             ),
@@ -365,125 +555,17 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
     );
   }
 
-  Widget _buildFlag() {
-    const flagWidth = 0.06;
-    const flagHeight = 0.12;
-
-    return Positioned(
-      left: _flagX * _screenSize.width,
-      top: _flagY * _screenSize.height,
-      child: SizedBox(
-        width: flagWidth * _screenSize.width,
-        height: flagHeight * _screenSize.height,
-        child: Stack(
-          children: [
-            // Pole
-            Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              child: Container(
-                width: 4,
-                decoration: BoxDecoration(
-                  color: NunuColors.textPrimary,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            // Flag
-            Positioned(
-              left: 4,
-              top: 0,
-              child: Container(
-                width: flagWidth * _screenSize.width - 8,
-                height: flagHeight * _screenSize.height * 0.5,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [
-                      NunuColors.successMain,
-                      NunuColors.successDark,
-                    ],
-                  ),
-                  borderRadius: const BorderRadius.only(
-                    topRight: Radius.circular(4),
-                    bottomRight: Radius.circular(4),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: NunuColors.successMain.withValues(alpha: 0.6),
-                      blurRadius: 12,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                child: const Center(
-                  child: Icon(
-                    Icons.flag,
-                    color: Colors.white,
-                    size: 16,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEnemy(Enemy enemy) {
-    const enemyWidth = 0.06;
-    const enemyHeight = 0.06;
-
-    return Positioned(
-      left: enemy.x * _screenSize.width,
-      top: enemy.y * _screenSize.height,
-      child: Container(
-        width: enemyWidth * _screenSize.width,
-        height: enemyHeight * _screenSize.height,
-        decoration: BoxDecoration(
-          gradient: const RadialGradient(
-            colors: [
-              NunuColors.errorLight,
-              NunuColors.errorMain,
-              NunuColors.errorDark,
-            ],
-          ),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: NunuColors.errorLight, width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: NunuColors.errorMain.withValues(alpha: 0.6),
-              blurRadius: 10,
-              spreadRadius: 2,
-            ),
-          ],
-        ),
-        child: Center(
-          child: Transform.flip(
-            flipX: enemy.direction < 0,
-            child: const Icon(
-              Icons.bug_report,
-              color: Colors.white,
-              size: 20,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildPlayer() {
     final playerWidth = _playerWidth * _screenSize.width;
     final playerHeight = _playerHeight * _screenSize.height;
-    
+
     return Positioned(
       left: _playerX * _screenSize.width,
-      top: _playerY * _screenSize.height - (_isChargingJump ? 12 : 0), // Offset for charge bar
+      top: (_playerY - _cameraY) * _screenSize.height -
+          (_isChargingJump ? 12 : 0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Jump charge bar
           if (_isChargingJump)
             Container(
               width: playerWidth,
@@ -504,8 +586,8 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
                       gradient: LinearGradient(
                         colors: [
                           NunuColors.successLight,
-                          _jumpChargePercent >= 1.0 
-                              ? NunuColors.warningMain 
+                          _jumpChargePercent >= 1.0
+                              ? NunuColors.warningMain
                               : NunuColors.successMain,
                         ],
                       ),
@@ -520,7 +602,6 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
                 ),
               ),
             ),
-          // Player body
           Container(
             width: playerWidth,
             height: playerHeight,
@@ -541,12 +622,16 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
               ),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: _isChargingJump ? NunuColors.successLight : NunuColors.primaryLight,
+                color: _isChargingJump
+                    ? NunuColors.successLight
+                    : NunuColors.primaryLight,
                 width: 2,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: (_isChargingJump ? NunuColors.successMain : NunuColors.primaryMain)
+                  color: (_isChargingJump
+                          ? NunuColors.successMain
+                          : NunuColors.primaryMain)
                       .withValues(alpha: 0.7),
                   blurRadius: _isChargingJump ? 20 : 15,
                   spreadRadius: _isChargingJump ? 5 : 3,
@@ -566,6 +651,51 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
     );
   }
 
+  Widget _buildHud() {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: NunuColors.backgroundPaper.withValues(alpha: 0.85),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: NunuColors.primaryDark, width: 1),
+              ),
+              child: Text(
+                'altitude  $_altitude',
+                style: const TextStyle(
+                  color: NunuColors.primaryLight,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const Spacer(),
+            Row(
+              children: List.generate(_startingLives, (i) {
+                final filled = i < _lives;
+                return Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: Icon(
+                    filled ? Icons.favorite : Icons.favorite_border,
+                    color: filled
+                        ? NunuColors.errorMain
+                        : NunuColors.errorDark.withValues(alpha: 0.45),
+                    size: 28,
+                  ),
+                );
+              }),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildControls() {
     return Positioned(
       bottom: 20,
@@ -574,7 +704,6 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Left/Right controls
           Row(
             children: [
               GestureDetector(
@@ -600,7 +729,6 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
               ),
             ],
           ),
-          // Jump button
           GestureDetector(
             onTapDown: (_) => _onJumpPressed(),
             onTapUp: (_) => _onJumpReleased(),
@@ -708,9 +836,12 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
 }
 
 class BackgroundPainter extends CustomPainter {
+  BackgroundPainter({required this.scrollOffset});
+
+  final double scrollOffset;
+
   @override
   void paint(Canvas canvas, Size size) {
-    // Gradient background
     final rect = Rect.fromLTWH(0, 0, size.width, size.height);
     final gradient = LinearGradient(
       begin: Alignment.topCenter,
@@ -724,18 +855,18 @@ class BackgroundPainter extends CustomPainter {
     final paint = Paint()..shader = gradient.createShader(rect);
     canvas.drawRect(rect, paint);
 
-    // Draw some stars/dots for decoration
     final starPaint = Paint()
       ..color = NunuColors.primaryDark.withValues(alpha: 0.3);
 
-    for (int i = 0; i < 30; i++) {
-      final x = (i * 37) % size.width;
-      final y = (i * 23) % (size.height * 0.6);
+    for (int i = 0; i < 40; i++) {
+      final x = (i * 37 + scrollOffset * size.width * 0.3) % size.width;
+      final y = (i * 23 + scrollOffset * size.height * 0.5) % (size.height * 0.7);
       final radius = (i % 3) + 1.0;
       canvas.drawCircle(Offset(x, y), radius, starPaint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant BackgroundPainter oldDelegate) =>
+      oldDelegate.scrollOffset != scrollOffset;
 }

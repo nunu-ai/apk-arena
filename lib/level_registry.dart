@@ -636,7 +636,8 @@ final List<LevelEntry> unsortedLevels = [
     data: LevelData(
       title: "chain reaction",
       instructions:
-          "link matching gems by dragging through neighbours. longer chains = more points. reach 50 to pass.",
+          "make links and get as high of a score as possible within 30min.",
+      timeLimit: Duration(minutes: 31),
     ),
     widgetBuilder: (onComplete) => LevelLinkChain(onComplete: onComplete),
   ),
@@ -771,7 +772,12 @@ final List<LevelEntry> unsortedLevels = [
     widgetBuilder: (onComplete) => LevelMemoryGrid(onComplete: onComplete),
   ),
   LevelEntry(
-    data: LevelData(title: "jump man", instructions: "reach the flag!"),
+    data: LevelData(
+      title: "jump king",
+      instructions:
+          "climb as high as you can. 3 lives — each fall restarts at the bottom. best altitude in 30 minutes counts.",
+      timeLimit: Duration(minutes: 31),
+    ),
     widgetBuilder: (onComplete) => LevelMarioPlatformer(onComplete: onComplete),
   ),
   LevelEntry(
