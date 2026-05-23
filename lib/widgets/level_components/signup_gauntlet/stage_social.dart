@@ -160,6 +160,17 @@ class _StageSocialState extends State<StageSocial> {
         break;
       case _ChatStep.password:
         _enteredPassword = text;
+        if (_enteredEmail != _email ||
+            _enteredUsername != _username ||
+            _enteredPassword != _password) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('signup details do not match'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
         _chatStep = _ChatStep.done;
         _signupDone = true;
         Future.delayed(const Duration(milliseconds: 500), () {
@@ -267,40 +278,42 @@ class _StageSocialState extends State<StageSocial> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
+    return Column(
       children: [
-        switch (_phase) {
-          _SocialPhase.chatSignup => _buildChat(),
-          _SocialPhase.interests => _buildInterests(),
-          _SocialPhase.verification => _buildVerification(),
-          _SocialPhase.login => _buildLogin(),
-          _SocialPhase.interstitial1 => _buildInterstitial(
-              icon: Icons.notifications_outlined,
-              title: 'turn on notifications?',
-              subtitle: 'never miss a vibe from people you follow',
-              primaryLabel: 'TURN ON',
-              dismissLabel: 'not now',
-              onDismiss: () =>
-                  setState(() => _phase = _SocialPhase.interstitial2),
-            ),
-          _SocialPhase.interstitial2 => _buildInterstitial(
-              icon: Icons.people_outline,
-              title: 'who to follow',
-              subtitle: 'find friends and creators',
-              primaryLabel: 'FIND FRIENDS',
-              dismissLabel: null,
-              onDismiss: () =>
-                  setState(() => _phase = _SocialPhase.interstitial3),
-            ),
-          _SocialPhase.interstitial3 => _buildInterstitial(
-              icon: Icons.camera_alt_outlined,
-              title: 'add a profile picture',
-              subtitle: 'let people know who you are',
-              primaryLabel: 'UPLOAD PHOTO',
-              dismissLabel: 'skip for now',
-              onDismiss: _finish,
-            ),
-        },
+        Expanded(
+          child: switch (_phase) {
+            _SocialPhase.chatSignup => _buildChat(),
+            _SocialPhase.interests => _buildInterests(),
+            _SocialPhase.verification => _buildVerification(),
+            _SocialPhase.login => _buildLogin(),
+            _SocialPhase.interstitial1 => _buildInterstitial(
+                icon: Icons.notifications_outlined,
+                title: 'turn on notifications?',
+                subtitle: 'never miss a vibe from people you follow',
+                primaryLabel: 'TURN ON',
+                dismissLabel: 'not now',
+                onDismiss: () =>
+                    setState(() => _phase = _SocialPhase.interstitial2),
+              ),
+            _SocialPhase.interstitial2 => _buildInterstitial(
+                icon: Icons.people_outline,
+                title: 'who to follow',
+                subtitle: 'find friends and creators',
+                primaryLabel: 'FIND FRIENDS',
+                dismissLabel: null,
+                onDismiss: () =>
+                    setState(() => _phase = _SocialPhase.interstitial3),
+              ),
+            _SocialPhase.interstitial3 => _buildInterstitial(
+                icon: Icons.camera_alt_outlined,
+                title: 'add a profile picture',
+                subtitle: 'let people know who you are',
+                primaryLabel: 'UPLOAD PHOTO',
+                dismissLabel: 'skip for now',
+                onDismiss: _finish,
+              ),
+          },
+        ),
         const CredentialsFab(credentials: _creds),
       ],
     );

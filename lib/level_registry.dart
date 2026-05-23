@@ -202,8 +202,8 @@ final List<LevelEntry> tempospatialLevels = [
 final List<LevelEntry> gamesLevels = [
   LevelEntry(
     data: LevelData(
-      title: "cascade protocol",
-      instructions: "score as high as you can before time runs out.",
+      title: "merge protocol",
+      instructions: "score as high as you can before time runs out",
       timeLimit: Duration(minutes: 30),
     ),
     widgetBuilder: (onComplete) =>
@@ -213,7 +213,7 @@ final List<LevelEntry> gamesLevels = [
     data: LevelData(
       title: "Mega Merge",
       instructions:
-          "Master the factory! clear the quick tutorial, then score as many delivery points as you can in 30 minutes.",
+          "Score as much as possible by completing orders",
       timeLimit: Duration(minutes: 30),
     ),
     widgetBuilder: (onComplete) => LevelMegaMerge(onComplete: onComplete),
@@ -231,7 +231,7 @@ final List<LevelEntry> gamesLevels = [
     data: LevelData(
       title: "sector defense",
       instructions:
-          "drag towers onto the grid to defend against waves. press ▶ to start each wave. survive 24 waves.",
+          "drag towers onto the grid to defend against all waves",
       timeLimit: Duration(minutes: 30),
     ),
     widgetBuilder: (onComplete) =>
@@ -241,7 +241,7 @@ final List<LevelEntry> gamesLevels = [
     data: LevelData(
       title: "tiny factory",
       instructions:
-          "build a factory. mine ore, route belts, fill the hub's orders. 30 minutes.",
+          "earn as many parts as possible by delivering high quality items",
       timeLimit: Duration(minutes: 30),
     ),
     widgetBuilder: (onComplete) => LevelTinyFactory(onComplete: onComplete),
@@ -264,6 +264,13 @@ final List<LevelEntry> tasksLevels = [
     ),
     widgetBuilder: (onComplete) =>
         LevelInventoryReconciliation(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "pizza night",
+      instructions: "read the chat. order everyone’s final picks.",
+    ),
+    widgetBuilder: (onComplete) => LevelGroupOrder(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
@@ -486,13 +493,6 @@ final List<LevelEntry> unsortedLevels = [
       instructions: "Skip to the next song.",
     ),
     widgetBuilder: (onComplete) => LevelClosingDrawer(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "pizza night",
-      instructions: "read the chat. order everyone’s final picks.",
-    ),
-    widgetBuilder: (onComplete) => LevelGroupOrder(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(

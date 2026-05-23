@@ -112,6 +112,19 @@ class _StageAirlineState extends State<StageAirline> {
       return;
     }
     if (!_signupKey.currentState!.validate()) return;
+    final phone = _phoneCtl.text.replaceFirst('+41 ', '').trim();
+    if (_title != 'Mr' ||
+        _emailCtl.text.trim() != _email ||
+        _passCtl.text != _password ||
+        phone != _phone) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('signup details do not match'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
     setState(() => _signupLoading = true);
     Future.delayed(const Duration(milliseconds: 800), () {
@@ -195,14 +208,18 @@ class _StageAirlineState extends State<StageAirline> {
           Container(
             color: const Color(0xFFF5F5F5),
             child: SafeArea(
-              child: _isLogin ? _buildLogin() : _buildSignup(),
+              child: Column(
+                children: [
+                  Expanded(child: _isLogin ? _buildLogin() : _buildSignup()),
+                  CredentialsFab(credentials: _creds),
+                ],
+              ),
             ),
           ),
           if (_showCookie) _buildCookieBanner(),
           if (_showMarketingPrefs) _buildMarketingModal(),
           if (_showUpsell) _buildUpsellOverlay(),
           if (_showProfileModal) _buildProfileModal(),
-          CredentialsFab(credentials: _creds),
         ],
       ),
     );

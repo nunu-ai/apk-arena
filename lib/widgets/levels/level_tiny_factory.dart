@@ -10,6 +10,7 @@ import '../level_widget.dart';
 const int _kCols = 36;
 const int _kRows = 26;
 const int _scoreWealthTarget = 8000;
+const Duration _sessionDuration = Duration(minutes: 30);
 
 enum _Item {
   ironOre,
@@ -1247,6 +1248,7 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
           _stat('💯', score.toStringAsFixed(2)),
           _stat('💎', '$_wealth'),
           _stat('🔩', '$_parts'),
+          _stat('⏱', _remainingLabel),
           const SizedBox(width: 8),
           const Spacer(),
           IconButton(
@@ -1278,6 +1280,17 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
         ],
       ),
     );
+  }
+
+  String get _remainingLabel {
+    final elapsed = Duration(milliseconds: (_elapsed * 1000).floor());
+    final remaining = _sessionDuration - elapsed;
+    final clampedRemaining =
+        remaining.isNegative ? Duration.zero : remaining;
+    final minutes = clampedRemaining.inMinutes.toString().padLeft(2, '0');
+    final seconds =
+        (clampedRemaining.inSeconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
   }
 
   void _showGuide() {
@@ -1326,8 +1339,12 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
                 const SizedBox(height: 18),
                 _guideHeader('recipe chain'),
                 _guideBullet('▰', 'ore → smelter → bars/slabs.'),
-                _guideBullet('🟫', 'bars/slabs → assembler → plates, wire, bricks.'),
-                _guideBullet('📦', 'finished items score when they reach the hub.'),
+                _guideBullet(
+                    '🟫',
+                    'bars/slabs → assembler → plates, wire, bricks, and higher-tier parts.'),
+                _guideBullet(
+                    '📦',
+                    'every hub delivery earns parts; matching order items advance the order.'),
               ],
             ),
           ),

@@ -1231,31 +1231,106 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
   }
 
   Widget _buildFooter() {
+    final activeBoosterIds =
+        _activeBoosters.keys.where(_isBoosterActive).toList();
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       color: NunuColors.backgroundPaper,
       child: SafeArea(
         top: false,
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             _buildFooterStat('time', _remainingTimeLabel),
-            _buildFooterStat('score', '$_sessionScore'),
-            _buildFooterStat('orders', '$_ordersCompleted'),
-            _buildFooterStat('best tier', '$_highestTier'),
-            _buildFooterStat(
-              'boost',
-              _activeBoosters.isEmpty
-                  ? '-'
-                  : _activeBoosters.keys
-                      .where(_isBoosterActive)
-                      .map((id) => id.replaceFirst('boost_', ''))
-                      .join('/'),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildBoosterStrip(activeBoosterIds),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildBoosterStrip(List<String> activeBoosterIds) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'boosters',
+          style: TextStyle(
+            color: NunuColors.textSecondary.withOpacity(0.9),
+            fontSize: 11,
+          ),
+        ),
+        const SizedBox(height: 4),
+        if (activeBoosterIds.isEmpty)
+          Text(
+            'none active',
+            style: TextStyle(
+              color: NunuColors.textSecondary.withOpacity(0.75),
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          )
+        else
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: activeBoosterIds.map(_buildBoosterChip).toList(),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildBoosterChip(String id) {
+    final expiresAt = _activeBoosters[id];
+    final remainingSeconds = expiresAt == null
+        ? 0
+        : max(0, expiresAt.difference(DateTime.now()).inSeconds);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: NunuColors.primaryMain.withOpacity(0.14),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: NunuColors.primaryLight.withOpacity(0.45)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(_boosterIcon(id), color: NunuColors.primaryLight, size: 14),
+          const SizedBox(width: 4),
+          Text(
+            '${_boosterLabel(id)} ${remainingSeconds}s',
+            style: const TextStyle(
+              color: NunuColors.textPrimary,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _boosterIcon(String id) {
+    return switch (id) {
+      'boost_speed' => Icons.speed,
+      'boost_auto' => Icons.autorenew,
+      'boost_extra' => Icons.add_circle,
+      _ => Icons.rocket_launch,
+    };
+  }
+
+  String _boosterLabel(String id) {
+    return switch (id) {
+      'boost_speed' => 'speed',
+      'boost_auto' => 'auto',
+      'boost_extra' => 'extra',
+      _ => id.replaceFirst('boost_', ''),
+    };
   }
 
   Widget _buildFooterStat(String label, String value) {

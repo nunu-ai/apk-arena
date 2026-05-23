@@ -180,6 +180,10 @@ class _StageBankState extends State<StageBank> {
           setState(() => _sessionInvalid = true);
           return;
         }
+        if (!_signupDetailsMatch()) {
+          _snack('signup details do not match');
+          return;
+        }
         _signupDone = true;
         _sendVerification();
         break;
@@ -195,6 +199,22 @@ class _StageBankState extends State<StageBank> {
       _trapsFallen++;
       setState(() => _wizardStep--);
     }
+  }
+
+  bool _signupDetailsMatch() {
+    return _fnCtl.text.trim() == 'Jordan' &&
+        _lnCtl.text.trim() == 'Mitchell' &&
+        _dobMonth == 3 &&
+        _dobDay == 15 &&
+        _dobYear == 1990 &&
+        _emailCtl.text.trim() == _email &&
+        _phoneCtl.text.trim() == _phone &&
+        _streetCtl.text.trim() == _street &&
+        _aptCtl.text.trim() == _apt &&
+        _cityCtl.text.trim() == _city &&
+        _stateVal == _state &&
+        _zipCtl.text.trim() == _zip &&
+        _passCtl.text == _password;
   }
 
   void _sendVerification() {
@@ -374,11 +394,11 @@ class _StageBankState extends State<StageBank> {
                   _buildHeader(),
                   if (_wizardStep < 4) _buildStepIndicator(),
                   Expanded(child: _buildCurrentStep()),
+                  const CredentialsFab(credentials: _creds),
                 ],
               ),
             ),
           ),
-          const CredentialsFab(credentials: _creds),
         ],
       ),
     );

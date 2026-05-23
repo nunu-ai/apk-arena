@@ -191,6 +191,14 @@ class _StageEnterpriseState extends State<StageEnterprise> {
       _snack('an unexpected error occurred');
       return;
     }
+    if (_companyCtl.text.trim() != _company ||
+        _emailCtl.text.trim() != _workEmail ||
+        _nameCtl.text.trim() != _fullName ||
+        _roleVal != _role ||
+        _passCtl.text != _password) {
+      _snack('signup details do not match');
+      return;
+    }
 
     setState(() => _signupLoading = true);
     Future.delayed(const Duration(milliseconds: 1000), () {
@@ -367,12 +375,12 @@ class _StageEnterpriseState extends State<StageEnterprise> {
                 children: [
                   _buildSaasHeader(),
                   Expanded(child: _buildPhase()),
+                  const CredentialsFab(credentials: _creds),
                 ],
               ),
             ),
           ),
           if (_showDemoModal) _buildDemoModal(),
-          const CredentialsFab(credentials: _creds),
         ],
       ),
     );

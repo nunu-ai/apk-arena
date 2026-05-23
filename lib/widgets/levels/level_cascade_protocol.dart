@@ -91,6 +91,7 @@ class LevelCascadeProtocol extends LevelWidget {
 
 class _LevelCascadeProtocolState extends State<LevelCascadeProtocol> {
   static const Duration _settleDelay = Duration(milliseconds: 120);
+  static const Duration _sessionDuration = Duration(minutes: 30);
   static const double _gridGap = 4;
   static const double _swipeThreshold = 18;
   static const int _maxBenchmarkScore = 240000;
@@ -1014,10 +1015,14 @@ class _LevelCascadeProtocolState extends State<LevelCascadeProtocol> {
         .toList();
   }
 
-  String get _elapsedLabel {
+  String get _remainingLabel {
     final elapsed = DateTime.now().difference(_startedAt);
-    final minutes = elapsed.inMinutes.toString().padLeft(2, '0');
-    final seconds = (elapsed.inSeconds % 60).toString().padLeft(2, '0');
+    final remaining = _sessionDuration - elapsed;
+    final clampedRemaining =
+        remaining.isNegative ? Duration.zero : remaining;
+    final minutes = clampedRemaining.inMinutes.toString().padLeft(2, '0');
+    final seconds =
+        (clampedRemaining.inSeconds % 60).toString().padLeft(2, '0');
     return '$minutes:$seconds';
   }
 
@@ -1111,6 +1116,110 @@ class _LevelCascadeProtocolState extends State<LevelCascadeProtocol> {
     );
   }
 
+  void _showGuide() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: NunuColors.backgroundPaper,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.72,
+          maxChildSize: 0.9,
+          minChildSize: 0.4,
+          builder: (ctx, scrollCtrl) {
+            return SingleChildScrollView(
+              controller: scrollCtrl,
+              padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: NunuColors.textSecondary.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  _guideHeader('how to play'),
+                  _guideBullet(
+                    Icons.swipe,
+                    'swipe one gem into a neighbor to make a row or column of 3+ matching gems.',
+                  ),
+                  _guideBullet(
+                    Icons.auto_awesome,
+                    'cleared gems fall, refill, and can chain into cascades for bigger points.',
+                  ),
+                  _guideBullet(
+                    Icons.timeline,
+                    'score thresholds advance the protocol through 10 harder board stages.',
+                  ),
+                  const SizedBox(height: 18),
+                  _guideHeader('hazards'),
+                  _guideBullet(
+                    Icons.ac_unit,
+                    'ice protects a gem once.',
+                  ),
+                  _guideBullet(
+                    Icons.inventory_2,
+                    'crates do not move. clear adjacent matches or power-up blasts to break them.',
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _guideHeader(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: NunuColors.textPrimary,
+          fontSize: 16,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.4,
+        ),
+      ),
+    );
+  }
+
+  Widget _guideBullet(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 28,
+            child: Icon(icon, color: NunuColors.primaryLight, size: 18),
+          ),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                color: NunuColors.textSecondary,
+                fontSize: 13,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBoard() {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -1197,13 +1306,33 @@ class _LevelCascadeProtocolState extends State<LevelCascadeProtocol> {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
           child: Column(
             children: [
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildBadge('score', '$_score'),
-                  _buildBadge('stage', '${_stage.label}/10'),
-                  _buildBadge('time', _elapsedLabel),
+                  Expanded(
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _buildBadge('score', '$_score'),
+                        _buildBadge('stage', '${_stage.label}/10'),
+                        _buildBadge('time', _remainingLabel),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints:
+                        const BoxConstraints(minWidth: 36, minHeight: 36),
+                    icon: const Icon(
+                      Icons.info_outline,
+                      color: NunuColors.textSecondary,
+                      size: 22,
+                    ),
+                    onPressed: _showGuide,
+                  ),
                 ],
               ),
               const SizedBox(height: 10),

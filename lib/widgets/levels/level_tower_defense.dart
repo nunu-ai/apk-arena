@@ -353,6 +353,7 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
   static const int _gridRows = 16;
   static const int _totalWaves = 24;
   static const double _maxEnemiesBenchmark = 1064;
+  static const Duration _sessionDuration = Duration(minutes: 30);
 
   // arknights-style: shared paths with entry/exit boxes, more turns.
   static const List<List<Point<int>>> _paths = [
@@ -1136,10 +1137,13 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
     );
   }
 
-  String get _elapsedLabel {
+  String get _remainingLabel {
     final e = DateTime.now().difference(_startedAt);
-    final m = e.inMinutes.toString().padLeft(2, '0');
-    final s = (e.inSeconds % 60).toString().padLeft(2, '0');
+    final remaining = _sessionDuration - e;
+    final clampedRemaining =
+        remaining.isNegative ? Duration.zero : remaining;
+    final m = clampedRemaining.inMinutes.toString().padLeft(2, '0');
+    final s = (clampedRemaining.inSeconds % 60).toString().padLeft(2, '0');
     return '$m:$s';
   }
 
@@ -1221,7 +1225,7 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
                     color: _lives <= 5 ? NunuColors.errorMain : null,
                   ),
                   _buildHeaderStat('🌊', '$_wave/$_totalWaves'),
-                  _buildHeaderStat('⏱', _elapsedLabel),
+                  _buildHeaderStat('⏱', _remainingLabel),
                   const Spacer(),
                   IconButton(
                     visualDensity: VisualDensity.compact,
@@ -1666,15 +1670,15 @@ class _TDPainter extends CustomPainter {
         if (isEntry) {
           color = const Color(0xFF2D5A3D);
         } else if (isExit) {
-          color = const Color(0xFF5A2D3D);
+          color = const Color(0xFF804055);
         } else if (isActive) {
-          color = const Color(0xFF2A274A);
+          color = const Color(0xAEA688FF);
         } else if (isPath) {
-          color = const Color(0xFF1E1C38);
+          color = const Color(0x484180FF);
         } else if (isBuildable(r, c)) {
           color = ((r + c) % 2 == 0)
-              ? NunuColors.backgroundPaper.withValues(alpha: 0.6)
-              : NunuColors.backgroundPaper.withValues(alpha: 0.4);
+              ? NunuColors.infoMain.withValues(alpha: 0.1)
+              : NunuColors.infoMain.withValues(alpha: 0.02);
         } else {
           color = Colors.black.withValues(alpha: 0.44);
         }

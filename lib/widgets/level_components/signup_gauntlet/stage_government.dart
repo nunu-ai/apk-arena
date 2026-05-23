@@ -178,6 +178,14 @@ class _StageGovernmentState extends State<StageGovernment> {
 
     // Second click — actual submit
     if (!_signupKey.currentState!.validate()) return;
+    if (_emailCtl.text.trim() != _email ||
+        _userCtl.text.trim() != _username ||
+        _passCtl.text != _password ||
+        _ssnCtl.text.trim() != _ssn4) {
+      _submitClicks = 1;
+      _snack('signup details do not match');
+      return;
+    }
 
     setState(() => _signupLoading = true);
     Future.delayed(const Duration(milliseconds: 1000), () {
@@ -308,13 +316,13 @@ class _StageGovernmentState extends State<StageGovernment> {
                             ? _buildLogin()
                             : _buildSignup(),
                   ),
+                  const CredentialsFab(credentials: _creds),
                 ],
               ),
             ),
           ),
           if (_showDuplicate) _buildDuplicateWarning(),
           if (_showMaintenanceModal) _buildMaintenanceModal(),
-          const CredentialsFab(credentials: _creds),
         ],
       ),
     );
