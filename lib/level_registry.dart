@@ -293,6 +293,24 @@ final List<LevelEntry> gamesLevels = [
     ),
     widgetBuilder: (onComplete) => LevelBingo(onComplete: onComplete),
   ),
+  LevelEntry(
+    data: LevelData(
+      title: "jump king",
+      instructions:
+          "climb as high as you can. 3 lives — each fall restarts at the bottom. best altitude in 30 minutes counts.",
+      timeLimit: Duration(minutes: 31),
+    ),
+    widgetBuilder: (onComplete) => LevelMarioPlatformer(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "chain reaction",
+      instructions:
+          "make links and get as high of a score as possible within 30min.",
+      timeLimit: Duration(minutes: 31),
+    ),
+    widgetBuilder: (onComplete) => LevelLinkChain(onComplete: onComplete),
+  ),
 ];
 final List<LevelEntry> tasksLevels = [];
 
@@ -634,15 +652,6 @@ final List<LevelEntry> unsortedLevels = [
   ),
   LevelEntry(
     data: LevelData(
-      title: "chain reaction",
-      instructions:
-          "make links and get as high of a score as possible within 30min.",
-      timeLimit: Duration(minutes: 31),
-    ),
-    widgetBuilder: (onComplete) => LevelLinkChain(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
       title: "Catch the DVD",
       instructions: "Click the bouncing DVD logo!",
     ),
@@ -770,15 +779,6 @@ final List<LevelEntry> unsortedLevels = [
           "memorize the pattern and reproduce it. how far can you go?",
     ),
     widgetBuilder: (onComplete) => LevelMemoryGrid(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "jump king",
-      instructions:
-          "climb as high as you can. 3 lives — each fall restarts at the bottom. best altitude in 30 minutes counts.",
-      timeLimit: Duration(minutes: 31),
-    ),
-    widgetBuilder: (onComplete) => LevelMarioPlatformer(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(

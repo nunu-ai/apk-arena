@@ -201,7 +201,9 @@ class _DropAnim {
 class _LevelLinkChainState extends State<LevelLinkChain>
     with TickerProviderStateMixin {
   // --- run config ---
-  static const int _targetScore = 400; // 1.5 × estimated human baseline
+  // hidden internal threshold — score >= _targetScore yields 100%.
+  // intentionally not surfaced in the HUD or completion metrics.
+  static const int _targetScore = 4000;
   static const Duration _runDuration = Duration(minutes: 30);
   static const int _megaChainThreshold = 7; // chain length for banner
   static const double _dropDurationSec = 0.32;
@@ -633,7 +635,6 @@ class _LevelLinkChainState extends State<LevelLinkChain>
           metrics: {
             'score': _score,
             'stage_reached': _stageIdx + 1,
-            'target': _targetScore,
           },
         ),
       );
