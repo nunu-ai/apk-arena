@@ -271,8 +271,7 @@ final List<LevelEntry> tempospatialLevels = [
   LevelEntry(
     data: LevelData(
       title: "Space Collector",
-      instructions:
-          "explore the map, collect every coin, then tap done.",
+      instructions: "explore the map, collect every coin, then tap done.",
     ),
     widgetBuilder: (onComplete) => LevelCoinCollector(onComplete: onComplete),
   ),
@@ -292,6 +291,15 @@ final List<LevelEntry> gamesLevels = [
       instructions: "Mark the called numbers quickly to get a BINGO!",
     ),
     widgetBuilder: (onComplete) => LevelBingo(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Srabble",
+      instructions:
+          "play solo Scrabble. score as high as possible in 30 minutes.",
+      timeLimit: Duration(minutes: 31),
+    ),
+    widgetBuilder: (onComplete) => LevelScrabble(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
@@ -591,13 +599,6 @@ final List<LevelEntry> unsortedLevels = [
       instructions: "navigate to the exit using the d-pad!",
     ),
     widgetBuilder: (onComplete) => LevelPokemonMaze(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "word builder",
-      instructions: "make the word \"paper\"",
-    ),
-    widgetBuilder: (onComplete) => LevelScrabble(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
