@@ -1,16 +1,11 @@
+import 'dart:async';
 import 'dart:math';
+
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
+
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
-
-// ---------------------------------------------------------------------------
-// Trial & Error Sequence
-//
-// 7 steps. Each step shows 5 emoji items. One is correct.
-// Pick the wrong one → reset to step 1 (same sequence).
-// Through trial and error, discover and memorize the full sequence.
-// ---------------------------------------------------------------------------
 
 class LevelTrialSequence extends LevelWidget {
   const LevelTrialSequence({super.key, required super.onComplete});
@@ -21,21 +16,12 @@ class LevelTrialSequence extends LevelWidget {
 
 class _LevelTrialSequenceState extends State<LevelTrialSequence>
     with SingleTickerProviderStateMixin {
-  // -- data -------------------------------------------------------------------
-
-  /// Each step: 5 emoji options to display.
-  static const List<List<String>> _stepOptions = [
-    ['🎹', '⭐', '🎫', '🎻', '🚗'],
-    ['🔮', '🎯', '🍕', '🎸', '💎'],
-    ['🌙', '🎲', '🚀', '🎧', '🌈'],
-    ['🎨', '🕹️', '🧩', '🎭', '🔥'],
-    ['🍩', '🎮', '💧', '🏆', '🎤'],
-    ['🛸', '🎪', '🎈', '🎀', '📷'],
-    ['🌊', '🎂', '📱', '🗝️', '🎰'],
-  ];
-
-  /// The ONE correct emoji at each step.
-  static const List<String> _correctEmojis = [
+  static const Duration _sessionDuration = Duration(minutes: 30);
+  static const int _targetMaxLength = 100;
+  static const int _optionsPerStep = 5;
+  static const int _startingSequenceLength = 7;
+  static const int _maxSequenceLength = 20;
+  static const List<String> _emojiPool = [
     '⭐',
     '🍕',
     '🚀',
@@ -43,31 +29,59 @@ class _LevelTrialSequenceState extends State<LevelTrialSequence>
     '🏆',
     '🎈',
     '🗝️',
+    '🎯',
+    '🎮',
+    '🔥',
+    '🌙',
+    '💎',
+    '🎧',
+    '🎨',
+    '🍩',
+    '🛸',
+    '📷',
+    '🌊',
+    '🎂',
+    '📱',
+    '🎭',
+    '🎪',
+    '🎤',
+    '🎲',
+    '💧',
+    '🕹️',
+    '🎀',
+    '🚗',
+    '🎸',
+    '🌈',
   ];
 
-  static const int _totalSteps = 7;
+  final Random _random = Random();
 
-  // -- state ------------------------------------------------------------------
+  late final AnimationController _shakeController;
+  late final Animation<double> _shakeOffset;
+  late final DateTime _endsAt;
+
+  Timer? _countdownTimer;
+
+  late int _sequenceLength;
+  late List<String> _correctSequence;
+  late List<List<String>> _shuffledOptions;
 
   int _currentStep = 0;
   int _attempts = 1;
+  int _maxLengthAchieved = 0;
   bool _isAnimating = false;
+  bool _sessionComplete = false;
   int? _tappedIndex;
   bool? _lastTapCorrect;
-
-  /// Shuffled order for every step (regenerated on reset).
-  late List<List<String>> _shuffledOptions;
-  final Random _random = Random();
-
-  late AnimationController _shakeController;
-  late Animation<double> _shakeOffset;
-
-  // -- lifecycle --------------------------------------------------------------
+  Duration _timeRemaining = _sessionDuration;
 
   @override
   void initState() {
     super.initState();
-    _shuffleAllOptions();
+    _endsAt = DateTime.now().add(_sessionDuration);
+    _sequenceLength = _startingSequenceLength;
+    _startSequence(resetAttempts: true);
+    _startCountdown();
 
     _shakeController = AnimationController(
       duration: const Duration(milliseconds: 400),
@@ -86,27 +100,99 @@ class _LevelTrialSequenceState extends State<LevelTrialSequence>
 
   @override
   void dispose() {
+    _countdownTimer?.cancel();
     _shakeController.dispose();
     super.dispose();
   }
 
-  // -- helpers ----------------------------------------------------------------
+  void _startCountdown() {
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted || _sessionComplete) return;
 
-  void _shuffleAllOptions() {
-    _shuffledOptions = _stepOptions.map((options) {
-      final shuffled = List<String>.from(options);
-      shuffled.shuffle(_random);
-      return shuffled;
-    }).toList();
+      final remaining = _endsAt.difference(DateTime.now());
+      if (remaining <= Duration.zero) {
+        _finishSession();
+        return;
+      }
+
+      setState(() {
+        _timeRemaining = remaining;
+      });
+    });
   }
 
-  // -- actions ----------------------------------------------------------------
+  void _startSequence({required bool resetAttempts}) {
+    _correctSequence = List.generate(
+      _sequenceLength,
+      (_) => _emojiPool[_random.nextInt(_emojiPool.length)],
+    );
+    _shuffledOptions = List.generate(
+      _sequenceLength,
+      (step) => _buildStepOptions(_correctSequence[step]),
+    );
+    _currentStep = 0;
+    _tappedIndex = null;
+    _lastTapCorrect = null;
+    _isAnimating = false;
+
+    if (resetAttempts) {
+      _attempts = 1;
+    }
+  }
+
+  void _extendSequence() {
+    final nextEmoji = _emojiPool[_random.nextInt(_emojiPool.length)];
+    _correctSequence.add(nextEmoji);
+    _shuffledOptions.add(_buildStepOptions(nextEmoji));
+    _sequenceLength = _correctSequence.length;
+  }
+
+  List<String> _buildStepOptions(String correctEmoji) {
+    final options = <String>{correctEmoji};
+    while (options.length < _optionsPerStep) {
+      options.add(_emojiPool[_random.nextInt(_emojiPool.length)]);
+    }
+    final shuffled = options.toList()..shuffle(_random);
+    return shuffled;
+  }
+
+  void _handleWrongTap() {
+    _shakeController.forward(from: 0);
+
+    setState(() {
+      _attempts++;
+      _currentStep = 0;
+      _tappedIndex = null;
+      _lastTapCorrect = null;
+      _isAnimating = false;
+      _shuffledOptions = List.generate(
+        _sequenceLength,
+        (step) => _buildStepOptions(_correctSequence[step]),
+      );
+    });
+  }
+
+  void _finishSession() {
+    if (_sessionComplete) return;
+    _sessionComplete = true;
+    _countdownTimer?.cancel();
+
+    final cappedMaxLength = min(_maxLengthAchieved, _targetMaxLength);
+    widget.onComplete(
+      LevelOutcome(
+        score: cappedMaxLength / _targetMaxLength,
+        metrics: {
+          'max_sequence_length': _maxLengthAchieved,
+        },
+      ),
+    );
+  }
 
   void _onItemTapped(int index) {
-    if (_isAnimating) return;
+    if (_isAnimating || _sessionComplete) return;
 
     final tappedEmoji = _shuffledOptions[_currentStep][index];
-    final isCorrect = tappedEmoji == _correctEmojis[_currentStep];
+    final isCorrect = tappedEmoji == _correctSequence[_currentStep];
 
     setState(() {
       _tappedIndex = index;
@@ -114,20 +200,25 @@ class _LevelTrialSequenceState extends State<LevelTrialSequence>
       _isAnimating = true;
     });
 
-    if (!isCorrect) {
-      _shakeController.forward(from: 0);
-    }
-
     final delay = isCorrect
-        ? const Duration(milliseconds: 500)
+        ? const Duration(milliseconds: 350)
         : const Duration(milliseconds: 750);
 
     Future.delayed(delay, () {
-      if (!mounted) return;
+      if (!mounted || _sessionComplete) return;
 
       if (isCorrect) {
-        if (_currentStep == _totalSteps - 1) {
-          widget.onComplete(LevelOutcome(score: 1, metrics: {'attempts': _attempts, 'steps': _totalSteps}));
+        final reachedLength = _currentStep + 1;
+        _maxLengthAchieved = max(_maxLengthAchieved, reachedLength);
+
+        if (_currentStep == _sequenceLength - 1) {
+          setState(() {
+            _extendSequence();
+            _currentStep++;
+            _tappedIndex = null;
+            _lastTapCorrect = null;
+            _isAnimating = false;
+          });
         } else {
           setState(() {
             _currentStep++;
@@ -137,19 +228,16 @@ class _LevelTrialSequenceState extends State<LevelTrialSequence>
           });
         }
       } else {
-        setState(() {
-          _attempts++;
-          _currentStep = 0;
-          _tappedIndex = null;
-          _lastTapCorrect = null;
-          _isAnimating = false;
-          _shuffleAllOptions();
-        });
+        _handleWrongTap();
       }
     });
   }
 
-  // -- build ------------------------------------------------------------------
+  String get _timeLabel {
+    final minutes = _timeRemaining.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = _timeRemaining.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -160,10 +248,10 @@ class _LevelTrialSequenceState extends State<LevelTrialSequence>
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           child: Column(
             children: [
+              _buildTopStats(),
+              const SizedBox(height: 20),
               _buildProgressBar(),
               const SizedBox(height: 20),
-              _buildStepLabel(),
-              const SizedBox(height: 6),
               _buildAttemptLabel(),
               const Spacer(flex: 2),
               _buildFeedback(),
@@ -186,11 +274,78 @@ class _LevelTrialSequenceState extends State<LevelTrialSequence>
     );
   }
 
-  // -- progress bar -----------------------------------------------------------
+  Widget _buildTopStats() {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildStatCard(
+            label: 'time left',
+            value: _timeLabel,
+            valueColor: NunuColors.warningMain,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildStatCard(
+            label: 'attempts',
+            value: '$_attempts',
+            valueColor: NunuColors.primaryMain,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildStatCard(
+            label: 'max length',
+            value: '$_maxLengthAchieved',
+            valueColor: NunuColors.successMain,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard({
+    required String label,
+    required String value,
+    required Color valueColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: NunuColors.backgroundPaper,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: NunuColors.primaryDark.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: NunuColors.textSecondary,
+              fontSize: 11,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: TextStyle(
+              color: valueColor,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildProgressBar() {
     return Row(
-      children: List.generate(_totalSteps, (i) {
+      children: List.generate(_sequenceLength, (i) {
         final isCompleted = i < _currentStep;
         final isCurrent = i == _currentStep;
 
@@ -208,7 +363,7 @@ class _LevelTrialSequenceState extends State<LevelTrialSequence>
         return Expanded(
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 250),
-            margin: EdgeInsets.only(right: i < _totalSteps - 1 ? 4 : 0),
+            margin: EdgeInsets.only(right: i < _sequenceLength - 1 ? 4 : 0),
             height: 6,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(3),
@@ -220,30 +375,15 @@ class _LevelTrialSequenceState extends State<LevelTrialSequence>
     );
   }
 
-  // -- labels -----------------------------------------------------------------
-
-  Widget _buildStepLabel() {
-    return Text(
-      'step ${_currentStep + 1} of $_totalSteps',
-      style: const TextStyle(
-        color: NunuColors.textSecondary,
-        fontSize: 14,
-        letterSpacing: 1.2,
-      ),
-    );
-  }
-
   Widget _buildAttemptLabel() {
     return Text(
       'attempt #$_attempts',
       style: TextStyle(
-        color: NunuColors.primaryLight.withValues(alpha: 0.5),
+        color: NunuColors.primaryLight.withValues(alpha: 0.65),
         fontSize: 12,
       ),
     );
   }
-
-  // -- feedback ---------------------------------------------------------------
 
   Widget _buildFeedback() {
     if (_lastTapCorrect == false) {
@@ -258,21 +398,19 @@ class _LevelTrialSequenceState extends State<LevelTrialSequence>
     }
     if (_lastTapCorrect == true) {
       return const Text(
-        '✓',
+        'correct',
         style: TextStyle(
           color: NunuColors.successMain,
-          fontSize: 28,
+          fontSize: 18,
           fontWeight: FontWeight.bold,
         ),
       );
     }
     return const Text(
-      'pick one',
+      'find the next symbol',
       style: TextStyle(color: NunuColors.textSecondary, fontSize: 14),
     );
   }
-
-  // -- option tiles -----------------------------------------------------------
 
   Widget _buildOptions() {
     final options = _shuffledOptions[_currentStep];
@@ -280,7 +418,6 @@ class _LevelTrialSequenceState extends State<LevelTrialSequence>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // row 1: items 0, 1, 2
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -291,7 +428,6 @@ class _LevelTrialSequenceState extends State<LevelTrialSequence>
           ],
         ),
         const SizedBox(height: 16),
-        // row 2: items 3, 4
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -305,9 +441,9 @@ class _LevelTrialSequenceState extends State<LevelTrialSequence>
   }
 
   Widget _buildOptionTile(int index, String emoji) {
-    final bool isTapped = _tappedIndex == index;
-    final bool isCorrectTap = isTapped && _lastTapCorrect == true;
-    final bool isWrongTap = isTapped && _lastTapCorrect == false;
+    final isTapped = _tappedIndex == index;
+    final isCorrectTap = isTapped && _lastTapCorrect == true;
+    final isWrongTap = isTapped && _lastTapCorrect == false;
 
     Color borderColor = NunuColors.primaryDark.withValues(alpha: 0.5);
     Color bgColor = NunuColors.backgroundPaper;

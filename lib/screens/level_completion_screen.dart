@@ -233,7 +233,7 @@ class LevelCompletionScreen extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      randomMode ? 'RANDOM LEVEL' : 'NEXT LEVEL',
+                      randomMode ? 'RANDOM' : 'NEXT',
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),

@@ -82,4 +82,34 @@ class NotificationService {
       details,
     );
   }
+
+  /// Generic notification with customizable id, title, body, and channel.
+  Future<void> showGeneric({
+    required int id,
+    required String title,
+    required String body,
+    String channelId = 'general',
+    String channelName = 'General',
+  }) async {
+    final androidDetails = AndroidNotificationDetails(
+      channelId,
+      channelName,
+      importance: Importance.high,
+      priority: Priority.high,
+      showWhen: true,
+    );
+
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    final details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    await _notifications.show(id, title, body, details);
+  }
 }
