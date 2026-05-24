@@ -17,8 +17,8 @@ class _Platform {
     required this.minX,
     required this.maxX,
     required this.brittle,
-  })  : direction = 1,
-        previousX = x;
+  }) : direction = 1,
+       previousX = x;
 
   double x;
   final double y;
@@ -159,7 +159,10 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
   double _worldY(int altitude) => _groundY - altitude * _rowGap;
 
   void _ensurePlatformsAhead() {
-    final target = min(_winAltitude + _spawnRowsAhead, _peakAltitude + _spawnRowsAhead);
+    final target = min(
+      _winAltitude + _spawnRowsAhead,
+      _peakAltitude + _spawnRowsAhead,
+    );
     while (_highestSpawned < target) {
       _spawnPlatform(_highestSpawned + 1);
     }
@@ -169,27 +172,28 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
     final width = altitude < 20
         ? 0.22
         : altitude < 50
-            ? 0.20
-            : altitude < 80
-                ? 0.16
-                : 0.12;
+        ? 0.20
+        : altitude < 80
+        ? 0.16
+        : 0.12;
     final moveChance = altitude < 20
         ? 0.0
         : altitude < 50
-            ? 0.4
-            : altitude < 80
-                ? 0.7
-                : 0.95;
+        ? 0.4
+        : altitude < 80
+        ? 0.7
+        : 0.95;
     final baseSpeed = altitude < 20
         ? 0.0
         : altitude < 50
-            ? 0.0015
-            : altitude < 80
-                ? 0.0025
-                : 0.0035;
+        ? 0.0015
+        : altitude < 80
+        ? 0.0025
+        : 0.0035;
     final speed = baseSpeed * (1 + (altitude / 250).clamp(0.0, 8.0));
-    final brittleChance =
-        altitude < 6 ? 0.0 : (0.06 + altitude / 2500).clamp(0.06, 0.32);
+    final brittleChance = altitude < 6
+        ? 0.0
+        : (0.06 + altitude / 2500).clamp(0.06, 0.32);
     final brittle = _rng.nextDouble() < brittleChance;
 
     const minX = 0.05;
@@ -198,8 +202,10 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
     final maxCenter = maxX + width / 2;
     final drift = (_rng.nextDouble() * 2 - 1) * 0.14;
     final centerPull = (0.5 - _previousSpawnCenter) * 0.12;
-    final center = (_previousSpawnCenter + drift + centerPull)
-        .clamp(minCenter, maxCenter);
+    final center = (_previousSpawnCenter + drift + centerPull).clamp(
+      minCenter,
+      maxCenter,
+    );
     final x = center - width / 2;
 
     _platforms.add(
@@ -255,8 +261,8 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
   void _updateCharge() {
     final started = _chargeStartedAt;
     if (!_chargingJump || started == null) return;
-    _chargePercent =
-        (DateTime.now().difference(started).inMilliseconds / 500).clamp(0, 1);
+    _chargePercent = (DateTime.now().difference(started).inMilliseconds / 500)
+        .clamp(0, 1);
   }
 
   void _movePlatforms() {
@@ -699,12 +705,7 @@ class _JumpKingPainter extends CustomPainter {
       if (top + height < -8 || top > size.height + 8) continue;
 
       final rect = RRect.fromRectAndRadius(
-        Rect.fromLTWH(
-          p.x * size.width,
-          top,
-          p.width * size.width,
-          height,
-        ),
+        Rect.fromLTWH(p.x * size.width, top, p.width * size.width, height),
         const Radius.circular(4),
       );
       final fill = Paint()
@@ -717,10 +718,7 @@ class _JumpKingPainter extends CustomPainter {
                   Color(0xFFB45309),
                   NunuColors.warningDark,
                 ]
-              : const [
-                  NunuColors.secondaryMain,
-                  NunuColors.secondaryDark,
-                ],
+              : const [NunuColors.secondaryMain, NunuColors.secondaryDark],
         ).createShader(rect.outerRect);
       final border = Paint()
         ..style = PaintingStyle.stroke
@@ -745,10 +743,7 @@ class _JumpKingPainter extends CustomPainter {
         Rect.fromLTWH(left, top - 12, width, 8),
         const Radius.circular(4),
       );
-      canvas.drawRRect(
-        chargeRect,
-        Paint()..color = NunuColors.backgroundPaper,
-      );
+      canvas.drawRRect(chargeRect, Paint()..color = NunuColors.backgroundPaper);
       canvas.drawRRect(
         RRect.fromRectAndRadius(
           Rect.fromLTWH(left, top - 12, width * chargePercent, 8),
