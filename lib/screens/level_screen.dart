@@ -61,10 +61,7 @@ class _LevelScreenState extends State<LevelScreen> {
           _finishLevel(
             LevelOutcome(
               score: timeoutOutcome?.score ?? 0,
-              metrics: {
-                ...?timeoutOutcome?.metrics,
-                'timed_out': true,
-              },
+              metrics: {...?timeoutOutcome?.metrics, 'timed_out': true},
               visibleMetricKeys: timeoutOutcome?.visibleMetricKeys ?? const [],
             ),
           ),
@@ -278,9 +275,7 @@ class _LevelScreenState extends State<LevelScreen> {
                 ),
               ),
               const Divider(height: 1),
-              Expanded(
-                child: levelWidget ?? const SizedBox.shrink(),
-              ),
+              Expanded(child: levelWidget ?? const SizedBox.shrink()),
             ],
           ),
         ),
