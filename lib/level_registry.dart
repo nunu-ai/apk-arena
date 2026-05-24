@@ -71,7 +71,6 @@ import 'package:apk_arena/widgets/levels/level_scrabble.dart';
 import 'package:apk_arena/widgets/levels/level_scrabble_hard.dart';
 import 'package:apk_arena/widgets/levels/level_scroll_mastery.dart';
 import 'package:apk_arena/widgets/levels/level_sequence_memory.dart';
-import 'package:apk_arena/widgets/levels/level_set_alarm.dart';
 import 'package:apk_arena/widgets/levels/level_settings_qa.dart';
 import 'package:apk_arena/widgets/levels/level_signup_gauntlet.dart';
 import 'package:apk_arena/widgets/levels/level_simple_signup.dart';
@@ -314,13 +313,6 @@ final List<LevelEntry> unsortedLevels = [
           "clear all three ARC trials. study, deduce, paint, then merge.",
     ),
     widgetBuilder: (onComplete) => LevelArcAgiCombined(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "Morning Alarm",
-      instructions: "Set the alarm correctly and enable it!",
-    ),
-    widgetBuilder: (onComplete) => LevelSetAlarm(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
