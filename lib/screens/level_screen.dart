@@ -216,10 +216,7 @@ class _LevelScreenState extends State<LevelScreen> {
     }
 
     return WillPopScope(
-      onWillPop: () async {
-        if (_finishLevelCalled) return true;
-        return _confirmExitLevel();
-      },
+      onWillPop: () async => false,
       child: Scaffold(
         appBar: AppBar(
           toolbarHeight: 48,
@@ -238,22 +235,6 @@ class _LevelScreenState extends State<LevelScreen> {
                   fontSize: 14,
                   color: NunuColors.textPrimary,
                 ),
-              ),
-              Builder(
-                builder: (_) {
-                  final status = _progressService.getLevelStatus(
-                    widget.levelNumber,
-                  );
-                  final best = status?.bestScore;
-                  if (best == null) return const SizedBox.shrink();
-                  return Text(
-                    'best ${(best * 100).round()}%',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: NunuColors.textSecondary.withValues(alpha: 0.9),
-                    ),
-                  );
-                },
               ),
             ],
           ),
