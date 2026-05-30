@@ -75,18 +75,20 @@ class _CategoryLevelsScreenState extends State<CategoryLevelsScreen> with RouteA
       body: GridView.builder(
         padding: const EdgeInsets.all(16),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 5,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-          childAspectRatio: 1,
+          crossAxisCount: 3,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+          childAspectRatio: 1.0,
         ),
         itemCount: levels.length,
         itemBuilder: (context, index) {
           final levelNumber = levels[index];
+          final entry = getLevel(levelNumber)!;
           final status = _progressService.getLevelStatus(levelNumber);
 
           return LevelTile(
             levelNumber: levelNumber,
+            title: entry.data.title,
             status: status,
             onTap: () => openLevel(levelNumber),
           );
