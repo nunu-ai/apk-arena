@@ -494,6 +494,20 @@ final List<LevelEntry> tasksLevels = [
     ),
     widgetBuilder: (onComplete) => LevelSignupGauntlet(onComplete: onComplete),
   ),
+  LevelEntry(
+    data: LevelData(
+      title: "Email Riddle",
+      instructions: "Read the riddle and send the answer to the right person!",
+    ),
+    widgetBuilder: (onComplete) => LevelEmailRiddle(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "breakfast checkout",
+      instructions: "order exactly one plain bagel.",
+    ),
+    widgetBuilder: (onComplete) => LevelUpsellCheckout(onComplete: onComplete),
+  ),
 ];
 
 // ── unsorted: ALL levels live here until reviewed ──
@@ -609,13 +623,6 @@ final List<LevelEntry> unsortedLevels = [
   ),
   LevelEntry(
     data: LevelData(
-      title: "Email Riddle",
-      instructions: "Read the riddle and send the answer to the right person!",
-    ),
-    widgetBuilder: (onComplete) => LevelEmailRiddle(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
       title: "Focus Music",
       instructions: "Skip to the next song.",
     ),
@@ -628,13 +635,6 @@ final List<LevelEntry> unsortedLevels = [
     ),
     widgetBuilder: (onComplete) =>
         LevelAdversarialSystemPrompt(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "breakfast checkout",
-      instructions: "order exactly one plain bagel.",
-    ),
-    widgetBuilder: (onComplete) => LevelUpsellCheckout(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
