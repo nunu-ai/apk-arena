@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import '../level_components/level_hud.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 
@@ -166,8 +167,7 @@ class _Fx {
     this.col,
   });
 
-  double progress(double now) =>
-      ((now - startTime) / duration).clamp(0.0, 1.0);
+  double progress(double now) => ((now - startTime) / duration).clamp(0.0, 1.0);
 
   bool isExpired(double now) => now - startTime >= duration;
 }
@@ -244,6 +244,7 @@ class _LevelLinkChainState extends State<LevelLinkChain>
   @override
   void initState() {
     super.initState();
+    widget.registerTimeoutBuilder(_buildOutcome);
     _board = _buildBoard(_cfg);
     _drops = _emptyDrops(_cfg);
 
@@ -296,6 +297,7 @@ class _LevelLinkChainState extends State<LevelLinkChain>
     _ticker?.cancel();
     _bannerTimer?.cancel();
     _megaChainTimer?.cancel();
+    widget.clearTimeoutBuilder();
     _animTicker.dispose();
     super.dispose();
   }
@@ -305,7 +307,8 @@ class _LevelLinkChainState extends State<LevelLinkChain>
   List<List<_Cell>> _buildBoard(_StageConfig cfg) {
     final board = List.generate(
       cfg.rows,
-      (_) => List<_Cell>.filled(cfg.cols, const _Cell(color: 0), growable: false),
+      (_) =>
+          List<_Cell>.filled(cfg.cols, const _Cell(color: 0), growable: false),
     );
 
     final placed = <int>{};
@@ -340,8 +343,8 @@ class _LevelLinkChainState extends State<LevelLinkChain>
     final type = r < 0.4
         ? _PowerType.rowClear
         : r < 0.8
-            ? _PowerType.colClear
-            : _PowerType.bomb;
+        ? _PowerType.colClear
+        : _PowerType.bomb;
     return _Cell(color: color, power: type);
   }
 
@@ -482,25 +485,29 @@ class _LevelLinkChainState extends State<LevelLinkChain>
           for (int cc = 0; cc < _cols; cc++) {
             if (!_board[c[0]][cc].isVoid) cleared.add(c[0] * _cols + cc);
           }
-          powerFx.add(_Fx(
-            type: _FxType.rowSweep,
-            center: _cellCenter(c[0], c[1]),
-            startTime: now,
-            duration: 0.42,
-            row: c[0],
-          ));
+          powerFx.add(
+            _Fx(
+              type: _FxType.rowSweep,
+              center: _cellCenter(c[0], c[1]),
+              startTime: now,
+              duration: 0.42,
+              row: c[0],
+            ),
+          );
           break;
         case _PowerType.colClear:
           for (int rr = 0; rr < _rows; rr++) {
             if (!_board[rr][c[1]].isVoid) cleared.add(rr * _cols + c[1]);
           }
-          powerFx.add(_Fx(
-            type: _FxType.colSweep,
-            center: _cellCenter(c[0], c[1]),
-            startTime: now,
-            duration: 0.42,
-            col: c[1],
-          ));
+          powerFx.add(
+            _Fx(
+              type: _FxType.colSweep,
+              center: _cellCenter(c[0], c[1]),
+              startTime: now,
+              duration: 0.42,
+              col: c[1],
+            ),
+          );
           break;
         case _PowerType.bomb:
           for (int dr = -1; dr <= 1; dr++) {
@@ -512,12 +519,14 @@ class _LevelLinkChainState extends State<LevelLinkChain>
               cleared.add(nr * _cols + nc);
             }
           }
-          powerFx.add(_Fx(
-            type: _FxType.bombBlast,
-            center: _cellCenter(c[0], c[1]),
-            startTime: now,
-            duration: 0.6,
-          ));
+          powerFx.add(
+            _Fx(
+              type: _FxType.bombBlast,
+              center: _cellCenter(c[0], c[1]),
+              startTime: now,
+              duration: 0.6,
+            ),
+          );
           break;
         case _PowerType.none:
           break;
@@ -537,12 +546,14 @@ class _LevelLinkChainState extends State<LevelLinkChain>
 
       _effects.addAll(powerFx);
       if (len >= _megaChainThreshold) {
-        _effects.add(_Fx(
-          type: _FxType.megaShockwave,
-          center: lastCenter,
-          startTime: now,
-          duration: 0.9,
-        ));
+        _effects.add(
+          _Fx(
+            type: _FxType.megaShockwave,
+            center: lastCenter,
+            startTime: now,
+            duration: 0.9,
+          ),
+        );
       }
       if (_effects.isNotEmpty) _kickAnimTicker();
     });
@@ -553,9 +564,9 @@ class _LevelLinkChainState extends State<LevelLinkChain>
   }
 
   Offset _cellCenter(int r, int c) => Offset(
-        _gridOrigin.dx + c * _cellSize + _cellSize / 2,
-        _gridOrigin.dy + r * _cellSize + _cellSize / 2,
-      );
+    _gridOrigin.dx + c * _cellSize + _cellSize / 2,
+    _gridOrigin.dy + r * _cellSize + _cellSize / 2,
+  );
 
   void _showMegaChain(int len, int gain) {
     setState(() => _megaChainText = 'MEGA CHAIN ×$len  +$gain');
@@ -619,25 +630,22 @@ class _LevelLinkChainState extends State<LevelLinkChain>
 
   // ---------- finish ----------
 
+  LevelOutcome _buildOutcome() {
+    final normalized = (_score / _targetScore).clamp(0.0, 1.0);
+    return LevelOutcome(
+      score: normalized,
+      metrics: {'score': _score, 'stage_reached': _stageIdx + 1},
+    );
+  }
+
   void _finish() {
     if (_completed) return;
     _completed = true;
     _ticker?.cancel();
     _bannerTimer?.cancel();
-
-    final normalized = (_score / _targetScore).clamp(0.0, 1.0);
-
     Future.delayed(const Duration(milliseconds: 400), () {
       if (!mounted) return;
-      widget.onComplete(
-        LevelOutcome(
-          score: normalized,
-          metrics: {
-            'score': _score,
-            'stage_reached': _stageIdx + 1,
-          },
-        ),
-      );
+      widget.onComplete(_buildOutcome());
     });
   }
 
@@ -704,35 +712,26 @@ class _LevelLinkChainState extends State<LevelLinkChain>
               ),
             ),
 
-            // simplified HUD: time + score
+            // standardized HUD: time + score + stage + info
             Positioned(
-              top: 8,
-              left: 16,
-              right: 16,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    _formatTime(_timeLeft),
-                    style: TextStyle(
-                      color: _timeLeft.inSeconds <= 60
-                          ? NunuColors.errorMain
-                          : NunuColors.textPrimary,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
+              top: 0,
+              left: 0,
+              right: 0,
+              child: LevelHud(
+                timerText: _formatTime(_timeLeft),
+                stageText: '${_stageIdx + 1}/${_stages.length}',
+                trailing: Text(
+                  'score $_score',
+                  style: const TextStyle(
+                    color: NunuColors.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    fontFeatures: [FontFeature.tabularFigures()],
                   ),
-                  Text(
-                    '$_score',
-                    style: const TextStyle(
-                      color: NunuColors.textPrimary,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      fontFeatures: [FontFeature.tabularFigures()],
-                    ),
-                  ),
-                ],
+                ),
+                infoTitle: 'chain reaction',
+                infoBody:
+                    'drag through adjacent matching gems to score one point per cleared cell. longer chains can trigger power gems: row clears, column clears, and bombs. stages advance every 100 points; score reaches 100% at $_targetScore points before the 30-minute timer ends.',
               ),
             ),
 
@@ -746,10 +745,8 @@ class _LevelLinkChainState extends State<LevelLinkChain>
                       duration: const Duration(milliseconds: 380),
                       curve: Curves.elasticOut,
                       tween: Tween(begin: 0.5, end: 1.0),
-                      builder: (_, scale, child) => Transform.scale(
-                        scale: scale,
-                        child: child,
-                      ),
+                      builder: (_, scale, child) =>
+                          Transform.scale(scale: scale, child: child),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 28,
@@ -757,18 +754,16 @@ class _LevelLinkChainState extends State<LevelLinkChain>
                         ),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [
-                              Color(0xFFFFAB00),
-                              Color(0xFFE55CD8),
-                            ],
+                            colors: [Color(0xFFFFAB00), Color(0xFFE55CD8)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(14),
                           boxShadow: [
                             BoxShadow(
-                              color: NunuColors.primaryMain
-                                  .withValues(alpha: 0.55),
+                              color: NunuColors.primaryMain.withValues(
+                                alpha: 0.55,
+                              ),
                               blurRadius: 32,
                               spreadRadius: 2,
                             ),
@@ -803,8 +798,9 @@ class _LevelLinkChainState extends State<LevelLinkChain>
                           vertical: 12,
                         ),
                         decoration: BoxDecoration(
-                          color: NunuColors.backgroundPaper
-                              .withValues(alpha: 0.92),
+                          color: NunuColors.backgroundPaper.withValues(
+                            alpha: 0.92,
+                          ),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: NunuColors.primaryMain,
@@ -812,8 +808,9 @@ class _LevelLinkChainState extends State<LevelLinkChain>
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: NunuColors.primaryMain
-                                  .withValues(alpha: 0.4),
+                              color: NunuColors.primaryMain.withValues(
+                                alpha: 0.4,
+                              ),
                               blurRadius: 24,
                             ),
                           ],
@@ -881,9 +878,9 @@ class _GridPainter extends CustomPainter {
   }
 
   Offset _slotCenter(int r, int c) => Offset(
-        origin.dx + c * cellSize + cellSize / 2,
-        origin.dy + r * cellSize + cellSize / 2,
-      );
+    origin.dx + c * cellSize + cellSize / 2,
+    origin.dy + r * cellSize + cellSize / 2,
+  );
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1276,8 +1273,7 @@ class _EffectsPainter extends CustomPainter {
     // glow trail
     canvas.drawRect(
       Rect.fromLTWH(left, y, leadX - left, cellSize),
-      Paint()
-        ..color = NunuColors.primaryLight.withValues(alpha: alpha * 0.35),
+      Paint()..color = NunuColors.primaryLight.withValues(alpha: alpha * 0.35),
     );
   }
 
@@ -1302,8 +1298,7 @@ class _EffectsPainter extends CustomPainter {
     );
     canvas.drawRect(
       Rect.fromLTWH(x, top, cellSize, leadY - top),
-      Paint()
-        ..color = NunuColors.secondaryMain.withValues(alpha: alpha * 0.35),
+      Paint()..color = NunuColors.secondaryMain.withValues(alpha: alpha * 0.35),
     );
   }
 
@@ -1315,8 +1310,7 @@ class _EffectsPainter extends CustomPainter {
     canvas.drawCircle(
       center,
       r * 0.45,
-      Paint()
-        ..color = Colors.white.withValues(alpha: alpha * 0.85),
+      Paint()..color = Colors.white.withValues(alpha: alpha * 0.85),
     );
     // orange flash
     canvas.drawCircle(

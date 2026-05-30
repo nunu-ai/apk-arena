@@ -4,10 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 
 class LevelEmojiCountFruits extends LevelWidget {
   const LevelEmojiCountFruits({Key? key, required super.onComplete})
-      : super(key: key);
+    : super(key: key);
 
   @override
   State<LevelEmojiCountFruits> createState() => _LevelEmojiCountFruitsState();
@@ -18,21 +19,34 @@ class _LevelEmojiCountFruitsState extends State<LevelEmojiCountFruits> {
 
   // each stage: (targetMin, targetMax, distractorTypes, distractorPerType)
   static const List<(int, int, int, int)> _stages = [
-    (3, 5, 1, 3),       // easy: few targets, 1 distractor type
-    (5, 8, 2, 4),       // a bit more
-    (6, 10, 2, 5),      // more items, same variety
-    (8, 12, 3, 6),      // new distractor type
-    (10, 15, 3, 7),     // getting crowded
-    (12, 18, 4, 8),     // busier
-    (15, 21, 4, 10),    // more targets, more clutter
-    (18, 25, 5, 11),    // lots of variety
-    (22, 30, 6, 12),    // fruit chaos
-    (26, 36, 7, 13),    // full bowl meltdown
+    (3, 5, 1, 3), // easy: few targets, 1 distractor type
+    (5, 8, 2, 4), // a bit more
+    (6, 10, 2, 5), // more items, same variety
+    (8, 12, 3, 6), // new distractor type
+    (10, 15, 3, 7), // getting crowded
+    (12, 18, 4, 8), // busier
+    (15, 21, 4, 10), // more targets, more clutter
+    (18, 25, 5, 11), // lots of variety
+    (22, 30, 6, 12), // fruit chaos
+    (26, 36, 7, 13), // full bowl meltdown
   ];
 
   static const List<String> _fruits = [
-    '🍎', '🍏', '🍌', '🍊', '🍋', '🍐', '🍇', '🍓', '🍍', '🍑',
-    '🥝', '🍒', '🫐', '🥭', '🍈',
+    '🍎',
+    '🍏',
+    '🍌',
+    '🍊',
+    '🍋',
+    '🍐',
+    '🍇',
+    '🍓',
+    '🍍',
+    '🍑',
+    '🥝',
+    '🍒',
+    '🫐',
+    '🥭',
+    '🍈',
   ];
 
   int _stageIndex = 0;
@@ -107,7 +121,11 @@ class _LevelEmojiCountFruitsState extends State<LevelEmojiCountFruits> {
   }
 
   _EmojiItem _randomItem(
-      String emoji, double width, double topSafe, double usableHeight) {
+    String emoji,
+    double width,
+    double topSafe,
+    double usableHeight,
+  ) {
     final double fontSize = 30 + _rand.nextInt(2) * 6;
     final double x = _rand.nextDouble() * max(0, width - fontSize);
     final double y =
@@ -160,12 +178,12 @@ class _LevelEmojiCountFruitsState extends State<LevelEmojiCountFruits> {
     Future.delayed(const Duration(milliseconds: 900), () {
       if (!mounted) return;
       if (_stageIndex + 1 >= _stages.length) {
-        widget.onComplete(LevelOutcome(
-          score: _scoreAccum.clamp(0, 1).toDouble(),
-          metrics: {
-            'total_stages': _stages.length,
-          },
-        ));
+        widget.onComplete(
+          LevelOutcome(
+            score: _scoreAccum.clamp(0, 1).toDouble(),
+            metrics: {'total_stages': _stages.length},
+          ),
+        );
       } else {
         FocusManager.instance.primaryFocus?.unfocus();
         try {
@@ -197,8 +215,7 @@ class _LevelEmojiCountFruitsState extends State<LevelEmojiCountFruits> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final media = MediaQuery.of(context);
-        final effectiveHeight =
-            constraints.maxHeight + media.viewInsets.bottom;
+        final effectiveHeight = constraints.maxHeight + media.viewInsets.bottom;
         _generate(Size(constraints.maxWidth, effectiveHeight));
         return Container(
           color: NunuColors.backgroundDefault,
@@ -214,47 +231,26 @@ class _LevelEmojiCountFruitsState extends State<LevelEmojiCountFruits> {
                   ),
                 ),
 
-              // top-left target indicator
               Positioned(
-                left: 12,
-                top: 12,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: NunuColors.backgroundPaper.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: NunuColors.primaryMain.withOpacity(0.6)),
-                  ),
-                  child: Row(
+                left: 0,
+                right: 0,
+                top: 0,
+                child: LevelHud(
+                  stageText: '${_stageIndex + 1}/${_stages.length}',
+                  trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text('how many of this fruit?',
-                          style: TextStyle(fontSize: 12)),
-                      const SizedBox(width: 8),
+                      const Text(
+                        'target',
+                        style: TextStyle(
+                          color: NunuColors.textSecondary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
                       Text(_target, style: const TextStyle(fontSize: 18)),
                     ],
-                  ),
-                ),
-              ),
-
-              // top-right stage indicator
-              Positioned(
-                right: 12,
-                top: 12,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: NunuColors.backgroundPaper.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: NunuColors.secondaryMain.withOpacity(0.6)),
-                  ),
-                  child: Text(
-                    'stage ${_stageIndex + 1}/${_stages.length}',
-                    style: const TextStyle(fontSize: 12),
                   ),
                 ),
               ),
@@ -264,7 +260,9 @@ class _LevelEmojiCountFruitsState extends State<LevelEmojiCountFruits> {
                 Center(
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 16),
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
                     decoration: BoxDecoration(
                       color: _feedbackColor!.withOpacity(0.9),
                       borderRadius: BorderRadius.circular(12),
@@ -291,7 +289,8 @@ class _LevelEmojiCountFruitsState extends State<LevelEmojiCountFruits> {
                     color: NunuColors.backgroundPaper.withOpacity(0.9),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                        color: NunuColors.primaryMain.withOpacity(0.6)),
+                      color: NunuColors.primaryMain.withOpacity(0.6),
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -302,8 +301,7 @@ class _LevelEmojiCountFruitsState extends State<LevelEmojiCountFruits> {
                           decoration: const InputDecoration(
                             hintText: 'enter the number of target fruit',
                           ),
-                          style:
-                              const TextStyle(color: NunuColors.textPrimary),
+                          style: const TextStyle(color: NunuColors.textPrimary),
                           onSubmitted: (_) => _submit(),
                         ),
                       ),

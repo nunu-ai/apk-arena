@@ -5,6 +5,7 @@ import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 import '../level_widget.dart';
 
 class _Platform {
@@ -67,6 +68,7 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
 
   late final AnimationController _ticker;
   Timer? _sessionTimer;
+  late DateTime _sessionEndsAt;
   final _rng = Random();
 
   final List<_Platform> _platforms = [];
@@ -98,18 +100,21 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
   @override
   void initState() {
     super.initState();
+    widget.registerTimeoutBuilder(_buildTimeoutOutcome);
     _startSession();
     _ticker = AnimationController(
       vsync: this,
       duration: const Duration(days: 1),
     )..addListener(_tick);
     _ticker.repeat();
+    _sessionEndsAt = DateTime.now().add(_sessionDuration);
     _sessionTimer = Timer(_sessionDuration, _onSessionTimer);
   }
 
   @override
   void dispose() {
     _sessionTimer?.cancel();
+    widget.clearTimeoutBuilder();
     _ticker.dispose();
     super.dispose();
   }
@@ -402,6 +407,18 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
     _finishSession();
   }
 
+  LevelOutcome _buildTimeoutOutcome() {
+    final bestAltitude = max(_bestAltitude, _peakAltitude);
+    return LevelOutcome(
+      score: (bestAltitude / _winAltitude).clamp(0.0, 1.0),
+      metrics: {
+        'altitude': bestAltitude,
+        'lives_used': _startingLives - _lives,
+      },
+      visibleMetricKeys: const {'altitude'},
+    );
+  }
+
   void _finishSession({bool perfect = false}) {
     if (!_finished) _finished = true;
     _sessionTimer?.cancel();
@@ -422,6 +439,17 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
         ),
       );
     });
+  }
+
+  Duration get _timeRemaining {
+    final remaining = _sessionEndsAt.difference(DateTime.now());
+    return remaining.isNegative ? Duration.zero : remaining;
+  }
+
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes.toString().padLeft(2, '0');
+    final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
   }
 
   void _onJumpPressed() {
@@ -478,45 +506,19 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
   }
 
   Widget _buildHud() {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: NunuColors.backgroundPaper.withValues(alpha: 0.85),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: NunuColors.primaryDark),
-              ),
-              child: Text(
-                'altitude  $_altitude',
-                style: const TextStyle(
-                  color: NunuColors.primaryLight,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            const Spacer(),
-            Row(
-              children: List.generate(_startingLives, (i) {
-                final filled = i < _lives;
-                return Padding(
-                  padding: const EdgeInsets.only(left: 4),
-                  child: Icon(
-                    filled ? Icons.favorite : Icons.favorite_border,
-                    color: filled
-                        ? NunuColors.errorMain
-                        : NunuColors.errorDark.withValues(alpha: 0.45),
-                    size: 28,
-                  ),
-                );
-              }),
-            ),
-          ],
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: SafeArea(
+        bottom: false,
+        child: LevelHud(
+          timerText: _formatDuration(_timeRemaining),
+          stageText: 'altitude $_altitude/$_winAltitude',
+          lives: LevelHud.emojiLives(_lives, _startingLives),
+          infoTitle: 'jump man',
+          infoBody:
+              'hold jump to charge, release to leap, and use left/right in the air. reach altitude $_winAltitude for a perfect score; otherwise your best altitude becomes partial credit. falling costs a life.',
         ),
       ),
     );

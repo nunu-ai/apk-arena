@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:apk_arena/models/level_outcome.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 import 'dart:math';
 
 class LevelDvdLogo extends LevelWidget {
@@ -229,10 +230,12 @@ class _LevelDvdLogoState extends State<LevelDvdLogo>
   void _finish() {
     setState(() => _done = true);
     _controller.stop();
-    widget.onComplete(LevelOutcome(
-      score: _score.clamp(0.0, 1.0),
-      metrics: {'catches': _catches, 'misses': _misses},
-    ));
+    widget.onComplete(
+      LevelOutcome(
+        score: _score.clamp(0.0, 1.0),
+        metrics: {'catches': _catches, 'misses': _misses},
+      ),
+    );
   }
 
   String get _timerText {
@@ -255,64 +258,27 @@ class _LevelDvdLogoState extends State<LevelDvdLogo>
             color: Colors.black,
             child: Stack(
               children: [
-                // HUD
                 Positioned(
-                  top: 16,
+                  top: 0,
                   left: 0,
                   right: 0,
-                  child: Column(
-                    children: [
-                      Text(
-                        'stage ${_stage + 1}: ${_stageNames[_stage]}',
-                        style: const TextStyle(
-                            color: Colors.white54, fontSize: 14),
+                  child: LevelHud(
+                    stageText: '${_stage + 1}/3',
+                    timerText: _timerText,
+                    trailing: Text(
+                      '${_stageNames[_stage]} · ${(_score * 100).round()}%',
+                      style: const TextStyle(
+                        color: NunuColors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
                       ),
-                      const SizedBox(height: 6),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          ...List.generate(
-                            3,
-                            (i) => Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 4),
-                              child: Container(
-                                width: 10,
-                                height: 10,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: i < _catches
-                                      ? NunuColors.successMain
-                                      : i == _stage
-                                          ? Colors.white38
-                                          : Colors.white12,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Text(
-                            _timerText,
-                            style: TextStyle(
-                              color: _secondsLeft <= 10
-                                  ? NunuColors.errorMain
-                                  : Colors.white54,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              fontFeatures: const [
-                                FontFeature.tabularFigures()
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                    ),
                   ),
                 ),
 
                 // Score + miss counter
                 Positioned(
-                  top: 70,
+                  top: 52,
                   left: 0,
                   right: 0,
                   child: Row(
@@ -342,11 +308,7 @@ class _LevelDvdLogoState extends State<LevelDvdLogo>
                 ),
 
                 // Target
-                Positioned(
-                  left: _x,
-                  top: _y,
-                  child: _buildTarget(),
-                ),
+                Positioned(left: _x, top: _y, child: _buildTarget()),
 
                 // Skip button
                 Positioned(
@@ -356,17 +318,16 @@ class _LevelDvdLogoState extends State<LevelDvdLogo>
                     onTap: _skipStage,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.white24),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: const Text(
                         'skip →',
-                        style: TextStyle(
-                          color: Colors.white38,
-                          fontSize: 13,
-                        ),
+                        style: TextStyle(color: Colors.white38, fontSize: 13),
                       ),
                     ),
                   ),
@@ -454,17 +415,16 @@ class _LevelDvdLogoState extends State<LevelDvdLogo>
             const SizedBox(height: 10),
             const Text(
               '5:00',
-              style: TextStyle(
-                color: Colors.white38,
-                fontSize: 14,
-              ),
+              style: TextStyle(color: Colors.white38, fontSize: 14),
             ),
             const SizedBox(height: 32),
             GestureDetector(
               onTap: _startStage,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 14,
+                ),
                 decoration: BoxDecoration(
                   color: NunuColors.primaryMain,
                   borderRadius: BorderRadius.circular(8),
@@ -494,10 +454,7 @@ class _LevelDvdLogoState extends State<LevelDvdLogo>
           width: _logoW,
           height: _logoH,
           child: CustomPaint(
-            painter: _PlanePainter(
-              color: _color,
-              flip: !goingRight,
-            ),
+            painter: _PlanePainter(color: _color, flip: !goingRight),
           ),
         );
       case 1:
@@ -606,7 +563,11 @@ class _PlanePainter extends CustomPainter {
       ..color = color.withValues(alpha: 0.35)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16);
     canvas.drawOval(
-      Rect.fromCenter(center: Offset(w * 0.45, cy), width: w * 0.9, height: h * 0.5),
+      Rect.fromCenter(
+        center: Offset(w * 0.45, cy),
+        width: w * 0.9,
+        height: h * 0.5,
+      ),
       glow,
     );
 
@@ -645,7 +606,8 @@ class _PlanePainter extends CustomPainter {
       ..close();
 
     final wingPaint = Paint()..color = Color.lerp(Colors.white, color, 0.5)!;
-    final wingDarkPaint = Paint()..color = Color.lerp(color, Colors.black, 0.15)!;
+    final wingDarkPaint = Paint()
+      ..color = Color.lerp(color, Colors.black, 0.15)!;
     canvas.drawPath(wing, wingPaint);
     canvas.drawPath(wingBottom, wingDarkPaint);
 
@@ -673,8 +635,7 @@ class _PlanePainter extends CustomPainter {
     canvas.drawPath(tailWingBottom, wingDarkPaint);
 
     // Cockpit window
-    final cockpit = Paint()
-      ..color = Colors.white.withValues(alpha: 0.6);
+    final cockpit = Paint()..color = Colors.white.withValues(alpha: 0.6);
     canvas.drawOval(
       Rect.fromCenter(
         center: Offset(w * 0.82, cy - h * 0.03),

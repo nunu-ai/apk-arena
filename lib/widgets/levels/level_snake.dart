@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 
 class LevelSnake extends LevelWidget {
   const LevelSnake({super.key, required super.onComplete});
@@ -308,7 +309,21 @@ class _LevelSnakeState extends State<LevelSnake> {
       child: SafeArea(
         child: Column(
           children: [
-            _buildHeader(),
+            LevelHud(
+              stageText: '${_config.number}/${_stageConfigs.length}',
+              lives: LevelHud.emojiLives(
+                _config.maxAttempts - (_displayAttempt - 1),
+                _config.maxAttempts,
+              ),
+              trailing: Text(
+                'length ${_snake.length} · best ${_bestLengthsByStage[_stageIndex]}',
+                style: const TextStyle(
+                  color: NunuColors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
             const SizedBox(height: 8),
             Expanded(child: Center(child: _buildGrid())),
             const SizedBox(height: 8),
@@ -317,90 +332,6 @@ class _LevelSnakeState extends State<LevelSnake> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'stage ${_config.number}',
-                style: const TextStyle(
-                  color: NunuColors.primaryLight,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                'attempt $_displayAttempt/${_config.maxAttempts}',
-                style: const TextStyle(
-                  color: NunuColors.textPrimary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildStat(
-                label: 'length',
-                value: '${_snake.length}',
-                color: NunuColors.primaryMain,
-              ),
-              _buildStat(
-                label: 'best',
-                value: '${_bestLengthsByStage[_stageIndex]}',
-                color: NunuColors.warningMain,
-                alignEnd: false,
-              ),
-              _buildStat(
-                label: _config.targetLength == null ? 'cap' : 'target',
-                value: _config.targetLength == null
-                    ? '${(_config.scoreWeight * 100).round()}%'
-                    : '${_config.targetLength}',
-                color: NunuColors.secondaryMain,
-                alignEnd: true,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStat({
-    required String label,
-    required String value,
-    required Color color,
-    bool alignEnd = false,
-  }) {
-    return Column(
-      crossAxisAlignment: alignEnd
-          ? CrossAxisAlignment.end
-          : CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(color: NunuColors.textSecondary, fontSize: 12),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-      ],
     );
   }
 

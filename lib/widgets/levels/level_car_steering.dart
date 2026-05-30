@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:apk_arena/models/level_outcome.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 import 'dart:math';
 
 class Obstacle {
@@ -287,32 +288,29 @@ class _LevelCarSteeringState extends State<LevelCarSteering>
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        _screenSize = Size(constraints.maxWidth, constraints.maxHeight);
+    return Container(
+      color: NunuColors.backgroundDefault,
+      child: Column(
+        children: [
+          _buildHud(),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                _screenSize = Size(constraints.maxWidth, constraints.maxHeight);
 
-        return Container(
-          color: NunuColors.backgroundDefault,
-          child: Stack(
-            children: [
-              // Road background with lane lines
-              _buildRoad(),
-
-              // Survival HUD at top
-              _buildHud(),
-
-              // Obstacles
-              ..._obstacles.map((o) => _buildObstacle(o)),
-
-              // Player car
-              _buildCar(),
-
-              // Control buttons at bottom
-              _buildControls(),
-            ],
+                return Stack(
+                  children: [
+                    _buildRoad(),
+                    ..._obstacles.map((o) => _buildObstacle(o)),
+                    _buildCar(),
+                    _buildControls(),
+                  ],
+                );
+              },
+            ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
@@ -324,78 +322,20 @@ class _LevelCarSteeringState extends State<LevelCarSteering>
   }
 
   Widget _buildHud() {
-    final intensity = _difficulty;
     final elapsed = _survivalTimer.elapsed;
     final minutes = elapsed.inMinutes.toString().padLeft(2, '0');
     final seconds = (elapsed.inSeconds % 60).toString().padLeft(2, '0');
 
-    return Positioned(
-      top: 20,
-      left: 20,
-      right: 20,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'survived $minutes:$seconds  |  distance ${_distance.toInt()}',
-            style: const TextStyle(
-              color: NunuColors.primaryLight,
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'try $_currentAttempt / $_maxAttempts  |  best $_bestDistance',
-            style: const TextStyle(
-              color: NunuColors.textSecondary,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'rage ${(intensity * 100).round()}%',
-            style: const TextStyle(
-              color: NunuColors.textSecondary,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            height: 12,
-            decoration: BoxDecoration(
-              color: NunuColors.backgroundPaper,
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: NunuColors.primaryDark, width: 1),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(5),
-              child: FractionallySizedBox(
-                alignment: Alignment.centerLeft,
-                widthFactor: intensity,
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        NunuColors.primaryMain,
-                        NunuColors.secondaryMain,
-                      ],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: NunuColors.primaryMain.withValues(alpha: 0.5),
-                        blurRadius: 8,
-                        spreadRadius: 1,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+    return LevelHud(
+      stageText: '$_currentAttempt/$_maxAttempts',
+      timerText: '$minutes:$seconds',
+      trailing: Text(
+        'distance ${_distance.toInt()} · best $_bestDistance',
+        style: const TextStyle(
+          color: NunuColors.textSecondary,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }

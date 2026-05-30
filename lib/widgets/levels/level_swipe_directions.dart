@@ -4,6 +4,7 @@ import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 import '../level_widget.dart';
 
 /// Cardinal swipes, then pac-man gaps, then banner slots.
@@ -483,25 +484,6 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
     );
   }
 
-  Widget _livesHeartsRow() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(maxLives, (i) {
-        final alive = i < _lives;
-        return Padding(
-          padding: EdgeInsets.only(left: i == 0 ? 0 : 1),
-          child: Icon(
-            alive ? Icons.favorite : Icons.favorite_border,
-            size: 14,
-            color: alive
-                ? NunuColors.primaryMain
-                : NunuColors.primaryLight.withValues(alpha: 0.28),
-          ),
-        );
-      }),
-    );
-  }
-
   Widget _cardinalPanel() {
     final dir = _cardinalSeq[_idxInStage];
     final word = _dirToWord(dir);
@@ -550,25 +532,9 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
         color: Colors.transparent,
         child: Column(
           children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              color: NunuColors.backgroundPaper,
-              child: Row(
-                children: [
-                  Text(
-                    _topHint,
-                    style: TextStyle(
-                      fontSize: 13,
-                      height: 1.25,
-                      color: NunuColors.primaryLight.withValues(alpha: 0.9),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const Spacer(),
-                  _livesHeartsRow(),
-                ],
-              ),
+            LevelHud(
+              stageText: _topHint,
+              lives: LevelHud.emojiLives(_lives, maxLives),
             ),
             if (helperText != null)
               Padding(

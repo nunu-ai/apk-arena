@@ -53,7 +53,7 @@ class _LevelScreenState extends State<LevelScreen> {
     });
 
     _sessionTimer = Timer(
-      entry.data.timeLimit ?? const Duration(minutes: 60),
+      entry.data.timeLimit ?? const Duration(minutes: 30),
       () {
         if (!mounted || _finishLevelCalled) return;
         final timeoutOutcome = _levelWidget?.onTimeout?.call();

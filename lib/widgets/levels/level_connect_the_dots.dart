@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:apk_arena/models/level_outcome.dart';
+import '../level_components/level_hud.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 import 'dart:math';
@@ -13,7 +14,14 @@ class LevelConnectTheDots extends LevelWidget {
 
 class _LevelConnectTheDotsState extends State<LevelConnectTheDots> {
   static const List<int> _stageDotCounts = [5, 7, 12, 7, 9, 14];
-  static const List<bool> _stageShuffled = [false, false, false, true, true, true];
+  static const List<bool> _stageShuffled = [
+    false,
+    false,
+    false,
+    true,
+    true,
+    true,
+  ];
   static const int _maxLives = 10;
   static const double _dotHitRadius = 40;
   static const double _minDotSpacing = _dotHitRadius * 2;
@@ -85,10 +93,14 @@ class _LevelConnectTheDotsState extends State<LevelConnectTheDots> {
       _dotPositions.add(
         candidate ??
             Offset(
-              (centerX + cos(2 * pi * i / _totalDots) * radiusX * 0.8)
-                  .clamp(40.0, size.width - 40.0),
-              (centerY + sin(2 * pi * i / _totalDots) * radiusY * 0.8)
-                  .clamp(60.0, size.height - 40.0),
+              (centerX + cos(2 * pi * i / _totalDots) * radiusX * 0.8).clamp(
+                40.0,
+                size.width - 40.0,
+              ),
+              (centerY + sin(2 * pi * i / _totalDots) * radiusY * 0.8).clamp(
+                60.0,
+                size.height - 40.0,
+              ),
             ),
       );
     }
@@ -125,15 +137,17 @@ class _LevelConnectTheDotsState extends State<LevelConnectTheDots> {
   void _finishLevel() {
     if (_levelFinished) return;
     _levelFinished = true;
-    widget.onComplete(LevelOutcome(
-      score: _calculateScore(),
-      metrics: {
-        'stages_cleared': _stagesCleared,
-        'lives_remaining': _lives,
-        'max_lives': _maxLives,
-        'failed_traces': _failedTraces,
-      },
-    ));
+    widget.onComplete(
+      LevelOutcome(
+        score: _calculateScore(),
+        metrics: {
+          'stages_cleared': _stagesCleared,
+          'lives_remaining': _lives,
+          'max_lives': _maxLives,
+          'failed_traces': _failedTraces,
+        },
+      ),
+    );
   }
 
   void _loseLife() {
@@ -231,25 +245,6 @@ class _LevelConnectTheDotsState extends State<LevelConnectTheDots> {
     }
   }
 
-  Widget _livesRow() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(_maxLives, (i) {
-        final alive = i < _lives;
-        return Padding(
-          padding: EdgeInsets.only(left: i == 0 ? 0 : 1),
-          child: Icon(
-            alive ? Icons.favorite : Icons.favorite_border,
-            size: 14,
-            color: alive
-                ? NunuColors.primaryMain
-                : NunuColors.primaryLight.withValues(alpha: 0.28),
-          ),
-        );
-      }),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -284,10 +279,14 @@ class _LevelConnectTheDotsState extends State<LevelConnectTheDots> {
                   ),
                 ),
               Positioned(
-                right: 12,
-                top: 8,
-                child: IgnorePointer(
-                  child: _livesRow(),
+                left: 0,
+                right: 0,
+                top: 0,
+                child: AbsorbPointer(
+                  child: LevelHud(
+                    stageText: '${_stageIndex + 1}/${_stageDotCounts.length}',
+                    lives: LevelHud.emojiLives(_lives, _maxLives),
+                  ),
                 ),
               ),
             ],

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 
 class LevelLightsOut extends LevelWidget {
   const LevelLightsOut({super.key, required super.onComplete});
@@ -56,7 +57,11 @@ class _LevelLightsOutState extends State<LevelLightsOut> {
     for (int j = 0; j < n; j++) {
       final jr = j ~/ size, jc = j % size;
       for (final d in [
-        [0, 0], [-1, 0], [1, 0], [0, -1], [0, 1],
+        [0, 0],
+        [-1, 0],
+        [1, 0],
+        [0, -1],
+        [0, 1],
       ]) {
         final nr = jr + d[0], nc = jc + d[1];
         if (nr >= 0 && nr < size && nc >= 0 && nc < size) {
@@ -75,10 +80,15 @@ class _LevelLightsOutState extends State<LevelLightsOut> {
     for (int col = 0; col < n && rank < n; col++) {
       int pivotRow = -1;
       for (int row = rank; row < n; row++) {
-        if (aug[row][col] == 1) { pivotRow = row; break; }
+        if (aug[row][col] == 1) {
+          pivotRow = row;
+          break;
+        }
       }
       if (pivotRow == -1) continue;
-      final tmp = aug[rank]; aug[rank] = aug[pivotRow]; aug[pivotRow] = tmp;
+      final tmp = aug[rank];
+      aug[rank] = aug[pivotRow];
+      aug[pivotRow] = tmp;
       pivotCol[rank] = col;
       for (int row = 0; row < n; row++) {
         if (row != rank && aug[row][col] == 1) {
@@ -94,7 +104,10 @@ class _LevelLightsOutState extends State<LevelLightsOut> {
     }
 
     final pivotCols = {for (int i = 0; i < rank; i++) pivotCol[i]};
-    final freeVars = [for (int c = 0; c < n; c++) if (!pivotCols.contains(c)) c];
+    final freeVars = [
+      for (int c = 0; c < n; c++)
+        if (!pivotCols.contains(c)) c,
+    ];
     final nullBasis = <List<int>>[];
     for (final fv in freeVars) {
       final nv = List.filled(n, 0);
@@ -121,7 +134,10 @@ class _LevelLightsOutState extends State<LevelLightsOut> {
         bestCandidate = candidate;
       }
     }
-    return [for (int i = 0; i < n; i++) if (bestCandidate[i] == 1) i];
+    return [
+      for (int i = 0; i < n; i++)
+        if (bestCandidate[i] == 1) i,
+    ];
   }
 
   void _toggle(int r, int c, {bool countMove = true}) {
@@ -160,10 +176,12 @@ class _LevelLightsOutState extends State<LevelLightsOut> {
             ? 1.0
             : (_optimalMoves / _moves).clamp(0.0, 1.0);
         Future.delayed(const Duration(milliseconds: 600), () {
-          widget.onComplete(LevelOutcome(
-            score: score,
-            metrics: {'moves': _moves, 'optimal_moves': _optimalMoves},
-          ));
+          widget.onComplete(
+            LevelOutcome(
+              score: score,
+              metrics: {'moves': _moves, 'optimal_moves': _optimalMoves},
+            ),
+          );
         });
       }
     });
@@ -176,52 +194,35 @@ class _LevelLightsOutState extends State<LevelLightsOut> {
       child: SafeArea(
         child: Column(
           children: [
-            _buildHeader(),
-            const SizedBox(height: 24),
+            LevelHud(
+              trailing: Text(
+                'moves $_moves',
+                style: const TextStyle(
+                  color: NunuColors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              infoTitle: 'blackout',
+              infoBody:
+                  'tap a light to toggle it and its orthogonal neighbors. turn off every light; fewer moves score better.',
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: Text(
+                'lights remaining $_litCount',
+                style: TextStyle(
+                  color: _litCount == 0
+                      ? NunuColors.successMain
+                      : NunuColors.warningMain,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
             Expanded(child: Center(child: _buildGrid())),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'moves',
-                style: TextStyle(color: NunuColors.textSecondary, fontSize: 12),
-              ),
-              Text(
-                '$_moves',
-                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              const Text(
-                'lights remaining',
-                style: TextStyle(color: NunuColors.textSecondary, fontSize: 12),
-              ),
-              Text(
-                '$_litCount',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: _litCount == 0 ? NunuColors.successMain : NunuColors.warningMain,
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }
@@ -292,5 +293,4 @@ class _LevelLightsOutState extends State<LevelLightsOut> {
       ),
     );
   }
-
 }

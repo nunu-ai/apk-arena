@@ -4,6 +4,7 @@ import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 import '../level_widget.dart';
 
 /// Shrinking logo taps — 20 rounds, 10 hearts; a miss costs one.
@@ -130,25 +131,6 @@ class _LevelClickAccuracyState extends State<LevelClickAccuracy> {
   static const String _nunuLogoAsset =
       'assets/icon/nunu-icon-transparent@4x.png';
 
-  Widget _livesHeartsRow() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(maxLives, (i) {
-        final alive = i < _lives;
-        return Padding(
-          padding: EdgeInsets.only(left: i == 0 ? 0 : 1),
-          child: Icon(
-            alive ? Icons.favorite : Icons.favorite_border,
-            size: 14,
-            color: alive
-                ? NunuColors.primaryMain
-                : NunuColors.primaryLight.withValues(alpha: 0.28),
-          ),
-        );
-      }),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final side = _currentHitboxSize;
@@ -163,22 +145,14 @@ class _LevelClickAccuracyState extends State<LevelClickAccuracy> {
           ),
         ),
         Positioned(
-          left: 12,
-          top: 8,
-          right: 12,
-          child: Row(
-            children: [
-              Text(
-                'round ${_roundIndex + 1}/$roundCount',
-                style: TextStyle(
-                  color: NunuColors.primaryLight.withValues(alpha: 0.85),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
-              _livesHeartsRow(),
-            ],
+          left: 0,
+          top: 0,
+          right: 0,
+          child: AbsorbPointer(
+            child: LevelHud(
+              stageText: '${_roundIndex + 1}/$roundCount',
+              lives: LevelHud.emojiLives(_lives, maxLives),
+            ),
           ),
         ),
         Align(

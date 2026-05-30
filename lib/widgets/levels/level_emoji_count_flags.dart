@@ -4,10 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 
 class LevelEmojiCountFlags extends LevelWidget {
   const LevelEmojiCountFlags({Key? key, required super.onComplete})
-      : super(key: key);
+    : super(key: key);
 
   @override
   State<LevelEmojiCountFlags> createState() => _LevelEmojiCountFlagsState();
@@ -44,9 +45,36 @@ class _LevelEmojiCountFlagsState extends State<LevelEmojiCountFlags> {
   final TextEditingController _controller = TextEditingController();
 
   static const List<String> _flags = [
-    '🇺🇸', '🇬🇧', '🇩🇪', '🇫🇷', '🇪🇸', '🇮🇹', '🇯🇵', '🇨🇳', '🇰🇷', '🇧🇷',
-    '🇨🇦', '🇦🇺', '🇮🇳', '🇲🇽', '🇿🇦', '🇸🇪', '🇳🇴', '🇩🇰', '🇫🇮', '🇵🇱',
-    '🇵🇹', '🇳🇱', '🇨🇭', '🇦🇷', '🇹🇷', '🇺🇦', '🇸🇬', '🇳🇿', '🇮🇩', '🇸🇦',
+    '🇺🇸',
+    '🇬🇧',
+    '🇩🇪',
+    '🇫🇷',
+    '🇪🇸',
+    '🇮🇹',
+    '🇯🇵',
+    '🇨🇳',
+    '🇰🇷',
+    '🇧🇷',
+    '🇨🇦',
+    '🇦🇺',
+    '🇮🇳',
+    '🇲🇽',
+    '🇿🇦',
+    '🇸🇪',
+    '🇳🇴',
+    '🇩🇰',
+    '🇫🇮',
+    '🇵🇱',
+    '🇵🇹',
+    '🇳🇱',
+    '🇨🇭',
+    '🇦🇷',
+    '🇹🇷',
+    '🇺🇦',
+    '🇸🇬',
+    '🇳🇿',
+    '🇮🇩',
+    '🇸🇦',
   ];
 
   @override
@@ -105,11 +133,24 @@ class _LevelEmojiCountFlagsState extends State<LevelEmojiCountFlags> {
       final int row = cell ~/ cols;
       final double fontSize = 32 + _rand.nextInt(2) * 6;
       // center in cell + random jitter within half-cell
-      final double jitterX = (_rand.nextDouble() - 0.5) * (cellW - fontSize).clamp(0, cellW * 0.66);
-      final double jitterY = (_rand.nextDouble() - 0.5) * (cellH - fontSize).clamp(0, cellH * 0.66);
-      final double x = (col * cellW + cellW / 2 - fontSize / 2 + jitterX).clamp(0, width - fontSize);
-      final double y = (topSafe + row * cellH + cellH / 2 - fontSize / 2 + jitterY).clamp(topSafe, topSafe + usableHeight - fontSize);
-      _items.add(_EmojiItem(emoji: _flag, size: fontSize, offset: Offset(x, y)));
+      final double jitterX =
+          (_rand.nextDouble() - 0.5) *
+          (cellW - fontSize).clamp(0, cellW * 0.66);
+      final double jitterY =
+          (_rand.nextDouble() - 0.5) *
+          (cellH - fontSize).clamp(0, cellH * 0.66);
+      final double x = (col * cellW + cellW / 2 - fontSize / 2 + jitterX).clamp(
+        0,
+        width - fontSize,
+      );
+      final double y =
+          (topSafe + row * cellH + cellH / 2 - fontSize / 2 + jitterY).clamp(
+            topSafe,
+            topSafe + usableHeight - fontSize,
+          );
+      _items.add(
+        _EmojiItem(emoji: _flag, size: fontSize, offset: Offset(x, y)),
+      );
     }
   }
 
@@ -157,12 +198,12 @@ class _LevelEmojiCountFlagsState extends State<LevelEmojiCountFlags> {
     Future.delayed(const Duration(milliseconds: 900), () {
       if (!mounted) return;
       if (_stageIndex + 1 >= _stages.length) {
-        widget.onComplete(LevelOutcome(
-          score: _scoreAccum.clamp(0, 1).toDouble(),
-          metrics: {
-            'total_stages': _stages.length,
-          },
-        ));
+        widget.onComplete(
+          LevelOutcome(
+            score: _scoreAccum.clamp(0, 1).toDouble(),
+            metrics: {'total_stages': _stages.length},
+          ),
+        );
       } else {
         // dismiss keyboard before generating next stage so full screen is used
         FocusManager.instance.primaryFocus?.unfocus();
@@ -195,8 +236,7 @@ class _LevelEmojiCountFlagsState extends State<LevelEmojiCountFlags> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final media = MediaQuery.of(context);
-        final effectiveHeight =
-            constraints.maxHeight + media.viewInsets.bottom;
+        final effectiveHeight = constraints.maxHeight + media.viewInsets.bottom;
         _generate(Size(constraints.maxWidth, effectiveHeight));
         return Container(
           color: NunuColors.backgroundDefault,
@@ -213,47 +253,26 @@ class _LevelEmojiCountFlagsState extends State<LevelEmojiCountFlags> {
                   ),
                 ),
 
-              // top-left hint
               Positioned(
-                left: 12,
-                top: 12,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: NunuColors.backgroundPaper.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: NunuColors.primaryMain.withOpacity(0.6)),
-                  ),
-                  child: Row(
+                left: 0,
+                right: 0,
+                top: 0,
+                child: LevelHud(
+                  stageText: '${_stageIndex + 1}/${_stages.length}',
+                  trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text('how many flags?',
-                          style: TextStyle(fontSize: 12)),
-                      const SizedBox(width: 8),
+                      const Text(
+                        'target',
+                        style: TextStyle(
+                          color: NunuColors.textSecondary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
                       Text(_flag, style: const TextStyle(fontSize: 16)),
                     ],
-                  ),
-                ),
-              ),
-
-              // top-right stage indicator
-              Positioned(
-                right: 12,
-                top: 12,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: NunuColors.backgroundPaper.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: NunuColors.secondaryMain.withOpacity(0.6)),
-                  ),
-                  child: Text(
-                    'stage ${_stageIndex + 1}/${_stages.length}',
-                    style: const TextStyle(fontSize: 12),
                   ),
                 ),
               ),
@@ -263,7 +282,9 @@ class _LevelEmojiCountFlagsState extends State<LevelEmojiCountFlags> {
                 Center(
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 16),
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
                     decoration: BoxDecoration(
                       color: _feedbackColor!.withOpacity(0.9),
                       borderRadius: BorderRadius.circular(12),
@@ -290,7 +311,8 @@ class _LevelEmojiCountFlagsState extends State<LevelEmojiCountFlags> {
                     color: NunuColors.backgroundPaper.withOpacity(0.9),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                        color: NunuColors.primaryMain.withOpacity(0.6)),
+                      color: NunuColors.primaryMain.withOpacity(0.6),
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -301,8 +323,7 @@ class _LevelEmojiCountFlagsState extends State<LevelEmojiCountFlags> {
                           decoration: const InputDecoration(
                             hintText: 'enter the total number',
                           ),
-                          style:
-                              const TextStyle(color: NunuColors.textPrimary),
+                          style: const TextStyle(color: NunuColors.textPrimary),
                           onSubmitted: (_) => _submit(),
                         ),
                       ),

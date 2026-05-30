@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 
 class LevelSequenceMemory extends LevelWidget {
   const LevelSequenceMemory({super.key, required super.onComplete});
@@ -238,8 +239,34 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
       child: SafeArea(
         child: Column(
           children: [
-            const SizedBox(height: 20),
-            _buildHeader(),
+            LevelHud(
+              stageText: '${_completedSequences + 1}',
+              timerText: _formatRemaining(),
+              trailing: Text(
+                'length ${_sequence.isEmpty ? _startingLength : _sequence.length}',
+                style: const TextStyle(
+                  color: NunuColors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            AnimatedOpacity(
+              opacity: _bonusFlash ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 200),
+              child: const Padding(
+                padding: EdgeInsets.only(top: 4),
+                child: Text(
+                  '+3:00',
+                  style: TextStyle(
+                    color: NunuColors.successMain,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+              ),
+            ),
             const SizedBox(height: 12),
             _buildStatusText(),
             Expanded(child: _buildButtonGrid()),
@@ -279,84 +306,6 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildHeader() {
-    final remaining = _remaining;
-    final lowTime = remaining < const Duration(minutes: 1);
-    final timerColor = _bonusFlash
-        ? NunuColors.successMain
-        : lowTime
-        ? NunuColors.errorMain
-        : NunuColors.textPrimary;
-
-    final currentLength = _sequence.isEmpty
-        ? _startingLength
-        : _sequence.length;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _statBlock('STAGE', '${_completedSequences + 1}'),
-              AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 200),
-                style: TextStyle(
-                  color: timerColor,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-                child: Text(_formatRemaining()),
-              ),
-              _statBlock('LENGTH', '$currentLength'),
-            ],
-          ),
-          const SizedBox(height: 4),
-          AnimatedOpacity(
-            opacity: _bonusFlash ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 200),
-            child: const Text(
-              '+3:00',
-              style: TextStyle(
-                color: NunuColors.successMain,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.5,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _statBlock(String label, String value) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: NunuColors.textSecondary,
-            fontSize: 11,
-            letterSpacing: 1.5,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            color: NunuColors.textPrimary,
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
     );
   }
 

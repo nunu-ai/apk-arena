@@ -5,6 +5,7 @@ import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 import '../level_widget.dart';
 
 class LevelBingo extends LevelWidget {
@@ -598,7 +599,6 @@ class _LevelBingoState extends State<LevelBingo> with TickerProviderStateMixin {
       child: SafeArea(
         child: Column(
           children: [
-            const SizedBox(height: 12),
             _buildStageStatus(),
             const SizedBox(height: 10),
             _buildCurrentCall(),
@@ -612,17 +612,19 @@ class _LevelBingoState extends State<LevelBingo> with TickerProviderStateMixin {
   }
 
   Widget _buildStageStatus() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Text(
-        'STAGE ${_stageIndex + 1}/$_stageCount',
+    return LevelHud(
+      stageText: '${_stageIndex + 1}/$_stageCount',
+      trailing: Text(
+        'miss ${_stageMissedCalls + _stageWrongTaps}',
         style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: NunuColors.textPrimary,
-          letterSpacing: 1.2,
+          color: NunuColors.textSecondary,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
         ),
       ),
+      infoTitle: 'bingo',
+      infoBody:
+          'mark called numbers on every card. stages get faster and later calls move through the tray, so missed calls and wrong taps reduce the stage score. finish a bingo line for the stage bonus.',
     );
   }
 

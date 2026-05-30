@@ -4,6 +4,7 @@ import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 import '../level_widget.dart';
 
 enum _RoundLayout { optionsOnly, matrix }
@@ -132,50 +133,51 @@ class _LevelOddOneOutState extends State<LevelOddOneOut> {
     return Container(
       color: NunuColors.backgroundDefault,
       child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'round ${_currentRound + 1} of ${_rounds.length}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.white54,
-                      fontWeight: FontWeight.w500,
+        child: Column(
+          children: [
+            LevelHud(stageText: '${_currentRound + 1}/${_rounds.length}'),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 20,
+                ),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 520),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'solve all the riddles',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          round.prompt,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: NunuColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        if (round.layout == _RoundLayout.matrix) ...[
+                          _buildMatrix(round.matrix),
+                          const SizedBox(height: 18),
+                        ],
+                        _buildOptions(round),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'solve all the riddles',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    round.prompt,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: NunuColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  if (round.layout == _RoundLayout.matrix) ...[
-                    _buildMatrix(round.matrix),
-                    const SizedBox(height: 18),
-                  ],
-                  _buildOptions(round),
-                ],
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );

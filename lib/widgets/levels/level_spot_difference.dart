@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:apk_arena/models/level_outcome.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 
 enum ScreenDesign { dashboard, musicPlayer, legacy, mission }
 
@@ -228,13 +229,17 @@ class _LevelSpotDifferenceState extends State<LevelSpotDifference> {
     // For find-all stages: misclicks subtract a found, BUT each found diff
     // guarantees at least 1% of the total score (= 4% of the stage's score,
     // since each stage contributes 25% to the total).
-    final s3Net = (_legacyFound.length - _legacyMisclicks)
-        .clamp(0, _legacyDiffs.length);
+    final s3Net = (_legacyFound.length - _legacyMisclicks).clamp(
+      0,
+      _legacyDiffs.length,
+    );
     final s3FromNet = s3Net / _legacyDiffs.length;
     final s3Floor = (0.04 * _legacyFound.length).clamp(0.0, 1.0);
     final s3 = math.max(s3FromNet, s3Floor);
-    final s4Net = (_missionFound.length - _missionMisclicks)
-        .clamp(0, _missionDiffs.length);
+    final s4Net = (_missionFound.length - _missionMisclicks).clamp(
+      0,
+      _missionDiffs.length,
+    );
     final s4FromNet = s4Net / _missionDiffs.length;
     final s4Floor = (0.04 * _missionFound.length).clamp(0.0, 1.0);
     final s4 = math.max(s4FromNet, s4Floor);
@@ -318,6 +323,21 @@ class _LevelSpotDifferenceState extends State<LevelSpotDifference> {
       color: NunuColors.backgroundDefault,
       child: Column(
         children: [
+          LevelHud(
+            stageText: '${_superStage + 1}/$_superStageCount',
+            trailing: Text(
+              _isBinarySuperStage
+                  ? 'round ${(_binaryIndex % _binaryRoundsPerStage) + 1}/$_binaryRoundsPerStage'
+                  : _isLegacySuperStage
+                  ? 'found ${_legacyFound.length}/${_legacyDiffs.length}'
+                  : 'found ${_missionFound.length}/${_missionDiffs.length}',
+              style: const TextStyle(
+                color: NunuColors.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
           Expanded(
             child: SingleChildScrollView(
               child: Padding(
@@ -338,8 +358,8 @@ class _LevelSpotDifferenceState extends State<LevelSpotDifference> {
                       _isLegacySuperStage
                           ? "Production Build — tap each of the ${_legacyDiffs.length} differences"
                           : _isMissionSuperStage
-                              ? "Production Build — tap each of the ${_missionDiffs.length} differences"
-                              : "Production Build",
+                          ? "Production Build — tap each of the ${_missionDiffs.length} differences"
+                          : "Production Build",
                       style: const TextStyle(
                         color: NunuColors.primaryMain,
                         fontWeight: FontWeight.bold,
@@ -372,111 +392,6 @@ class _LevelSpotDifferenceState extends State<LevelSpotDifference> {
         ],
       ),
       child: _isBinarySuperStage ? _binaryControls() : _findAllControls(),
-    );
-  }
-
-  // Gradient pill showing current super-stage + 5-dot progress.
-  // For binary: dots fill as rounds are answered.
-  // For find-all: dots fill as differences are found.
-  Widget _stageBadge() {
-    final stageNum = _superStage + 1;
-    final int filled;
-    final int total;
-    if (_isBinarySuperStage) {
-      filled = _binaryIndex % _binaryRoundsPerStage;
-      total = _binaryRoundsPerStage;
-    } else if (_isLegacySuperStage) {
-      filled = _legacyFound.length;
-      total = _legacyDiffs.length;
-    } else {
-      filled = _missionFound.length;
-      total = _missionDiffs.length;
-    }
-    return Container(
-      padding: const EdgeInsets.fromLTRB(10, 6, 10, 6),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [NunuColors.primaryMain, NunuColors.secondaryMain],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: NunuColors.primaryMain.withOpacity(0.35),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              const Text(
-                "STAGE",
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.4,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                "$stageNum",
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  height: 1,
-                ),
-              ),
-              const Text(
-                " / $_superStageCount",
-                style: TextStyle(
-                  color: Colors.white60,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  height: 1,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (int i = 0; i < total; i++) ...[
-                if (i > 0) const SizedBox(width: 3),
-                Container(
-                  width: 7,
-                  height: 7,
-                  decoration: BoxDecoration(
-                    color: i < filled
-                        ? Colors.white
-                        : Colors.white.withOpacity(0.25),
-                    shape: BoxShape.circle,
-                    boxShadow: i < filled
-                        ? [
-                            BoxShadow(
-                              color: Colors.white.withOpacity(0.6),
-                              blurRadius: 3,
-                            ),
-                          ]
-                        : null,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
     );
   }
 
@@ -523,8 +438,6 @@ class _LevelSpotDifferenceState extends State<LevelSpotDifference> {
   Widget _binaryControls() {
     return Row(
       children: [
-        _stageBadge(),
-        const SizedBox(width: 8),
         Expanded(
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -576,8 +489,6 @@ class _LevelSpotDifferenceState extends State<LevelSpotDifference> {
     final misses = _isLegacySuperStage ? _legacyMisclicks : _missionMisclicks;
     return Row(
       children: [
-        _stageBadge(),
-        const SizedBox(width: 8),
         _missesIndicator(misses),
         const SizedBox(width: 8),
         Expanded(
@@ -668,10 +579,7 @@ class _DashboardScreen extends StatelessWidget {
                             color: Colors.red,
                             offset: Offset(1, -1),
                           ),
-                          const Shadow(
-                            color: Colors.red,
-                            offset: Offset(1, 1),
-                          ),
+                          const Shadow(color: Colors.red, offset: Offset(1, 1)),
                           const Shadow(
                             color: Colors.red,
                             offset: Offset(-1, 1),
@@ -858,7 +766,11 @@ class _MusicPlayerScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: const Row(
               children: [
-                Icon(Icons.keyboard_arrow_down, color: Colors.white70, size: 20),
+                Icon(
+                  Icons.keyboard_arrow_down,
+                  color: Colors.white70,
+                  size: 20,
+                ),
                 SizedBox(width: 12),
                 Text(
                   "now playing",
@@ -956,10 +868,7 @@ class _MusicPlayerScreen extends StatelessWidget {
                             height: 4,
                             decoration: const BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [
-                                  Color(0xFFE55CD8),
-                                  Color(0xFF805CE5),
-                                ],
+                                colors: [Color(0xFFE55CD8), Color(0xFF805CE5)],
                               ),
                             ),
                           ),
@@ -1013,10 +922,7 @@ class _MusicPlayerScreen extends StatelessWidget {
                         decoration: const BoxDecoration(
                           shape: BoxShape.circle,
                           gradient: LinearGradient(
-                            colors: [
-                              Color(0xFFE55CD8),
-                              Color(0xFF805CE5),
-                            ],
+                            colors: [Color(0xFFE55CD8), Color(0xFF805CE5)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
@@ -1423,10 +1329,7 @@ class _LegacyScreen extends StatelessWidget {
                   children: [
                     const _Mono(text: "Server: ", fontSize: 9),
                     _wrap(
-                      _Mono(
-                        text: isProd ? "DEV-03" : "PROD-03",
-                        fontSize: 9,
-                      ),
+                      _Mono(text: isProd ? "DEV-03" : "PROD-03", fontSize: 9),
                       ModificationType.legacyServer,
                     ),
                   ],
@@ -1615,11 +1518,7 @@ class _Mono extends StatelessWidget {
   final String text;
   final double fontSize;
   final bool bold;
-  const _Mono({
-    required this.text,
-    this.fontSize = 10,
-    this.bold = false,
-  });
+  const _Mono({required this.text, this.fontSize = 10, this.bold = false});
 
   @override
   Widget build(BuildContext context) {
@@ -2010,8 +1909,9 @@ class _MissionControlScreenState extends State<_MissionControlScreen>
                           color: const Color(0xFFFF4444).withOpacity(0.2),
                           borderRadius: BorderRadius.circular(2),
                           border: Border.all(
-                            color: const Color(0xFFFF4444)
-                                .withOpacity(0.4 + pulse * 0.6),
+                            color: const Color(
+                              0xFFFF4444,
+                            ).withOpacity(0.4 + pulse * 0.6),
                             width: 1,
                           ),
                         ),
@@ -2351,10 +2251,7 @@ class _MissionControlScreenState extends State<_MissionControlScreen>
                   color: color,
                   borderRadius: BorderRadius.circular(2),
                   boxShadow: [
-                    BoxShadow(
-                      color: color.withOpacity(0.6),
-                      blurRadius: 3,
-                    ),
+                    BoxShadow(color: color.withOpacity(0.6), blurRadius: 3),
                   ],
                 ),
               ),

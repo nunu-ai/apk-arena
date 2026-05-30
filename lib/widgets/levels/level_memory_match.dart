@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 
 class LevelMemoryMatch extends LevelWidget {
-  const LevelMemoryMatch({Key? key, required super.onComplete}) : super(key: key);
+  const LevelMemoryMatch({Key? key, required super.onComplete})
+    : super(key: key);
 
   @override
   State<LevelMemoryMatch> createState() => _LevelMemoryMatchState();
@@ -17,9 +19,30 @@ class _LevelMemoryMatchState extends State<LevelMemoryMatch> {
   static const Duration _revealDelay = Duration(milliseconds: 650);
 
   static const List<String> _emojiPool = [
-    '🍎', '🍌', '🍇', '🍓', '🍒', '🍍', '🍑', '🥝',
-    '🐶', '🐱', '🐼', '🦊', '🐵', '🦁', '🐸', '🐨',
-    '⭐', '🌙', '⚡', '🔥', '💧', '❄️', '🌈', '🌟',
+    '🍎',
+    '🍌',
+    '🍇',
+    '🍓',
+    '🍒',
+    '🍍',
+    '🍑',
+    '🥝',
+    '🐶',
+    '🐱',
+    '🐼',
+    '🦊',
+    '🐵',
+    '🦁',
+    '🐸',
+    '🐨',
+    '⭐',
+    '🌙',
+    '⚡',
+    '🔥',
+    '💧',
+    '❄️',
+    '🌈',
+    '🌟',
   ];
 
   static const List<_StageConfig> _stages = [
@@ -84,7 +107,9 @@ class _LevelMemoryMatchState extends State<LevelMemoryMatch> {
   }
 
   void _startStage(int index) {
-    final nextDeck = index == 1 ? _buildDeck(_stages[index]) : List<String>.from(_stageOneDeck);
+    final nextDeck = index == 1
+        ? _buildDeck(_stages[index])
+        : List<String>.from(_stageOneDeck);
     setState(() {
       _stageIndex = index;
       _deck = nextDeck;
@@ -130,8 +155,12 @@ class _LevelMemoryMatchState extends State<LevelMemoryMatch> {
     _lock = true;
     final revealedNow = List<int>.from(_revealed);
     final firstSymbol = _deck[revealedNow.first];
-    final isMatch = revealedNow.every((cardIndex) => _deck[cardIndex] == firstSymbol);
-    final isOneShotSet = revealedNow.every((cardIndex) => _revealCounts[cardIndex] == 1);
+    final isMatch = revealedNow.every(
+      (cardIndex) => _deck[cardIndex] == firstSymbol,
+    );
+    final isOneShotSet = revealedNow.every(
+      (cardIndex) => _revealCounts[cardIndex] == 1,
+    );
 
     await Future.delayed(_revealDelay);
     if (!mounted) return;
@@ -168,10 +197,7 @@ class _LevelMemoryMatchState extends State<LevelMemoryMatch> {
       final finalScore =
           0.3 * _stats[0].score + 0.3 * _stats[1].score + 0.4 * _stats[2].score;
       widget.onComplete(
-        LevelOutcome(
-          score: finalScore,
-          metrics: _buildMetrics(),
-        ),
+        LevelOutcome(score: finalScore, metrics: _buildMetrics()),
       );
       return;
     }
@@ -217,51 +243,37 @@ class _LevelMemoryMatchState extends State<LevelMemoryMatch> {
     return double.parse(value.toStringAsFixed(3));
   }
 
-  bool _isFaceUp(int index) => _matched.contains(index) || _revealed.contains(index);
+  bool _isFaceUp(int index) =>
+      _matched.contains(index) || _revealed.contains(index);
 
   @override
   Widget build(BuildContext context) {
     return Container(
       color: NunuColors.backgroundDefault,
-      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _stage.title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: NunuColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _stage.subtitle,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: NunuColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
+          LevelHud(
+            stageText: '${_stageIndex + 1}/${_stages.length}',
+            trailing: Text(
+              'sets ${_stageStats.matchedSets}/${_stage.groupCount}',
+              style: const TextStyle(
+                color: NunuColors.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
               ),
-              const SizedBox(width: 12),
-              Text(
-                'sets: ${_stageStats.matchedSets}/${_stage.groupCount}',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: NunuColors.textSecondary,
-                ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Text(
+              _stage.subtitle,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 13,
+                color: NunuColors.textSecondary,
               ),
-            ],
+            ),
           ),
           const SizedBox(height: 12),
           LinearProgressIndicator(
@@ -310,9 +322,7 @@ class _LevelMemoryMatchState extends State<LevelMemoryMatch> {
                         alignment: Alignment.center,
                         child: Text(
                           faceUp ? _deck[index] : ' ',
-                          style: TextStyle(
-                            fontSize: min(cardSize * 0.48, 42),
-                          ),
+                          style: TextStyle(fontSize: min(cardSize * 0.48, 42)),
                         ),
                       ),
                     );

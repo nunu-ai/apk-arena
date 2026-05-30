@@ -3,12 +3,14 @@ import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 
 /// Each drawing pattern: a name and normalized strokes (0..1).
 class _Pattern {
   final String name;
   final List<List<Offset>> strokes;
-  final bool useFullCanvas; // true = stretch to full rect (good for wide shapes)
+  final bool
+  useFullCanvas; // true = stretch to full rect (good for wide shapes)
   const _Pattern(this.name, this.strokes, {this.useFullCanvas = false});
 }
 
@@ -38,7 +40,12 @@ final List<_Pattern> _patterns = [
     [const Offset(0.25, 0.45), const Offset(0.50, 0.25)], // left roof
     [const Offset(0.50, 0.25), const Offset(0.75, 0.45)], // right roof
     // chimney
-    [const Offset(0.62, 0.36), const Offset(0.62, 0.20), const Offset(0.70, 0.20), const Offset(0.70, 0.40)],
+    [
+      const Offset(0.62, 0.36),
+      const Offset(0.62, 0.20),
+      const Offset(0.70, 0.20),
+      const Offset(0.70, 0.40),
+    ],
   ]),
 
   // 4) Smiley with cowboy hat – 7 strokes (curves, harder)
@@ -187,7 +194,7 @@ final List<_Pattern> _patterns = [
 
 class LevelTraceDrawing extends LevelWidget {
   const LevelTraceDrawing({Key? key, required super.onComplete})
-      : super(key: key);
+    : super(key: key);
 
   @override
   State<LevelTraceDrawing> createState() => _LevelTraceDrawingState();
@@ -224,9 +231,11 @@ class _LevelTraceDrawingState extends State<LevelTraceDrawing> {
       final w = max(0.0, size.width - 2 * _pad);
       final h = max(0.0, size.height - 2 * _pad);
       _scaledStrokes = _pattern.strokes
-          .map((stroke) => stroke
-              .map((p) => Offset(_pad + p.dx * w, _pad + p.dy * h))
-              .toList())
+          .map(
+            (stroke) => stroke
+                .map((p) => Offset(_pad + p.dx * w, _pad + p.dy * h))
+                .toList(),
+          )
           .toList();
     } else {
       // Square region centered — keeps shapes proportional
@@ -234,9 +243,11 @@ class _LevelTraceDrawingState extends State<LevelTraceDrawing> {
       final ox = (size.width - side) / 2;
       final oy = (size.height - side) / 2;
       _scaledStrokes = _pattern.strokes
-          .map((stroke) => stroke
-              .map((p) => Offset(ox + p.dx * side, oy + p.dy * side))
-              .toList())
+          .map(
+            (stroke) => stroke
+                .map((p) => Offset(ox + p.dx * side, oy + p.dy * side))
+                .toList(),
+          )
           .toList();
     }
   }
@@ -275,7 +286,8 @@ class _LevelTraceDrawingState extends State<LevelTraceDrawing> {
     int inTol = 0;
     for (int i = 0; i < _userStroke.length; i += step) {
       if (_distToPolyline(_userStroke[i], target) <=
-          _tolerance + _safeAreaRadius) inTol++;
+          _tolerance + _safeAreaRadius)
+        inTol++;
     }
     final coverage = inTol / max(1, (_userStroke.length / step).round());
 
@@ -315,16 +327,14 @@ class _LevelTraceDrawingState extends State<LevelTraceDrawing> {
 
   void _finishPattern() {
     // Award partial score: (strokes completed / total strokes) * 0.2
-    final patternScore =
-        (_strokesCompletedThisPattern / _totalStrokes) * 0.2;
+    final patternScore = (_strokesCompletedThisPattern / _totalStrokes) * 0.2;
     _totalScore += patternScore;
 
     if (_patternIndex >= _patterns.length - 1) {
       // All patterns done
       setState(() => _done = true);
       Future.delayed(const Duration(milliseconds: 400), () {
-        widget.onComplete(
-            LevelOutcome(score: _totalScore.clamp(0.0, 1.0)));
+        widget.onComplete(LevelOutcome(score: _totalScore.clamp(0.0, 1.0)));
       });
       return;
     }
@@ -357,71 +367,21 @@ class _LevelTraceDrawingState extends State<LevelTraceDrawing> {
             height: double.infinity,
             child: Stack(
               children: [
-                // Header
                 Positioned(
-                  top: 16,
-                  left: 16,
-                  right: 16,
-                  child: Column(
-                    children: [
-                      Text(
-                        '${_pattern.name}  (${_patternIndex + 1}/${_patterns.length})',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: NunuColors.textPrimary,
-                        ),
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: LevelHud(
+                    stageText: '${_patternIndex + 1}/${_patterns.length}',
+                    lives: LevelHud.emojiLives(_lives, 3),
+                    trailing: Text(
+                      'stroke ${_currentStroke + 1 > _totalStrokes ? _totalStrokes : _currentStroke + 1}/$_totalStrokes',
+                      style: const TextStyle(
+                        color: NunuColors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
                       ),
-                      const SizedBox(height: 6),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'stroke ${_currentStroke + 1 > _totalStrokes ? _totalStrokes : _currentStroke + 1}/$_totalStrokes',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: NunuColors.textSecondary,
-                            ),
-                          ),
-                          const SizedBox(width: 20),
-                          // Lives
-                          for (int i = 0; i < 3; i++)
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 2),
-                              child: Icon(
-                                i < _lives
-                                    ? Icons.favorite
-                                    : Icons.favorite_border,
-                                color: i < _lives
-                                    ? NunuColors.errorMain
-                                    : NunuColors.textSecondary,
-                                size: 18,
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      // Score bar
-                      SizedBox(
-                        width: 200,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            value: _totalScore +
-                                (_strokesCompletedThisPattern /
-                                        _totalStrokes) *
-                                    0.2,
-                            backgroundColor:
-                                NunuColors.backgroundPaper,
-                            valueColor:
-                                const AlwaysStoppedAnimation<Color>(
-                                    NunuColors.successMain),
-                            minHeight: 6,
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
 
@@ -489,8 +449,8 @@ class _GlyphPainter extends CustomPainter {
       final glowColor = isComplete
           ? NunuColors.successMain
           : isCurrent
-              ? NunuColors.primaryMain
-              : NunuColors.secondaryMain;
+          ? NunuColors.primaryMain
+          : NunuColors.secondaryMain;
 
       final glow = Paint()
         ..color = glowColor.withValues(alpha: isCurrent ? 0.4 : 0.2)
@@ -504,8 +464,8 @@ class _GlyphPainter extends CustomPainter {
       final mainColor = isComplete
           ? NunuColors.successMain
           : isCurrent
-              ? NunuColors.primaryLight
-              : NunuColors.secondaryLight.withValues(alpha: 0.6);
+          ? NunuColors.primaryLight
+          : NunuColors.secondaryLight.withValues(alpha: 0.6);
 
       final main = Paint()
         ..color = mainColor
@@ -528,8 +488,10 @@ class _GlyphPainter extends CustomPainter {
           ),
           textDirection: TextDirection.ltr,
         )..layout();
-        label.paint(canvas,
-            stroke.first - Offset(label.width + 8, label.height + 8));
+        label.paint(
+          canvas,
+          stroke.first - Offset(label.width + 8, label.height + 8),
+        );
       }
     }
 

@@ -5,6 +5,7 @@ import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 import '../level_widget.dart';
 
 enum _GemType { ember, leaf, tide, sun, orchid, frost }
@@ -61,10 +62,7 @@ class _StageConfig {
 }
 
 class _MatchGroup {
-  const _MatchGroup({
-    required this.cells,
-    required this.horizontal,
-  });
+  const _MatchGroup({required this.cells, required this.horizontal});
 
   final List<Point<int>> cells;
   final bool horizontal;
@@ -100,27 +98,13 @@ class _LevelCascadeProtocolState extends State<LevelCascadeProtocol> {
     _StageConfig(
       label: '1',
       threshold: 0,
-      mask: [
-        '######',
-        '######',
-        '######',
-        '######',
-        '######',
-        '######',
-      ],
+      mask: ['######', '######', '######', '######', '######', '######'],
       unlockedPowerUps: <_PowerUpType>{},
     ),
     _StageConfig(
       label: '2',
       threshold: 2500,
-      mask: [
-        '#######',
-        '#######',
-        '#######',
-        '#######',
-        '#######',
-        '#######',
-      ],
+      mask: ['#######', '#######', '#######', '#######', '#######', '#######'],
       unlockedPowerUps: <_PowerUpType>{},
     ),
     _StageConfig(
@@ -150,10 +134,7 @@ class _LevelCascadeProtocolState extends State<LevelCascadeProtocol> {
         '########',
         '########',
       ],
-      unlockedPowerUps: {
-        _PowerUpType.rocketRow,
-        _PowerUpType.rocketColumn,
-      },
+      unlockedPowerUps: {_PowerUpType.rocketRow, _PowerUpType.rocketColumn},
       ice: 8,
     ),
     _StageConfig(
@@ -169,10 +150,7 @@ class _LevelCascadeProtocolState extends State<LevelCascadeProtocol> {
         '########',
         '########',
       ],
-      unlockedPowerUps: {
-        _PowerUpType.rocketRow,
-        _PowerUpType.rocketColumn,
-      },
+      unlockedPowerUps: {_PowerUpType.rocketRow, _PowerUpType.rocketColumn},
       crates: 5,
       ice: 8,
     ),
@@ -332,10 +310,7 @@ class _LevelCascadeProtocolState extends State<LevelCascadeProtocol> {
     final score = sqrt((_score / _maxBenchmarkScore).clamp(0.0, 1.0));
     return LevelOutcome(
       score: score,
-      metrics: {
-        'score': _score,
-        'stage_reached': _highestStageReached,
-      },
+      metrics: {'score': _score, 'stage_reached': _highestStageReached},
     );
   }
 
@@ -363,7 +338,8 @@ class _LevelCascadeProtocolState extends State<LevelCascadeProtocol> {
         }
       }
       _seedObstacles(candidate, stage);
-    } while (_findMatchGroups(candidate).isNotEmpty || !_hasAnyLegalMove(candidate, stage));
+    } while (_findMatchGroups(candidate).isNotEmpty ||
+        !_hasAnyLegalMove(candidate, stage));
     return candidate;
   }
 
@@ -582,7 +558,9 @@ class _LevelCascadeProtocolState extends State<LevelCascadeProtocol> {
       for (final point in cleared.toList()) {
         final cell = _board[point.x][point.y];
         if (cell == null || cell.powerUp == _PowerUpType.none) continue;
-        cleared.addAll(_cellsFromPowerUp(point.x, point.y, cell.powerUp, cell.gem));
+        cleared.addAll(
+          _cellsFromPowerUp(point.x, point.y, cell.powerUp, cell.gem),
+        );
       }
 
       _damageAdjacentCrates(cleared);
@@ -648,8 +626,9 @@ class _LevelCascadeProtocolState extends State<LevelCascadeProtocol> {
 
     if (first.powerUp == _PowerUpType.prism ||
         second.powerUp == _PowerUpType.prism) {
-      final targetGem =
-          first.powerUp == _PowerUpType.prism ? second.gem : first.gem;
+      final targetGem = first.powerUp == _PowerUpType.prism
+          ? second.gem
+          : first.gem;
       final clear = _allOfGem(targetGem);
       clear
         ..add(Point<int>(rowA, colA))
@@ -657,7 +636,8 @@ class _LevelCascadeProtocolState extends State<LevelCascadeProtocol> {
       return clear;
     }
 
-    if (first.powerUp == _PowerUpType.bomb && second.powerUp == _PowerUpType.bomb) {
+    if (first.powerUp == _PowerUpType.bomb &&
+        second.powerUp == _PowerUpType.bomb) {
       return {
         ..._squareBlast(rowA, colA, radius: 2),
         ..._squareBlast(rowB, colB, radius: 2),
@@ -714,7 +694,11 @@ class _LevelCascadeProtocolState extends State<LevelCascadeProtocol> {
     return points;
   }
 
-  Set<Point<int>> _squareBlast(int centerRow, int centerCol, {required int radius}) {
+  Set<Point<int>> _squareBlast(
+    int centerRow,
+    int centerCol, {
+    required int radius,
+  }) {
     final points = <Point<int>>{};
     for (int row = centerRow - radius; row <= centerRow + radius; row++) {
       for (int col = centerCol - radius; col <= centerCol + radius; col++) {
@@ -891,11 +875,7 @@ class _LevelCascadeProtocolState extends State<LevelCascadeProtocol> {
     }
 
     if (chosen == null) return null;
-    return _PowerUpSpawn(
-      row: spawnPoint.x,
-      col: spawnPoint.y,
-      powerUp: chosen,
-    );
+    return _PowerUpSpawn(row: spawnPoint.x, col: spawnPoint.y, powerUp: chosen);
   }
 
   void _collapseBoard() {
@@ -936,8 +916,7 @@ class _LevelCascadeProtocolState extends State<LevelCascadeProtocol> {
 
     int stackIndex = 0;
     for (final row in activeRows.reversed) {
-      _board[row][col] =
-          stackIndex < stack.length ? stack[stackIndex++] : null;
+      _board[row][col] = stackIndex < stack.length ? stack[stackIndex++] : null;
     }
   }
 
@@ -1018,11 +997,12 @@ class _LevelCascadeProtocolState extends State<LevelCascadeProtocol> {
   String get _remainingLabel {
     final elapsed = DateTime.now().difference(_startedAt);
     final remaining = _sessionDuration - elapsed;
-    final clampedRemaining =
-        remaining.isNegative ? Duration.zero : remaining;
+    final clampedRemaining = remaining.isNegative ? Duration.zero : remaining;
     final minutes = clampedRemaining.inMinutes.toString().padLeft(2, '0');
-    final seconds =
-        (clampedRemaining.inSeconds % 60).toString().padLeft(2, '0');
+    final seconds = (clampedRemaining.inSeconds % 60).toString().padLeft(
+      2,
+      '0',
+    );
     return '$minutes:$seconds';
   }
 
@@ -1163,10 +1143,7 @@ class _LevelCascadeProtocolState extends State<LevelCascadeProtocol> {
                   ),
                   const SizedBox(height: 18),
                   _guideHeader('hazards'),
-                  _guideBullet(
-                    Icons.ac_unit,
-                    'ice protects a gem once.',
-                  ),
+                  _guideBullet(Icons.ac_unit, 'ice protects a gem once.'),
                   _guideBullet(
                     Icons.inventory_2,
                     'crates do not move. clear adjacent matches or power-up blasts to break them.',
@@ -1275,24 +1252,6 @@ class _LevelCascadeProtocolState extends State<LevelCascadeProtocol> {
     );
   }
 
-  Widget _buildBadge(String label, String value) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: NunuColors.backgroundPaper,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        '$label $value',
-        style: const TextStyle(
-          color: NunuColors.textPrimary,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final nextThreshold = _stageIndex == _stages.length - 1
@@ -1302,53 +1261,43 @@ class _LevelCascadeProtocolState extends State<LevelCascadeProtocol> {
     return Container(
       color: NunuColors.backgroundDefault,
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-          child: Column(
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _buildBadge('score', '$_score'),
-                        _buildBadge('stage', '${_stage.label}/10'),
-                        _buildBadge('time', _remainingLabel),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints:
-                        const BoxConstraints(minWidth: 36, minHeight: 36),
-                    icon: const Icon(
-                      Icons.info_outline,
-                      color: NunuColors.textSecondary,
-                      size: 22,
-                    ),
-                    onPressed: _showGuide,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(
-                nextThreshold == null ? _statusText : '$nextThreshold to next',
+        child: Column(
+          children: [
+            LevelHud(
+              timerText: _remainingLabel,
+              stageText: '${_stage.label}/10',
+              trailing: Text(
+                'score $_score',
                 style: const TextStyle(
                   color: NunuColors.textSecondary,
                   fontSize: 12,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: 14),
-              Expanded(
-                child: Center(child: _buildBoard()),
+              infoOnPressed: _showGuide,
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 10),
+                    Text(
+                      nextThreshold == null
+                          ? _statusText
+                          : '$nextThreshold to next',
+                      style: const TextStyle(
+                        color: NunuColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Expanded(child: Center(child: _buildBoard())),
+                  ],
+                ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

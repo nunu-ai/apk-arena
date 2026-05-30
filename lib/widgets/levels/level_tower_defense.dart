@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math';
 
 import 'package:apk_arena/models/level_outcome.dart';
@@ -6,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 import '../level_widget.dart';
 
 enum _TowerKind { dart, ice, boomerang, tack, sniper, ninja }
@@ -396,11 +396,16 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
 
   // non-buildable terrain (visual rocks, can't place towers)
   static final Set<Point<int>> _terrain = {
-    const Point(0, 6), const Point(0, 7),
-    const Point(3, 0), const Point(7, 0),
-    const Point(10, 4), const Point(10, 12),
-    const Point(0, 13), const Point(0, 14),
-    const Point(3, 9), const Point(3, 10),
+    const Point(0, 6),
+    const Point(0, 7),
+    const Point(3, 0),
+    const Point(7, 0),
+    const Point(10, 4),
+    const Point(10, 12),
+    const Point(0, 13),
+    const Point(0, 14),
+    const Point(3, 9),
+    const Point(3, 10),
   };
 
   final Random _random = Random();
@@ -468,8 +473,9 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
   }
 
   LevelOutcome _buildOutcome() {
-    final score =
-        sqrt((_enemiesCleared / _maxEnemiesBenchmark).clamp(0.0, 1.0));
+    final score = sqrt(
+      (_enemiesCleared / _maxEnemiesBenchmark).clamp(0.0, 1.0),
+    );
     return LevelOutcome(
       score: score,
       metrics: {
@@ -517,8 +523,7 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
         final t = b.progress - i;
         final a = path[i];
         final c = (i + 1 < path.length) ? path[i + 1] : path[i];
-        final segLen =
-            sqrt(pow(c.x - a.x, 2) + pow(c.y - a.y, 2)).toDouble();
+        final segLen = sqrt(pow(c.x - a.x, 2) + pow(c.y - a.y, 2)).toDouble();
         final segLeft = segLen * (1 - t);
         if (remaining >= segLeft) {
           remaining -= segLeft;
@@ -639,9 +644,11 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
 
     if (t.kind == _TowerKind.boomerang) {
       final hits = _bloons.toList()
-        ..sort((a, b) => (a.position - from)
-            .distance
-            .compareTo((b.position - from).distance));
+        ..sort(
+          (a, b) => (a.position - from).distance.compareTo(
+            (b.position - from).distance,
+          ),
+        );
       int n = 0;
       Offset prev = from;
       for (final b in hits) {
@@ -654,8 +661,7 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
         n++;
       }
       if (n == 0) {
-        _shots.add(
-            _Shot(from: from, to: target.position, color: t.spec.color));
+        _shots.add(_Shot(from: from, to: target.position, color: t.spec.color));
       }
       return;
     }
@@ -665,9 +671,11 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
     if (t.kind == _TowerKind.ninja && t.pierce > 1) {
       // tier 3 ninja: shuriken pierces two
       final hits = _bloons.toList()
-        ..sort((a, b) => (a.position - target.position)
-            .distance
-            .compareTo((b.position - target.position).distance));
+        ..sort(
+          (a, b) => (a.position - target.position).distance.compareTo(
+            (b.position - target.position).distance,
+          ),
+        );
       int n = 0;
       for (final b in hits) {
         if (n >= t.pierce) break;
@@ -675,7 +683,9 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
         if ((b.position - from).distance > t.range * _cellSizeCached) continue;
         b.hp -= _damageVs(t, b);
         if (b != target) {
-          _shots.add(_Shot(from: target.position, to: b.position, color: t.spec.color));
+          _shots.add(
+            _Shot(from: target.position, to: b.position, color: t.spec.color),
+          );
         }
         n++;
       }
@@ -683,11 +693,13 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
     }
 
     if (t.splash > 0) {
-      _bursts.add(_Burst(
-        center: target.position,
-        radius: t.splash * _cellSizeCached,
-        color: t.spec.color,
-      ));
+      _bursts.add(
+        _Burst(
+          center: target.position,
+          radius: t.splash * _cellSizeCached,
+          color: t.spec.color,
+        ),
+      );
       for (final b in _bloons) {
         if (b.kind == _BloonKind.camo && !_canHitCamo(t)) continue;
         if ((b.position - target.position).distance <=
@@ -709,8 +721,7 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
     final wave = _wave + 1;
     final stage = _stage;
     final hp = (22 + pow(wave, 1.7) * 5.4 + (stage - 1) * 16).toInt();
-    final speed =
-        0.90 + min(0.70, wave * 0.024) + (stage - 1) * 0.04;
+    final speed = 0.90 + min(0.70, wave * 0.024) + (stage - 1) * 0.04;
     final reward = max(4, 10 - wave ~/ 4);
     final pathIdx = _random.nextInt(_activePathCount);
 
@@ -734,13 +745,15 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
       kind = _BloonKind.camo;
     }
 
-    _bloons.add(_Bloon(
-      kind: kind,
-      maxHp: finalHp,
-      speed: finalSpeed,
-      pathIndex: pathIdx,
-      reward: finalReward,
-    ));
+    _bloons.add(
+      _Bloon(
+        kind: kind,
+        maxHp: finalHp,
+        speed: finalSpeed,
+        pathIndex: pathIdx,
+        reward: finalReward,
+      ),
+    );
   }
 
   int _enemiesPerWave(int wave) => 10 + wave * 2 + (_stage - 1) * 4;
@@ -946,13 +959,19 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
                   ),
                   _guideHeader('how to play'),
                   _guideBullet(
-                      '🛠', 'drag a tower from the bar onto an empty tile.'),
+                    '🛠',
+                    'drag a tower from the bar onto an empty tile.',
+                  ),
                   _guideBullet(
-                      '⬆', 'tap a placed tower to view & buy upgrades.'),
+                    '⬆',
+                    'tap a placed tower to view & buy upgrades.',
+                  ),
                   _guideBullet('▶', 'press play to start the next wave.'),
                   _guideBullet('⏱', 'game pauses between waves — plan freely.'),
-                  _guideBullet('💰',
-                      'cash from kills + wave-clear streak bonuses.'),
+                  _guideBullet(
+                    '💰',
+                    'cash from kills + wave-clear streak bonuses.',
+                  ),
                   const SizedBox(height: 18),
                   _guideHeader('towers'),
                   ..._towerSpecs.values.map(_guideTower),
@@ -1013,7 +1032,10 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
             child: Text(
               text,
               style: const TextStyle(
-                  color: NunuColors.textSecondary, fontSize: 13, height: 1.35),
+                color: NunuColors.textSecondary,
+                fontSize: 13,
+                height: 1.35,
+              ),
             ),
           ),
         ],
@@ -1048,26 +1070,29 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
                     Text(
                       s.name,
                       style: const TextStyle(
-                          color: NunuColors.textPrimary,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800),
+                        color: NunuColors.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(width: 6),
                     Text(
                       '\$${s.cost}',
                       style: const TextStyle(
-                          color: NunuColors.warningMain,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700),
+                        color: NunuColors.warningMain,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),
                 Text(
                   s.blurb,
                   style: const TextStyle(
-                      color: NunuColors.textSecondary,
-                      fontSize: 12,
-                      height: 1.3),
+                    color: NunuColors.textSecondary,
+                    fontSize: 12,
+                    height: 1.3,
+                  ),
                 ),
               ],
             ),
@@ -1077,8 +1102,11 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
     );
   }
 
-  Widget _guideEnemy(
-      {required Color color, required String name, required String desc}) {
+  Widget _guideEnemy({
+    required Color color,
+    required String name,
+    required String desc,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
@@ -1097,39 +1125,20 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
                 Text(
                   name,
                   style: const TextStyle(
-                      color: NunuColors.textPrimary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800),
+                    color: NunuColors.textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 Text(
                   desc,
                   style: const TextStyle(
-                      color: NunuColors.textSecondary,
-                      fontSize: 12,
-                      height: 1.3),
+                    color: NunuColors.textSecondary,
+                    fontSize: 12,
+                    height: 1.3,
+                  ),
                 ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeaderStat(String emoji, String value, {Color? color}) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 10),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(emoji, style: const TextStyle(fontSize: 14)),
-          const SizedBox(width: 3),
-          Text(
-            value,
-            style: TextStyle(
-              color: color ?? NunuColors.textPrimary,
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
             ),
           ),
         ],
@@ -1140,8 +1149,7 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
   String get _remainingLabel {
     final e = DateTime.now().difference(_startedAt);
     final remaining = _sessionDuration - e;
-    final clampedRemaining =
-        remaining.isNegative ? Duration.zero : remaining;
+    final clampedRemaining = remaining.isNegative ? Duration.zero : remaining;
     final m = clampedRemaining.inMinutes.toString().padLeft(2, '0');
     final s = (clampedRemaining.inSeconds % 60).toString().padLeft(2, '0');
     return '$m:$s';
@@ -1171,15 +1179,11 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
         child: _towerChip(spec, opacity: 0.9, scale: 1.1),
       ),
       childWhenDragging: Opacity(opacity: 0.4, child: _towerChip(spec)),
-      child: Opacity(
-        opacity: canAfford ? 1 : 0.5,
-        child: _towerChip(spec),
-      ),
+      child: Opacity(opacity: canAfford ? 1 : 0.5, child: _towerChip(spec)),
     );
   }
 
-  Widget _towerChip(_TowerSpec spec,
-      {double opacity = 1, double scale = 1}) {
+  Widget _towerChip(_TowerSpec spec, {double opacity = 1, double scale = 1}) {
     return Transform.scale(
       scale: scale,
       child: Container(
@@ -1196,11 +1200,14 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
           children: [
             Text(spec.emoji, style: const TextStyle(fontSize: 22)),
             const SizedBox(height: 2),
-            Text('\$${spec.cost}',
-                style: const TextStyle(
-                    color: NunuColors.textPrimary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700)),
+            Text(
+              '\$${spec.cost}',
+              style: const TextStyle(
+                color: NunuColors.textPrimary,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ],
         ),
       ),
@@ -1212,98 +1219,112 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
     return Container(
       color: NunuColors.backgroundDefault,
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  _buildHeaderStat('💰', '\$$_cash'),
-                  _buildHeaderStat(
-                    '❤️',
-                    '$_lives',
-                    color: _lives <= 5 ? NunuColors.errorMain : null,
-                  ),
-                  _buildHeaderStat('🌊', '$_wave/$_totalWaves'),
-                  _buildHeaderStat('⏱', _remainingLabel),
-                  const Spacer(),
-                  IconButton(
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                        minWidth: 32, minHeight: 32),
-                    icon: const Icon(Icons.info_outline,
-                        color: NunuColors.textSecondary, size: 22),
-                    onPressed: _showGuide,
-                  ),
-                  IconButton(
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                        minWidth: 32, minHeight: 32),
-                    icon: Icon(
-                      _waveActive
-                          ? (_paused ? Icons.play_arrow : Icons.pause)
-                          : Icons.play_arrow,
-                      color: NunuColors.primaryLight,
-                      size: 24,
-                    ),
-                    onPressed: () {
-                      if (_gameOver) return;
-                      if (!_waveActive) {
-                        _startWave();
-                      } else {
-                        _paused = !_paused;
-                      }
-                    },
-                  ),
-                  GestureDetector(
-                    onTap: () => setState(() => _fast = !_fast),
-                    child: Container(
-                      margin: const EdgeInsets.only(left: 4),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: _fast
-                            ? NunuColors.primaryMain.withValues(alpha: 0.3)
-                            : NunuColors.backgroundPaper,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text('2×',
-                          style: TextStyle(
-                              color: NunuColors.textPrimary,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 12)),
-                    ),
-                  ),
-                ],
+        child: Column(
+          children: [
+            LevelHud(
+              timerText: _remainingLabel,
+              lives: '❤️ $_lives/25',
+              trailing: Text(
+                'wave $_wave/$_totalWaves · \$$_cash',
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: NunuColors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-              if (_status.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Text(
-                    _status,
-                    style: const TextStyle(
-                        color: NunuColors.textSecondary, fontSize: 11),
-                  ),
+              infoOnPressed: _showGuide,
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 4, 10, 10),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        IconButton(
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 32,
+                            minHeight: 32,
+                          ),
+                          icon: Icon(
+                            _waveActive
+                                ? (_paused ? Icons.play_arrow : Icons.pause)
+                                : Icons.play_arrow,
+                            color: NunuColors.primaryLight,
+                            size: 24,
+                          ),
+                          onPressed: () {
+                            if (_gameOver) return;
+                            if (!_waveActive) {
+                              _startWave();
+                            } else {
+                              _paused = !_paused;
+                            }
+                          },
+                        ),
+                        GestureDetector(
+                          onTap: () => setState(() => _fast = !_fast),
+                          child: Container(
+                            margin: const EdgeInsets.only(left: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _fast
+                                  ? NunuColors.primaryMain.withValues(
+                                      alpha: 0.3,
+                                    )
+                                  : NunuColors.backgroundPaper,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              '2×',
+                              style: TextStyle(
+                                color: NunuColors.textPrimary,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_status.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          _status,
+                          style: const TextStyle(
+                            color: NunuColors.textSecondary,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 4),
+                    Expanded(child: _buildBoard()),
+                    const SizedBox(height: 6),
+                    if (_selected != null)
+                      _buildTowerPanel()
+                    else
+                      SizedBox(
+                        height: 72,
+                        child: Row(
+                          children: [
+                            for (final k in _TowerKind.values)
+                              Expanded(child: _buildTowerCard(k)),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
-              const SizedBox(height: 4),
-              Expanded(child: _buildBoard()),
-              const SizedBox(height: 6),
-              if (_selected != null)
-                _buildTowerPanel()
-              else
-                SizedBox(
-                  height: 72,
-                  child: Row(
-                    children: [
-                      for (final k in _TowerKind.values)
-                        Expanded(child: _buildTowerCard(k)),
-                    ],
-                  ),
-                ),
-            ],
-          ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1327,11 +1348,14 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(t.spec.emoji, style: const TextStyle(fontSize: 28)),
-              Text('tier ${t.tier}/5',
-                  style: const TextStyle(
-                      color: NunuColors.textSecondary,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700)),
+              Text(
+                'tier ${t.tier}/5',
+                style: const TextStyle(
+                  color: NunuColors.textSecondary,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ],
           ),
           const SizedBox(width: 10),
@@ -1353,9 +1377,10 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
                   const Text(
                     'fully upgraded',
                     style: TextStyle(
-                        color: NunuColors.warningMain,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700),
+                      color: NunuColors.warningMain,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 const SizedBox(height: 4),
                 SizedBox(
@@ -1373,7 +1398,8 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
                             foregroundColor: Colors.white,
                             padding: EdgeInsets.zero,
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8)),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                           onPressed: (t.tier >= 5 || !canAfford)
                               ? null
@@ -1383,7 +1409,9 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
                                 ? 'MAX'
                                 : '⬆ UPGRADE  \$${t.spec.upgCost}',
                             style: const TextStyle(
-                                fontSize: 13, fontWeight: FontWeight.w800),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
                       ),
@@ -1394,25 +1422,26 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
                           height: 36,
                           padding: const EdgeInsets.symmetric(horizontal: 10),
                           decoration: BoxDecoration(
-                            color:
-                                NunuColors.errorMain.withValues(alpha: 0.2),
+                            color: NunuColors.errorMain.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                                color: NunuColors.errorMain
-                                    .withValues(alpha: 0.6)),
+                              color: NunuColors.errorMain.withValues(
+                                alpha: 0.6,
+                              ),
+                            ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Text('💸',
-                                  style: TextStyle(fontSize: 14)),
+                              const Text('💸', style: TextStyle(fontSize: 14)),
                               const SizedBox(width: 4),
                               Text(
                                 '\$${t.refund}',
                                 style: const TextStyle(
-                                    color: NunuColors.textPrimary,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w800),
+                                  color: NunuColors.textPrimary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                ),
                               ),
                             ],
                           ),
@@ -1430,90 +1459,92 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
   }
 
   Widget _buildBoard() {
-    return LayoutBuilder(builder: (context, c) {
-      final cellW = c.maxWidth / _gridCols;
-      final cellH = c.maxHeight / _gridRows;
-      final cellSize = min(cellW, cellH);
-      _cellSizeCached = cellSize;
-      final w = cellSize * _gridCols;
-      final h = cellSize * _gridRows;
+    return LayoutBuilder(
+      builder: (context, c) {
+        final cellW = c.maxWidth / _gridCols;
+        final cellH = c.maxHeight / _gridRows;
+        final cellSize = min(cellW, cellH);
+        _cellSizeCached = cellSize;
+        final w = cellSize * _gridCols;
+        final h = cellSize * _gridRows;
 
-      return Center(
-        child: SizedBox(
-          width: w,
-          height: h,
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: GestureDetector(
-                      onTapDown: (d) {
-                        final cell = _cellAt(d.localPosition, cellSize);
-                        if (cell == null) return;
-                        // tap tower?
-                        for (final t in _towers) {
-                          if (t.cell == cell) {
-                            setState(() => _selected = t);
-                            return;
-                          }
+        return Center(
+          child: SizedBox(
+            width: w,
+            height: h,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: GestureDetector(
+                    onTapDown: (d) {
+                      final cell = _cellAt(d.localPosition, cellSize);
+                      if (cell == null) return;
+                      // tap tower?
+                      for (final t in _towers) {
+                        if (t.cell == cell) {
+                          setState(() => _selected = t);
+                          return;
                         }
-                        setState(() => _selected = null);
-                      },
-                      child: CustomPaint(
-                        painter: _TDPainter(
-                          cellSize: cellSize,
-                          gridCols: _gridCols,
-                          gridRows: _gridRows,
-                          paths: _paths,
-                          activePathCount: _activePathCount,
-                          stage: _stage,
-                          towers: _towers,
-                          bloons: _bloons,
-                          shots: _shots,
-                          bursts: _bursts,
-                          selected: _selected,
-                          isPathCell: _isPathCell,
-                          isActivePathCell: _isActivePathCell,
-                          isBuildable: _isBuildable,
-                          entries: _entryCells(),
-                          exits: _exitCells(),
-                          arrows: _pathArrows(),
-                          activePaths: _paths.sublist(0, _activePathCount),
-                          pulseT: _animT,
-                          terrain: _terrain,
-                          showPreview: !_waveActive,
-                        ),
-                        size: Size(w, h),
+                      }
+                      setState(() => _selected = null);
+                    },
+                    child: CustomPaint(
+                      painter: _TDPainter(
+                        cellSize: cellSize,
+                        gridCols: _gridCols,
+                        gridRows: _gridRows,
+                        paths: _paths,
+                        activePathCount: _activePathCount,
+                        stage: _stage,
+                        towers: _towers,
+                        bloons: _bloons,
+                        shots: _shots,
+                        bursts: _bursts,
+                        selected: _selected,
+                        isPathCell: _isPathCell,
+                        isActivePathCell: _isActivePathCell,
+                        isBuildable: _isBuildable,
+                        entries: _entryCells(),
+                        exits: _exitCells(),
+                        arrows: _pathArrows(),
+                        activePaths: _paths.sublist(0, _activePathCount),
+                        pulseT: _animT,
+                        terrain: _terrain,
+                        showPreview: !_waveActive,
                       ),
+                      size: Size(w, h),
                     ),
                   ),
-                  Positioned.fill(
-                    child: _DragLayer(
-                      cellSize: cellSize,
-                      onDrop: (kind, local) {
-                        final cell = _cellAt(local, cellSize);
-                        if (cell == null) return;
-                        setState(() {
-                          _placeTower(kind, cell.y, cell.x);
-                        });
-                      },
-                      onHover: (local) {
-                        setState(() {
-                          _dragPos = local;
-                        });
-                      },
-                      dragKind: _dragKind,
-                      dragPos: _dragPos,
-                      isBuildable: _isBuildable,
-                      gridCols: _gridCols,
-                      gridRows: _gridRows,
-                      towerSpecs: _towerSpecs,
-                    ),
+                ),
+                Positioned.fill(
+                  child: _DragLayer(
+                    cellSize: cellSize,
+                    onDrop: (kind, local) {
+                      final cell = _cellAt(local, cellSize);
+                      if (cell == null) return;
+                      setState(() {
+                        _placeTower(kind, cell.y, cell.x);
+                      });
+                    },
+                    onHover: (local) {
+                      setState(() {
+                        _dragPos = local;
+                      });
+                    },
+                    dragKind: _dragKind,
+                    dragPos: _dragPos,
+                    isBuildable: _isBuildable,
+                    gridCols: _gridCols,
+                    gridRows: _gridRows,
+                    towerSpecs: _towerSpecs,
                   ),
-            ],
+                ),
+              ],
+            ),
           ),
-        ),
-      );
-    });
+        );
+      },
+    );
   }
 }
 
@@ -1565,40 +1596,44 @@ class _DragLayer extends StatelessWidget {
         }
         final ok = isBuildable(row, col);
         final spec = towerSpecs[dragKind]!;
-        return Stack(children: [
-          Positioned(
-            left: col * cellSize,
-            top: row * cellSize,
-            width: cellSize,
-            height: cellSize,
-            child: Container(
-              decoration: BoxDecoration(
-                color: (ok ? NunuColors.successMain : NunuColors.errorMain)
-                    .withValues(alpha: 0.3),
-                border: Border.all(
-                  color: ok ? NunuColors.successMain : NunuColors.errorMain,
-                  width: 2,
-                ),
-              ),
-            ),
-          ),
-          if (ok)
+        return Stack(
+          children: [
             Positioned(
-              left: col * cellSize + cellSize / 2 - spec.range * cellSize,
-              top: row * cellSize + cellSize / 2 - spec.range * cellSize,
-              width: spec.range * cellSize * 2,
-              height: spec.range * cellSize * 2,
-              child: IgnorePointer(
-                child: Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                        color: spec.color.withValues(alpha: 0.6), width: 1),
+              left: col * cellSize,
+              top: row * cellSize,
+              width: cellSize,
+              height: cellSize,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: (ok ? NunuColors.successMain : NunuColors.errorMain)
+                      .withValues(alpha: 0.3),
+                  border: Border.all(
+                    color: ok ? NunuColors.successMain : NunuColors.errorMain,
+                    width: 2,
                   ),
                 ),
               ),
             ),
-        ]);
+            if (ok)
+              Positioned(
+                left: col * cellSize + cellSize / 2 - spec.range * cellSize,
+                top: row * cellSize + cellSize / 2 - spec.range * cellSize,
+                width: spec.range * cellSize * 2,
+                height: spec.range * cellSize * 2,
+                child: IgnorePointer(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: spec.color.withValues(alpha: 0.6),
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
       },
     );
   }
@@ -1660,7 +1695,11 @@ class _TDPainter extends CustomPainter {
     for (int r = 0; r < gridRows; r++) {
       for (int c = 0; c < gridCols; c++) {
         final rect = Rect.fromLTWH(
-            c * cellSize, r * cellSize, cellSize, cellSize);
+          c * cellSize,
+          r * cellSize,
+          cellSize,
+          cellSize,
+        );
         final p = Point(c, r);
         final isEntry = entries.contains(p);
         final isExit = exits.contains(p);
@@ -1689,9 +1728,7 @@ class _TDPainter extends CustomPainter {
           canvas.drawRect(
             rect.deflate(1.5),
             Paint()
-              ..color = isEntry
-                  ? NunuColors.successMain
-                  : NunuColors.errorMain
+              ..color = isEntry ? NunuColors.successMain : NunuColors.errorMain
               ..style = PaintingStyle.stroke
               ..strokeWidth = 2,
           );
@@ -1707,10 +1744,7 @@ class _TDPainter extends CustomPainter {
             ),
             textDirection: TextDirection.ltr,
           )..layout();
-          tp.paint(
-            canvas,
-            rect.center - Offset(tp.width / 2, tp.height / 2),
-          );
+          tp.paint(canvas, rect.center - Offset(tp.width / 2, tp.height / 2));
         }
       }
     }
@@ -1718,7 +1752,11 @@ class _TDPainter extends CustomPainter {
     // terrain rocks
     for (final t in terrain) {
       final rect = Rect.fromLTWH(
-          t.x * cellSize, t.y * cellSize, cellSize, cellSize);
+        t.x * cellSize,
+        t.y * cellSize,
+        cellSize,
+        cellSize,
+      );
       canvas.drawRect(rect, Paint()..color = const Color(0xFF1A1828));
       final tp = TextPainter(
         text: TextSpan(
@@ -1734,61 +1772,65 @@ class _TDPainter extends CustomPainter {
     if (!showPreview) {
       // skip preview rendering during active waves
     } else {
-    final linePaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.18)
-      ..strokeWidth = 2.0
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
+      final linePaint = Paint()
+        ..color = Colors.white.withValues(alpha: 0.18)
+        ..strokeWidth = 2.0
+        ..strokeCap = StrokeCap.round
+        ..style = PaintingStyle.stroke;
 
-    Offset cellCenter(Point<int> p) => Offset(
-        (p.x + 0.5) * cellSize, (p.y + 0.5) * cellSize);
+      Offset cellCenter(Point<int> p) =>
+          Offset((p.x + 0.5) * cellSize, (p.y + 0.5) * cellSize);
 
-    for (int idx = 0; idx < activePaths.length; idx++) {
-      final path = activePaths[idx];
-      // total length in cells
-      double total = 0;
-      final segLens = <double>[];
-      for (int i = 0; i < path.length - 1; i++) {
-        final d = sqrt(pow(path[i + 1].x - path[i].x, 2) +
-            pow(path[i + 1].y - path[i].y, 2));
-        segLens.add(d.toDouble());
-        total += d;
-      }
+      for (int idx = 0; idx < activePaths.length; idx++) {
+        final path = activePaths[idx];
+        // total length in cells
+        double total = 0;
+        final segLens = <double>[];
+        for (int i = 0; i < path.length - 1; i++) {
+          final d = sqrt(
+            pow(path[i + 1].x - path[i].x, 2) +
+                pow(path[i + 1].y - path[i].y, 2),
+          );
+          segLens.add(d.toDouble());
+          total += d;
+        }
 
-      // base line
-      final p = Path()..moveTo(cellCenter(path[0]).dx, cellCenter(path[0]).dy);
-      for (int i = 1; i < path.length; i++) {
-        p.lineTo(cellCenter(path[i]).dx, cellCenter(path[i]).dy);
-      }
-      canvas.drawPath(p, linePaint);
+        // base line
+        final p = Path()
+          ..moveTo(cellCenter(path[0]).dx, cellCenter(path[0]).dy);
+        for (int i = 1; i < path.length; i++) {
+          p.lineTo(cellCenter(path[i]).dx, cellCenter(path[i]).dy);
+        }
+        canvas.drawPath(p, linePaint);
 
-      // pulses — 3 evenly spaced, animated
-      const pulses = 3;
-      for (int k = 0; k < pulses; k++) {
-        final t = ((pulseT + k / pulses + idx * 0.13) % 1.0);
-        final dist = t * total;
-        // find segment
-        double d = 0;
-        for (int i = 0; i < segLens.length; i++) {
-          if (dist <= d + segLens[i]) {
-            final localT = (dist - d) / segLens[i];
-            final a = cellCenter(path[i]);
-            final b = cellCenter(path[i + 1]);
-            final pos = Offset.lerp(a, b, localT)!;
-            final fade = sin(t * pi); // peaks at middle
-            canvas.drawCircle(
-              pos,
-              cellSize * 0.12,
-              Paint()
-                ..color = Colors.white
-                    .withValues(alpha: 0.55 * fade.clamp(0.0, 1.0)),
-            );
-            break;
+        // pulses — 3 evenly spaced, animated
+        const pulses = 3;
+        for (int k = 0; k < pulses; k++) {
+          final t = ((pulseT + k / pulses + idx * 0.13) % 1.0);
+          final dist = t * total;
+          // find segment
+          double d = 0;
+          for (int i = 0; i < segLens.length; i++) {
+            if (dist <= d + segLens[i]) {
+              final localT = (dist - d) / segLens[i];
+              final a = cellCenter(path[i]);
+              final b = cellCenter(path[i + 1]);
+              final pos = Offset.lerp(a, b, localT)!;
+              final fade = sin(t * pi); // peaks at middle
+              canvas.drawCircle(
+                pos,
+                cellSize * 0.12,
+                Paint()
+                  ..color = Colors.white.withValues(
+                    alpha: 0.55 * fade.clamp(0.0, 1.0),
+                  ),
+              );
+              break;
+            }
+            d += segLens[i];
           }
-          d += segLens[i];
         }
       }
-    }
     }
 
     // shots
@@ -1824,7 +1866,10 @@ class _TDPainter extends CustomPainter {
     for (final b in bloons) {
       final ratio = (b.hp / b.maxHp).clamp(0.0, 1.0);
       Color color = Color.lerp(
-          NunuColors.errorMain, NunuColors.successMain, ratio)!;
+        NunuColors.errorMain,
+        NunuColors.successMain,
+        ratio,
+      )!;
       double radius = cellSize * 0.32;
       if (b.kind == _BloonKind.elite) {
         color = Colors.deepOrangeAccent;
@@ -1838,9 +1883,10 @@ class _TDPainter extends CustomPainter {
           text: TextSpan(
             text: '?',
             style: TextStyle(
-                color: Colors.white,
-                fontSize: cellSize * 0.4,
-                fontWeight: FontWeight.w900),
+              color: Colors.white,
+              fontSize: cellSize * 0.4,
+              fontWeight: FontWeight.w900,
+            ),
           ),
           textDirection: TextDirection.ltr,
         )..layout();
@@ -1850,9 +1896,10 @@ class _TDPainter extends CustomPainter {
       if (ratio < 1) {
         final w = cellSize * 0.7;
         final barRect = Rect.fromCenter(
-            center: b.position - Offset(0, radius + 5),
-            width: w,
-            height: 3);
+          center: b.position - Offset(0, radius + 5),
+          width: w,
+          height: 3,
+        );
         canvas.drawRect(barRect, Paint()..color = Colors.black54);
         canvas.drawRect(
           Rect.fromLTWH(barRect.left, barRect.top, w * ratio, 3),
@@ -1874,7 +1921,9 @@ class _TDPainter extends CustomPainter {
     // towers
     for (final t in towers) {
       final center = Offset(
-          (t.cell.x + 0.5) * cellSize, (t.cell.y + 0.5) * cellSize);
+        (t.cell.x + 0.5) * cellSize,
+        (t.cell.y + 0.5) * cellSize,
+      );
       if (t == selected) {
         // range ring
         canvas.drawCircle(
@@ -1893,8 +1942,7 @@ class _TDPainter extends CustomPainter {
             ..strokeWidth = 2,
         );
       }
-      canvas.drawCircle(
-          center, cellSize * 0.4, Paint()..color = t.spec.color);
+      canvas.drawCircle(center, cellSize * 0.4, Paint()..color = t.spec.color);
       final tp = TextPainter(
         text: TextSpan(
           text: t.spec.emoji,
@@ -1905,16 +1953,22 @@ class _TDPainter extends CustomPainter {
       tp.paint(canvas, center - Offset(tp.width / 2, tp.height / 2));
       if (t.tier > 0) {
         final badge = Offset(
-            center.dx + cellSize * 0.28, center.dy - cellSize * 0.28);
+          center.dx + cellSize * 0.28,
+          center.dy - cellSize * 0.28,
+        );
         canvas.drawCircle(
-            badge, cellSize * 0.14, Paint()..color = NunuColors.warningMain);
+          badge,
+          cellSize * 0.14,
+          Paint()..color = NunuColors.warningMain,
+        );
         final tt = TextPainter(
           text: TextSpan(
             text: '${t.tier}',
             style: TextStyle(
-                color: Colors.black,
-                fontSize: cellSize * 0.18,
-                fontWeight: FontWeight.w900),
+              color: Colors.black,
+              fontSize: cellSize * 0.18,
+              fontWeight: FontWeight.w900,
+            ),
           ),
           textDirection: TextDirection.ltr,
         )..layout();
@@ -1925,9 +1979,4 @@ class _TDPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _TDPainter oldDelegate) => true;
-}
-
-// custom Ticker mixin lookup helper
-class _TickerHolder {
-  _TickerHolder();
 }

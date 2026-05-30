@@ -4,6 +4,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 import '../level_widget.dart';
 
 class LevelMultiTapSync extends LevelWidget {
@@ -59,6 +61,7 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
   bool _laneChordCompleted = false;
   bool _buttonHeld = false;
   double _buttonHoldProgress = 0;
+
   /// 0 = double tap, 1 = triple tap, 2 = hold button, 3 = don't click,
   /// 4 = hold three pads, 5 = swipe up on three lanes together,
   /// 6 = hold + swipe elsewhere
@@ -222,10 +225,9 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
     if (stageIndex >= _totalStages - 1) {
       widget.onComplete(
         LevelOutcome(
-          score: _stageScores.fold(0.0, (sum, value) => sum + value).clamp(
-            0.0,
-            1.0,
-          ),
+          score: _stageScores
+              .fold(0.0, (sum, value) => sum + value)
+              .clamp(0.0, 1.0),
           metrics: {
             'stages_passed': _stagePassed.where((passed) => passed).length,
             'lives_lost_total': _stageLivesLost.fold(
@@ -276,7 +278,8 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
       _laneSyncWindowTimer?.cancel();
       _laneSyncWindowTimer = Timer(_syncWindow, () {
         if (!mounted || _phase != _tripleLiftPhase) return;
-        if (_lanePointerToLane.values.toSet().length < 3 && !_laneChordCompleted) {
+        if (_lanePointerToLane.values.toSet().length < 3 &&
+            !_laneChordCompleted) {
           _loseLife('lanes desynced. start all three together.');
         }
       });
@@ -311,9 +314,7 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
     setState(() {
       _laneUpAccum[lane] = nextLane;
     });
-    if (n0 >= _laneUpNeeded &&
-        n1 >= _laneUpNeeded &&
-        n2 >= _laneUpNeeded) {
+    if (n0 >= _laneUpNeeded && n1 >= _laneUpNeeded && n2 >= _laneUpNeeded) {
       _completeCurrentPhase(passed: true);
     }
   }
@@ -585,49 +586,16 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
     }
   }
 
-  Widget _stageHeader(int stageIndex) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            'stage $stageIndex/$_totalStages',
-            style: TextStyle(
-              color: _cyanNeon.withValues(alpha: 0.75),
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 1.6,
-            ),
-          ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: List.generate(_livesPerStage, (i) {
-              final alive = i < _lives;
-              return Padding(
-                padding: EdgeInsets.only(left: i == 0 ? 0 : 4),
-                child: Icon(
-                  Icons.favorite_rounded,
-                  size: 22,
-                  color: alive
-                      ? const Color(0xFFFF5080)
-                      : Colors.white.withValues(alpha: 0.2),
-                ),
-              );
-            }),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _stagePanel({required Widget child}) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: _cyanNeon.withValues(alpha: 0.22), width: 1.5),
+        border: Border.all(
+          color: _cyanNeon.withValues(alpha: 0.22),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.24),
@@ -648,66 +616,62 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
     bool uppercaseStatus = true,
   }) {
     return Container(
-      decoration: BoxDecoration(
-        gradient: RadialGradient(
-          center: Alignment.center,
-          radius: 1.18,
-          colors: [
-            const Color(0xFF0D1B2A),
-            const Color(0xFF020810),
-          ],
-        ),
-      ),
+      color: NunuColors.backgroundDefault,
       child: Stack(
         children: [
           Positioned.fill(
-            child: CustomPaint(
-              painter: _GridPainter(animation: _spin),
-            ),
+            child: CustomPaint(painter: _GridPainter(animation: _spin)),
           ),
           Positioned.fill(
             child: IgnorePointer(
-              child: CustomPaint(
-                painter: _ScanlinePainter(),
-              ),
+              child: CustomPaint(painter: _ScanlinePainter()),
             ),
           ),
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
-              child: Column(
-                children: [
-                  _stageHeader(stageIndex),
-                  ShaderMask(
-                    shaderCallback: (bounds) => LinearGradient(
-                      colors: [accentColor, _magentaNeon],
-                    ).createShader(bounds),
-                    child: Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                        letterSpacing: 4,
-                      ),
+            child: Column(
+              children: [
+                LevelHud(
+                  stageText: '$stageIndex/$_totalStages',
+                  lives: LevelHud.emojiLives(_lives, _livesPerStage),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+                    child: Column(
+                      children: [
+                        ShaderMask(
+                          shaderCallback: (bounds) => LinearGradient(
+                            colors: [accentColor, _magentaNeon],
+                          ).createShader(bounds),
+                          child: Text(
+                            title,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              letterSpacing: 4,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          uppercaseStatus ? _status.toUpperCase() : _status,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: accentColor.withValues(alpha: 0.9),
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Expanded(child: body),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    uppercaseStatus ? _status.toUpperCase() : _status,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: accentColor.withValues(alpha: 0.9),
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Expanded(child: body),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],
@@ -749,6 +713,16 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
                   Icons.power_settings_new_rounded,
                   size: 68,
                   color: _cyanNeon,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '$_tapCount / $tapsRequired',
+                  style: TextStyle(
+                    color: _cyanNeon,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 3,
+                  ),
                 ),
               ],
             ),
@@ -919,16 +893,8 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
               height: 220,
               child: Row(
                 children: [
-                  syncButton(
-                    buttonId: 0,
-                    label: 'L',
-                    color: _cyanNeon,
-                  ),
-                  syncButton(
-                    buttonId: 1,
-                    label: 'R',
-                    color: _magentaNeon,
-                  ),
+                  syncButton(buttonId: 0, label: 'L', color: _cyanNeon),
+                  syncButton(buttonId: 1, label: 'R', color: _magentaNeon),
                 ],
               ),
             ),
@@ -991,7 +957,8 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
                     children: [
                       ...List.generate(3, (i) {
                         return Transform.rotate(
-                          angle: _spin.value * 2 * math.pi * (i.isEven ? 1 : -1),
+                          angle:
+                              _spin.value * 2 * math.pi * (i.isEven ? 1 : -1),
                           child: CustomPaint(
                             size: Size(280 - i * 30, 280 - i * 30),
                             painter: _RingPainter(
@@ -1292,12 +1259,7 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: coreColor,
-                    boxShadow: [
-                      BoxShadow(
-                        color: coreColor,
-                        blurRadius: 10,
-                      ),
-                    ],
+                    boxShadow: [BoxShadow(color: coreColor, blurRadius: 10)],
                   ),
                 ),
               ),
@@ -1526,9 +1488,7 @@ class _SyncPad extends StatelessWidget {
                 color: isActive ? color : color.withValues(alpha: 0.6),
                 fontWeight: FontWeight.w900,
                 fontSize: 28,
-                shadows: isActive
-                    ? [Shadow(color: color, blurRadius: 15)]
-                    : [],
+                shadows: isActive ? [Shadow(color: color, blurRadius: 15)] : [],
               ),
             ),
             Text(

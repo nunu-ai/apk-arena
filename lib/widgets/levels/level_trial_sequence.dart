@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 
 class LevelTrialSequence extends LevelWidget {
   const LevelTrialSequence({super.key, required super.onComplete});
@@ -181,9 +182,7 @@ class _LevelTrialSequenceState extends State<LevelTrialSequence>
     widget.onComplete(
       LevelOutcome(
         score: cappedMaxLength / _targetMaxLength,
-        metrics: {
-          'max_sequence_length': _maxLengthAchieved,
-        },
+        metrics: {'max_sequence_length': _maxLengthAchieved},
       ),
     );
   }
@@ -234,8 +233,14 @@ class _LevelTrialSequenceState extends State<LevelTrialSequence>
   }
 
   String get _timeLabel {
-    final minutes = _timeRemaining.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final seconds = _timeRemaining.inSeconds.remainder(60).toString().padLeft(2, '0');
+    final minutes = _timeRemaining.inMinutes
+        .remainder(60)
+        .toString()
+        .padLeft(2, '0');
+    final seconds = _timeRemaining.inSeconds
+        .remainder(60)
+        .toString()
+        .padLeft(2, '0');
     return '$minutes:$seconds';
   }
 
@@ -244,101 +249,47 @@ class _LevelTrialSequenceState extends State<LevelTrialSequence>
     return Container(
       color: NunuColors.backgroundDefault,
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Column(
-            children: [
-              _buildTopStats(),
-              const SizedBox(height: 20),
-              _buildProgressBar(),
-              const SizedBox(height: 20),
-              _buildAttemptLabel(),
-              const Spacer(flex: 2),
-              _buildFeedback(),
-              const SizedBox(height: 20),
-              AnimatedBuilder(
-                animation: _shakeOffset,
-                builder: (context, child) {
-                  return Transform.translate(
-                    offset: Offset(_shakeOffset.value, 0),
-                    child: child,
-                  );
-                },
-                child: _buildOptions(),
+        child: Column(
+          children: [
+            LevelHud(
+              timerText: _timeLabel,
+              trailing: Text(
+                'attempt $_attempts · max $_maxLengthAchieved',
+                style: const TextStyle(
+                  color: NunuColors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-              const Spacer(flex: 3),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTopStats() {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatCard(
-            label: 'time left',
-            value: _timeLabel,
-            valueColor: NunuColors.warningMain,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            label: 'attempts',
-            value: '$_attempts',
-            valueColor: NunuColors.primaryMain,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            label: 'max length',
-            value: '$_maxLengthAchieved',
-            valueColor: NunuColors.successMain,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatCard({
-    required String label,
-    required String value,
-    required Color valueColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: NunuColors.backgroundPaper,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: NunuColors.primaryDark.withValues(alpha: 0.35),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              color: NunuColors.textSecondary,
-              fontSize: 11,
-              letterSpacing: 1,
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: TextStyle(
-              color: valueColor,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+                child: Column(
+                  children: [
+                    _buildProgressBar(),
+                    const SizedBox(height: 20),
+                    _buildAttemptLabel(),
+                    const Spacer(flex: 2),
+                    _buildFeedback(),
+                    const SizedBox(height: 20),
+                    AnimatedBuilder(
+                      animation: _shakeOffset,
+                      builder: (context, child) {
+                        return Transform.translate(
+                          offset: Offset(_shakeOffset.value, 0),
+                          child: child,
+                        );
+                      },
+                      child: _buildOptions(),
+                    ),
+                    const Spacer(flex: 3),
+                  ],
+                ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
