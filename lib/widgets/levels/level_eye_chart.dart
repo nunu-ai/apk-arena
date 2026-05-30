@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 import '../level_widget.dart';
 
 class _StageConfig {
@@ -276,7 +277,9 @@ class _LevelEyeChartState extends State<LevelEyeChart> {
   void _generateStage() {
     final cfg = _stages[_stageIndex];
     final baseWord = _nextWord(cfg.minLength, cfg.maxLength);
-    _targetText = cfg.typoCount == 0 ? baseWord : _applyTypos(baseWord, cfg.typoCount);
+    _targetText = cfg.typoCount == 0
+        ? baseWord
+        : _applyTypos(baseWord, cfg.typoCount);
     _rows = _buildRows(cfg);
   }
 
@@ -295,10 +298,13 @@ class _LevelEyeChartState extends State<LevelEyeChart> {
       return choice;
     }
 
-    final fallback = _words
-        .where((word) => word.length >= minLength && word.length <= maxLength)
-        .toList()
-      ..shuffle(_rand);
+    final fallback =
+        _words
+            .where(
+              (word) => word.length >= minLength && word.length <= maxLength,
+            )
+            .toList()
+          ..shuffle(_rand);
     return fallback.first;
   }
 
@@ -339,7 +345,9 @@ class _LevelEyeChartState extends State<LevelEyeChart> {
     if (source == target) {
       return _applyTypos(source, max(1, cfg.typoCount));
     }
-    return _rand.nextBool() ? source : _applyTypos(source, max(1, cfg.typoCount));
+    return _rand.nextBool()
+        ? source
+        : _applyTypos(source, max(1, cfg.typoCount));
   }
 
   String _applyTypos(String word, int typoCount) {
@@ -458,48 +466,12 @@ class _LevelEyeChartState extends State<LevelEyeChart> {
       child: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: NunuColors.backgroundPaper.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: NunuColors.primaryMain.withOpacity(0.6),
-                        ),
-                      ),
-                      child: const Text(
-                        'type the center word exactly',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: NunuColors.backgroundPaper.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: NunuColors.secondaryMain.withOpacity(0.6),
-                      ),
-                    ),
-                    child: Text(
-                      'line ${_stageIndex + 1}/${_stages.length}',
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ),
-                ],
+            LevelHud(stageText: '${_stageIndex + 1}/${_stages.length}'),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(12, 8, 12, 0),
+              child: Text(
+                'type the center word exactly',
+                style: TextStyle(color: NunuColors.textSecondary, fontSize: 12),
               ),
             ),
             Expanded(
@@ -532,7 +504,9 @@ class _LevelEyeChartState extends State<LevelEyeChart> {
                                           : FontWeight.w700,
                                       color: row.isTarget
                                           ? textColor
-                                          : Colors.white.withOpacity(row.opacity),
+                                          : Colors.white.withOpacity(
+                                              row.opacity,
+                                            ),
                                       letterSpacing: cfg.fontSize * 0.05,
                                       height: 1,
                                     ),

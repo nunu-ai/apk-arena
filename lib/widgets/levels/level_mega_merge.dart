@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 import '../level_components/mega_merge/header_bar.dart';
 import '../level_components/mega_merge/profile_page.dart';
 import '../level_components/mega_merge/settings_page.dart';
@@ -66,7 +67,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
   static const int _orderSlotCount = 3;
   static const int _maxEnergy = 120;
   static const Duration _energyRegenInterval = Duration(seconds: 5);
-  static const Duration _runDuration = Duration(minutes: 29, seconds: 59);
+  static const Duration _runDuration = Duration(minutes: 30);
 
   final Random _random = Random();
   final Set<int> _manuallyUnlockedIndices = {};
@@ -118,18 +119,16 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
   @override
   void initState() {
     super.initState();
+    widget.registerTimeoutBuilder(_buildOutcome);
     _initializeLevel();
     _lastEnergyRegen = DateTime.now();
     _runEndsAt = DateTime.now().add(_runDuration);
-    _energyTimer = Timer.periodic(
-      const Duration(seconds: 1),
-      (_) {
-        if (!mounted || _runFinished) return;
-        setState(() {
-          _tickEnergyRegen();
-        });
-      },
-    );
+    _energyTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted || _runFinished) return;
+      setState(() {
+        _tickEnergyRegen();
+      });
+    });
     _runTimer = Timer(_runDuration, _finishRun);
   }
 
@@ -137,6 +136,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
   void dispose() {
     _energyTimer?.cancel();
     _runTimer?.cancel();
+    widget.clearTimeoutBuilder();
     super.dispose();
   }
 
@@ -144,16 +144,86 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
     _highestTier = 1;
 
     const List<int> mapDesign = [
-      -1, -1, 4, 5, 6, 7, -1, -1,
-      -1, 3, 3, 4, 5, 6, 7, -1,
-      2, 2, 2, 3, 3, 4, 6, 7,
-      2, 1, 1, 0, 1, 2, 5, 6,
-      1, 1, 0, 0, 0, 0, 4, 5,
-      2, 1, 1, 0, 2, 1, 5, 6,
-      3, 3, 2, 1, 1, 2, 6, 7,
-      -1, 4, 4, 5, 6, 7, 8, -1,
-      -1, -2, 5, 6, 7, 8, -2, -1,
-      -1, -1, 6, 7, 8, 9, -1, -1,
+      -1,
+      -1,
+      4,
+      5,
+      6,
+      7,
+      -1,
+      -1,
+      -1,
+      3,
+      3,
+      4,
+      5,
+      6,
+      7,
+      -1,
+      2,
+      2,
+      2,
+      3,
+      3,
+      4,
+      6,
+      7,
+      2,
+      1,
+      1,
+      0,
+      1,
+      2,
+      5,
+      6,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      4,
+      5,
+      2,
+      1,
+      1,
+      0,
+      2,
+      1,
+      5,
+      6,
+      3,
+      3,
+      2,
+      1,
+      1,
+      2,
+      6,
+      7,
+      -1,
+      4,
+      4,
+      5,
+      6,
+      7,
+      8,
+      -1,
+      -1,
+      -2,
+      5,
+      6,
+      7,
+      8,
+      -2,
+      -1,
+      -1,
+      -1,
+      6,
+      7,
+      8,
+      9,
+      -1,
+      -1,
     ];
 
     _gridUnlockLevels = List<int>.from(mapDesign);
@@ -327,7 +397,8 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
           if (tutorialTapCount == 2) targetIndex = _index(4, 5);
         }
         if (targetIndex != -1 &&
-            (_gridItems[targetIndex] != null || spawnTargets.contains(targetIndex))) {
+            (_gridItems[targetIndex] != null ||
+                spawnTargets.contains(targetIndex))) {
           targetIndex = -1;
         }
         if (targetIndex == -1) {
@@ -383,12 +454,12 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
 
     setState(() {
       if (target == null) {
-      _gridItems[toIndex] = source;
-      _gridItems[fromIndex] = null;
-      _focusedIndex = toIndex;
-      _processAutoMerge();
-      return;
-    }
+        _gridItems[toIndex] = source;
+        _gridItems[fromIndex] = null;
+        _focusedIndex = toIndex;
+        _processAutoMerge();
+        return;
+      }
 
       if (source.type == ItemType.part &&
           target.type == ItemType.part &&
@@ -665,23 +736,24 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
     return _cellKeys.putIfAbsent(index, () => GlobalKey());
   }
 
+  LevelOutcome _buildOutcome() {
+    final scoreTarget = _maxPossibleScore();
+    return LevelOutcome(
+      score: ((_sessionScore / scoreTarget).clamp(0.0, 1.0) as num).toDouble(),
+      metrics: {
+        'score_points': _sessionScore,
+        'orders_completed': _ordersCompleted,
+        'target_order_tier': _targetOrderTierForProgress(),
+        'highest_tier': _highestTier,
+        'merges': _totalMerges,
+      },
+    );
+  }
+
   void _finishRun() {
     if (!mounted || _runFinished) return;
     _runFinished = true;
-    final scoreTarget = _maxPossibleScore();
-    widget.onComplete(
-      LevelOutcome(
-        score: ((_sessionScore / scoreTarget).clamp(0.0, 1.0) as num)
-            .toDouble(),
-        metrics: {
-          'score_points': _sessionScore,
-          'orders_completed': _ordersCompleted,
-          'target_order_tier': _targetOrderTierForProgress(),
-          'highest_tier': _highestTier,
-          'merges': _totalMerges,
-        },
-      ),
-    );
+    widget.onComplete(_buildOutcome());
   }
 
   void _openShop() {
@@ -916,6 +988,13 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
           color: NunuColors.backgroundDefault,
           child: Column(
             children: [
+              LevelHud(
+                timerText: _remainingTimeLabel,
+                stageText: 'orders $_ordersCompleted',
+                infoTitle: 'mega merge',
+                infoBody:
+                    'tap the generator to spend energy and spawn parts, then drag matching tiers together to merge upward. deliver requested parts to active orders for score, coins, and energy. every four completed orders raises the target tier.',
+              ),
               MegaMergeHeaderBar(
                 playerLevel: _playerLevel,
                 currentXP: _currentXP,
@@ -1008,8 +1087,12 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
                             color: isCandidateValid
                                 ? NunuColors.primaryMain
                                 : (order.isActive
-                                      ? NunuColors.textSecondary.withOpacity(0.3)
-                                      : NunuColors.successMain.withOpacity(0.35)),
+                                      ? NunuColors.textSecondary.withOpacity(
+                                          0.3,
+                                        )
+                                      : NunuColors.successMain.withOpacity(
+                                          0.35,
+                                        )),
                             width: isCandidateValid ? 3 : 2,
                           ),
                         ),
@@ -1203,7 +1286,9 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
         ),
       );
     } else {
-      final itemColor = item.isFrozen ? Colors.grey : _getColorForTier(item.tier);
+      final itemColor = item.isFrozen
+          ? Colors.grey
+          : _getColorForTier(item.tier);
       child = Container(
         margin: const EdgeInsets.all(4),
         decoration: BoxDecoration(
@@ -1231,8 +1316,9 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
   }
 
   Widget _buildFooter() {
-    final activeBoosterIds =
-        _activeBoosters.keys.where(_isBoosterActive).toList();
+    final activeBoosterIds = _activeBoosters.keys
+        .where(_isBoosterActive)
+        .toList();
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1240,13 +1326,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
       child: SafeArea(
         top: false,
         child: Row(
-          children: [
-            _buildFooterStat('time', _remainingTimeLabel),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildBoosterStrip(activeBoosterIds),
-            ),
-          ],
+          children: [Expanded(child: _buildBoosterStrip(activeBoosterIds))],
         ),
       ),
     );
@@ -1331,27 +1411,5 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
       'boost_extra' => 'extra',
       _ => id.replaceFirst('boost_', ''),
     };
-  }
-
-  Widget _buildFooterStat(String label, String value) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            color: NunuColors.textPrimary,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        Text(
-          label,
-          style: TextStyle(
-            color: NunuColors.textSecondary.withOpacity(0.9),
-            fontSize: 11,
-          ),
-        ),
-      ],
-    );
   }
 }

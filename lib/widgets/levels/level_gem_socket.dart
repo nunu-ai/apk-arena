@@ -1,12 +1,12 @@
 import 'dart:math';
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
+import '../level_components/level_hud.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 
 class LevelGemSocket extends LevelWidget {
-  const LevelGemSocket({Key? key, required super.onComplete})
-      : super(key: key);
+  const LevelGemSocket({Key? key, required super.onComplete}) : super(key: key);
 
   @override
   State<LevelGemSocket> createState() => _LevelGemSocketState();
@@ -91,8 +91,11 @@ class _LevelGemSocketState extends State<LevelGemSocket>
     );
     _snapBackAnimation = Tween<Offset>(begin: Offset.zero, end: Offset.zero)
         .animate(
-      CurvedAnimation(parent: _snapBackController, curve: Curves.elasticOut),
-    );
+          CurvedAnimation(
+            parent: _snapBackController,
+            curve: Curves.elasticOut,
+          ),
+        );
     _snapBackController.addListener(() => setState(() {}));
 
     _liftController = AnimationController(
@@ -162,14 +165,16 @@ class _LevelGemSocketState extends State<LevelGemSocket>
   void _finishLevel() {
     if (_levelFinished) return;
     _levelFinished = true;
-    widget.onComplete(LevelOutcome(
-      score: _calculateScore(),
-      metrics: {
-        'stages_cleared': _stagesCleared,
-        'lives_remaining': _lives,
-        'max_lives': _maxLives,
-      },
-    ));
+    widget.onComplete(
+      LevelOutcome(
+        score: _calculateScore(),
+        metrics: {
+          'stages_cleared': _stagesCleared,
+          'lives_remaining': _lives,
+          'max_lives': _maxLives,
+        },
+      ),
+    );
   }
 
   void _onPanStart(DragStartDetails details) {
@@ -213,7 +218,8 @@ class _LevelGemSocketState extends State<LevelGemSocket>
       if (_driftDirection < 0) {
         targetX = pad + _rng.nextDouble() * ((w * 0.45) - pad).clamp(40.0, w);
       } else {
-        targetX = (w * 0.55) +
+        targetX =
+            (w * 0.55) +
             _rng.nextDouble() * (w - (w * 0.55) - pad).clamp(40.0, w);
       }
     } else {
@@ -264,33 +270,17 @@ class _LevelGemSocketState extends State<LevelGemSocket>
 
       _snapBackAnimation =
           Tween<Offset>(begin: displayPos, end: _gemRestPosition).animate(
-        CurvedAnimation(parent: _snapBackController, curve: Curves.elasticOut),
-      );
+            CurvedAnimation(
+              parent: _snapBackController,
+              curve: Curves.elasticOut,
+            ),
+          );
       _snapBackController.forward(from: 0);
 
       if (_lives == 0) {
         _finishLevel();
       }
     }
-  }
-
-  Widget _buildLivesRow() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(_maxLives, (i) {
-        final alive = i < _lives;
-        return Padding(
-          padding: EdgeInsets.only(left: i == 0 ? 0 : 1),
-          child: Icon(
-            alive ? Icons.favorite : Icons.favorite_border,
-            size: 14,
-            color: alive
-                ? NunuColors.primaryMain
-                : NunuColors.primaryLight.withValues(alpha: 0.28),
-          ),
-        );
-      }),
-    );
   }
 
   @override
@@ -322,9 +312,15 @@ class _LevelGemSocketState extends State<LevelGemSocket>
                   if (_isPlaced) _buildPlacedGem(),
                   if (_isDragging) _buildFingerIndicator(),
                   Positioned(
-                    right: 12,
-                    top: 8,
-                    child: IgnorePointer(child: _buildLivesRow()),
+                    left: 0,
+                    right: 0,
+                    top: 0,
+                    child: AbsorbPointer(
+                      child: LevelHud(
+                        stageText: '${_socketStage + 1}/$_totalStages',
+                        lives: LevelHud.emojiLives(_lives, _maxLives),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -338,8 +334,9 @@ class _LevelGemSocketState extends State<LevelGemSocket>
   Widget _buildTargetSocket() {
     final pulseValue = _pulseController.value;
     final glowOpacity = _isPlaced ? 0.8 : 0.15 + pulseValue * 0.2;
-    final glowColor =
-        _isPlaced ? NunuColors.successMain : NunuColors.secondaryMain;
+    final glowColor = _isPlaced
+        ? NunuColors.successMain
+        : NunuColors.secondaryMain;
 
     return Positioned(
       left: _targetCenter.dx - _targetSize / 2,
@@ -369,8 +366,7 @@ class _LevelGemSocketState extends State<LevelGemSocket>
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: const Color(0xFF1A1030),
-              border:
-                  Border.all(color: glowColor.withOpacity(0.3), width: 1.5),
+              border: Border.all(color: glowColor.withOpacity(0.3), width: 1.5),
             ),
           ),
         ),

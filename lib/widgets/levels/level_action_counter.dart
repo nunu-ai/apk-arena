@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 import '../level_widget.dart';
 
 class LevelActionCounter extends LevelWidget {
@@ -349,8 +350,7 @@ class _LevelActionCounterState extends State<LevelActionCounter> {
       child: SafeArea(
         child: Column(
           children: [
-            const SizedBox(height: 20),
-            _progressDots(),
+            LevelHud(stageText: '${_stage + 1}/$_totalStages'),
             Expanded(child: _body()),
           ],
         ),
@@ -376,31 +376,6 @@ class _LevelActionCounterState extends State<LevelActionCounter> {
     }
   }
 
-  // ---- progress ----
-
-  Widget _progressDots() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(_totalStages, (i) {
-        final past = i < _stage;
-        final active = i == _stage;
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 5),
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: past
-                ? NunuColors.primaryMain
-                : active
-                    ? NunuColors.primaryLight
-                    : NunuColors.primaryDark.withValues(alpha: 0.25),
-          ),
-        );
-      }),
-    );
-  }
-
   // ---- transition ----
 
   Widget _buildTransition() {
@@ -415,8 +390,7 @@ class _LevelActionCounterState extends State<LevelActionCounter> {
         ),
         child: Icon(
           _lastCorrect ? Icons.check_rounded : Icons.close_rounded,
-          color:
-              _lastCorrect ? NunuColors.successMain : NunuColors.errorMain,
+          color: _lastCorrect ? NunuColors.successMain : NunuColors.errorMain,
           size: 48,
         ),
       ),
@@ -616,10 +590,7 @@ class _LevelActionCounterState extends State<LevelActionCounter> {
           const Spacer(),
           grid,
           const Spacer(),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: actions,
-          ),
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: actions),
           const SizedBox(height: 32),
         ],
       ),
@@ -633,8 +604,9 @@ class _LevelActionCounterState extends State<LevelActionCounter> {
       decoration: BoxDecoration(
         color: NunuColors.backgroundPaper,
         borderRadius: BorderRadius.circular(14),
-        border:
-            Border.all(color: NunuColors.primaryDark.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: NunuColors.primaryDark.withValues(alpha: 0.3),
+        ),
       ),
       child: Text(
         text,
@@ -762,7 +734,8 @@ class _LevelActionCounterState extends State<LevelActionCounter> {
 
   Widget _blackoutCell(int slot) {
     final revealed = _s4Revealed;
-    final selected = revealed && _s4PressedSlots.isNotEmpty && _s4PressedSlots.last == slot;
+    final selected =
+        revealed && _s4PressedSlots.isNotEmpty && _s4PressedSlots.last == slot;
     final specIdx = _s4CurrentColors[slot];
     final spec = _allSpecs[specIdx];
     final color = revealed ? spec.color : Colors.black;
@@ -772,7 +745,9 @@ class _LevelActionCounterState extends State<LevelActionCounter> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: (revealed ? spec.color : Colors.black).withValues(alpha: 0.25),
+            color: (revealed ? spec.color : Colors.black).withValues(
+              alpha: 0.25,
+            ),
             blurRadius: 16,
             offset: const Offset(0, 5),
           ),
@@ -855,9 +830,7 @@ class _LevelActionCounterState extends State<LevelActionCounter> {
             ),
             decoration: InputDecoration(
               hintText: '0',
-              hintStyle: TextStyle(
-                color: Colors.white.withValues(alpha: 0.15),
-              ),
+              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.15)),
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 8,
@@ -925,9 +898,7 @@ class _LevelActionCounterState extends State<LevelActionCounter> {
             ),
             decoration: InputDecoration(
               hintText: hintText,
-              hintStyle: TextStyle(
-                color: Colors.white.withValues(alpha: 0.18),
-              ),
+              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.18)),
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 10,
@@ -1000,7 +971,9 @@ class _LevelActionCounterState extends State<LevelActionCounter> {
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: spec.color.withValues(alpha: isSelected ? 0.95 : 0.2),
+                    color: spec.color.withValues(
+                      alpha: isSelected ? 0.95 : 0.2,
+                    ),
                     borderRadius: BorderRadius.circular(999),
                     border: Border.all(
                       color: isSelected
@@ -1048,9 +1021,7 @@ class _LevelActionCounterState extends State<LevelActionCounter> {
             ? NunuColors.successMain
             : NunuColors.successMain.withValues(alpha: 0.2),
         foregroundColor: enabled ? Colors.white : Colors.white38,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
     return expand
@@ -1068,12 +1039,8 @@ class _LevelActionCounterState extends State<LevelActionCounter> {
       ),
       style: OutlinedButton.styleFrom(
         foregroundColor: NunuColors.primaryLight,
-        side: BorderSide(
-          color: NunuColors.primaryMain.withValues(alpha: 0.4),
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        side: BorderSide(color: NunuColors.primaryMain.withValues(alpha: 0.4)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       ),
     );

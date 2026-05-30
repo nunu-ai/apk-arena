@@ -5,6 +5,7 @@ import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 import '../level_widget.dart';
 
 /// Five stages: age range, exact age, two decimals, then reactor stabilization.
@@ -78,8 +79,7 @@ class _LevelSliderSkillsState extends State<LevelSliderSkills> {
       lives.clamp(0, _startingLives) * _scorePerLife;
 
   double get _temp => (_rodA * 0.6 + _rodB * 0.4 - 0.06).clamp(0.0, 1.0);
-  double get _pressure =>
-      (_rodB * 0.4 + _rodC * 0.6 + 0.12).clamp(0.0, 1.0);
+  double get _pressure => (_rodB * 0.4 + _rodC * 0.6 + 0.12).clamp(0.0, 1.0);
   double get _output => (_rodA * 0.3 + _rodC * 0.7 - 0.09).clamp(0.0, 1.0);
 
   bool _isStable(double value) =>
@@ -115,16 +115,18 @@ class _LevelSliderSkillsState extends State<LevelSliderSkills> {
   void _fail() {
     final stageScore = _scoreFromStages(_stage);
     final lifeScore = _scoreFromLives(_lives);
-    widget.onComplete(LevelOutcome(
-      score: stageScore + lifeScore,
-      metrics: {
-        'submit_attempts': _submitAttempts,
-        'stages_cleared': _stage,
-        'lives_remaining': _lives,
-        'score_from_stages': stageScore,
-        'score_from_lives': lifeScore,
-      },
-    ));
+    widget.onComplete(
+      LevelOutcome(
+        score: stageScore + lifeScore,
+        metrics: {
+          'submit_attempts': _submitAttempts,
+          'stages_cleared': _stage,
+          'lives_remaining': _lives,
+          'score_from_stages': stageScore,
+          'score_from_lives': lifeScore,
+        },
+      ),
+    );
   }
 
   void _advanceOrWin() {
@@ -132,16 +134,18 @@ class _LevelSliderSkillsState extends State<LevelSliderSkills> {
       _stabilityTimer?.cancel();
       final stageScore = _scoreFromStages(_totalStages);
       final lifeScore = _scoreFromLives(_lives);
-      widget.onComplete(LevelOutcome(
-        score: stageScore + lifeScore,
-        metrics: {
-          'submit_attempts': _submitAttempts,
-          'stages_cleared': _totalStages,
-          'lives_remaining': _lives,
-          'score_from_stages': stageScore,
-          'score_from_lives': lifeScore,
-        },
-      ));
+      widget.onComplete(
+        LevelOutcome(
+          score: stageScore + lifeScore,
+          metrics: {
+            'submit_attempts': _submitAttempts,
+            'stages_cleared': _totalStages,
+            'lives_remaining': _lives,
+            'score_from_stages': stageScore,
+            'score_from_lives': lifeScore,
+          },
+        ),
+      );
       return;
     }
     setState(() => _stage++);
@@ -199,41 +203,23 @@ class _LevelSliderSkillsState extends State<LevelSliderSkills> {
   }
 
   SliderThemeData get _ageSliderTheme => SliderThemeData(
-        activeTrackColor: NunuColors.primaryMain,
-        inactiveTrackColor: Colors.grey.shade700,
-        thumbColor: NunuColors.primaryMain,
-        overlayColor: NunuColors.primaryMain.withValues(alpha: 0.2),
-        trackHeight: 5,
-        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 16),
-      );
+    activeTrackColor: NunuColors.primaryMain,
+    inactiveTrackColor: Colors.grey.shade700,
+    thumbColor: NunuColors.primaryMain,
+    overlayColor: NunuColors.primaryMain.withValues(alpha: 0.2),
+    trackHeight: 5,
+    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 16),
+  );
 
   SliderThemeData get _decimalSliderTheme => SliderThemeData(
-        activeTrackColor: NunuColors.primaryMain,
-        inactiveTrackColor: Colors.grey.shade700,
-        thumbColor: NunuColors.primaryMain,
-        overlayColor: NunuColors.primaryMain.withValues(alpha: 0.2),
-        trackHeight: 5,
-        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 16),
-        showValueIndicator: ShowValueIndicator.onDrag,
-      );
-
-  Widget _livesRow() {
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: 3,
-      runSpacing: 4,
-      children: List.generate(_startingLives, (i) {
-        final alive = i < _lives;
-        return Icon(
-          alive ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-          size: 20,
-          color: alive
-              ? NunuColors.errorMain
-              : _subtleGrey.withValues(alpha: 0.45),
-        );
-      }),
-    );
-  }
+    activeTrackColor: NunuColors.primaryMain,
+    inactiveTrackColor: Colors.grey.shade700,
+    thumbColor: NunuColors.primaryMain,
+    overlayColor: NunuColors.primaryMain.withValues(alpha: 0.2),
+    trackHeight: 5,
+    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 16),
+    showValueIndicator: ShowValueIndicator.onDrag,
+  );
 
   Widget _hintLine(String text) {
     return Text(
@@ -365,11 +351,7 @@ class _LevelSliderSkillsState extends State<LevelSliderSkills> {
         ),
         child: Column(
           children: [
-            Icon(
-              Icons.cake_rounded,
-              color: NunuColors.primaryMain,
-              size: 40,
-            ),
+            Icon(Icons.cake_rounded, color: NunuColors.primaryMain, size: 40),
             const SizedBox(height: 12),
             Text(
               '$_targetAge',
@@ -417,11 +399,7 @@ class _LevelSliderSkillsState extends State<LevelSliderSkills> {
         ),
         child: Column(
           children: [
-            Icon(
-              icon,
-              color: NunuColors.primaryMain,
-              size: 40,
-            ),
+            Icon(icon, color: NunuColors.primaryMain, size: 40),
             if (targetLabel != null && targetLabel.isNotEmpty) ...[
               const SizedBox(height: 12),
               Text(
@@ -640,9 +618,7 @@ class _LevelSliderSkillsState extends State<LevelSliderSkills> {
                 inactiveTrackColor: Colors.black,
                 thumbColor: NunuColors.primaryMain,
                 overlayColor: NunuColors.primaryMain.withValues(alpha: 0.18),
-                thumbShape: const RoundSliderThumbShape(
-                  enabledThumbRadius: 13,
-                ),
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 13),
               ),
               child: Slider(
                 value: value,
@@ -752,51 +728,59 @@ class _LevelSliderSkillsState extends State<LevelSliderSkills> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _livesRow(),
-          const SizedBox(height: 16),
-          if (_stage == 0) ..._buildAgeRange(),
-          if (_stage == 1) ..._buildExactAge(),
-          if (_stage == 2)
-            ..._buildDecimalStage(
-              _vDec1,
-              _tDec1,
-              (v) => _vDec1 = v,
-              icon: Icons.tune_rounded,
-              showPersistentValueCard: true,
-              valueCardHeading: null,
-              allowedInteraction: SliderInteraction.slideOnly,
+    return Column(
+      children: [
+        LevelHud(
+          stageText: '${_stage + 1}/$_totalStages',
+          lives: LevelHud.emojiLives(_lives, _startingLives),
+        ),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (_stage == 0) ..._buildAgeRange(),
+                if (_stage == 1) ..._buildExactAge(),
+                if (_stage == 2)
+                  ..._buildDecimalStage(
+                    _vDec1,
+                    _tDec1,
+                    (v) => _vDec1 = v,
+                    icon: Icons.tune_rounded,
+                    showPersistentValueCard: true,
+                    valueCardHeading: null,
+                    allowedInteraction: SliderInteraction.slideOnly,
+                  ),
+                if (_stage == 3)
+                  ..._buildDecimalStage(
+                    _vDec2,
+                    _tDec2,
+                    (v) => _vDec2 = v,
+                    icon: Icons.linear_scale_rounded,
+                    showPersistentValueCard: false,
+                  ),
+                if (_stage == 4) ..._buildReactorStage(),
+                if (_stage != 4) ...[
+                  const SizedBox(height: 24),
+                  FilledButton(
+                    onPressed: _submit,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: NunuColors.primaryMain,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: Text(
+                      _primaryButtonLabel,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ],
             ),
-          if (_stage == 3)
-            ..._buildDecimalStage(
-              _vDec2,
-              _tDec2,
-              (v) => _vDec2 = v,
-              icon: Icons.linear_scale_rounded,
-              showPersistentValueCard: false,
-            ),
-          if (_stage == 4) ..._buildReactorStage(),
-          if (_stage != 4) ...[
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: _submit,
-              style: FilledButton.styleFrom(
-                backgroundColor: NunuColors.primaryMain,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              child: Text(
-                _primaryButtonLabel,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ],
-      ),
+          ),
+        ),
+      ],
     );
   }
 }

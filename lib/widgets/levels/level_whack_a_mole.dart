@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 
 class LevelWhackAMole extends LevelWidget {
   const LevelWhackAMole({super.key, required super.onComplete});
@@ -66,26 +67,24 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
         .toDouble();
     // Before the first keyframe.
     if (elapsed <= _lifetimeCurve.first[0]) {
-      return Duration(
-          milliseconds: (_lifetimeCurve.first[1] * 1000).round());
+      return Duration(milliseconds: (_lifetimeCurve.first[1] * 1000).round());
     }
     // Past the last keyframe — hold the final value.
     if (elapsed >= _lifetimeCurve.last[0]) {
-      return Duration(
-          milliseconds: (_lifetimeCurve.last[1] * 1000).round());
+      return Duration(milliseconds: (_lifetimeCurve.last[1] * 1000).round());
     }
     for (int i = 0; i < _lifetimeCurve.length - 1; i++) {
       final t0 = _lifetimeCurve[i][0];
       final t1 = _lifetimeCurve[i + 1][0];
       if (elapsed >= t0 && elapsed <= t1) {
         final frac = (elapsed - t0) / (t1 - t0);
-        final lifeSec = _lifetimeCurve[i][1] +
+        final lifeSec =
+            _lifetimeCurve[i][1] +
             (_lifetimeCurve[i + 1][1] - _lifetimeCurve[i][1]) * frac;
         return Duration(milliseconds: (lifeSec * 1000).round());
       }
     }
-    return Duration(
-        milliseconds: (_lifetimeCurve.last[1] * 1000).round());
+    return Duration(milliseconds: (_lifetimeCurve.last[1] * 1000).round());
   }
 
   void _startGame() {
@@ -165,10 +164,9 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
     final score = _totalSpawned > 0 ? _hits / _totalSpawned : 0.0;
 
     Future.delayed(const Duration(milliseconds: 400), () {
-      widget.onComplete(LevelOutcome(score: score, metrics: {
-        'hits': _hits,
-        'missed': _missed,
-      }));
+      widget.onComplete(
+        LevelOutcome(score: score, metrics: {'hits': _hits, 'missed': _missed}),
+      );
     });
   }
 
@@ -183,67 +181,35 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
   Widget build(BuildContext context) {
     return Container(
       color: NunuColors.backgroundDefault,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _buildHeader(),
-            const SizedBox(height: 8),
-            _buildTimerBar(),
-            const SizedBox(height: 16),
-            Expanded(
+      child: Column(
+        children: [
+          LevelHud(
+            timerText: _formatTime(_secondsRemaining),
+            trailing: Text(
+              'hits $_hits',
+              style: const TextStyle(
+                color: NunuColors.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: _buildTimerBar(),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Stack(
-                children: [
-                  _buildGrid(),
-                  if (!_started) _buildStartOverlay(),
-                ],
+                children: [_buildGrid(), if (!_started) _buildStartOverlay()],
               ),
             ),
-            const SizedBox(height: 8),
-          ],
-        ),
+          ),
+          const SizedBox(height: 8),
+        ],
       ),
-    );
-  }
-
-  Widget _buildHeader() {
-    final lowTime = _started && _secondsRemaining <= 10;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          _formatTime(_secondsRemaining),
-          style: TextStyle(
-            fontSize: 36,
-            fontWeight: FontWeight.bold,
-            color: lowTime ? NunuColors.errorMain : NunuColors.primaryMain,
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          decoration: BoxDecoration(
-            color: NunuColors.backgroundPaper,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: NunuColors.primaryDark.withOpacity(0.5),
-            ),
-          ),
-          child: Row(
-            children: [
-              const Text('🔨', style: TextStyle(fontSize: 20)),
-              const SizedBox(width: 8),
-              Text(
-                '$_hits',
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: NunuColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 
@@ -334,21 +300,21 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
                                 style: TextStyle(fontSize: 36),
                               )
                             : wasJustWhacked
-                                ? const Text(
-                                    '💥',
-                                    key: ValueKey('hit'),
-                                    style: TextStyle(fontSize: 28),
-                                  )
-                                : Container(
-                                    key: const ValueKey('empty'),
-                                    width: 24,
-                                    height: 24,
-                                    decoration: BoxDecoration(
-                                      color: NunuColors.backgroundDefault
-                                          .withOpacity(0.5),
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
+                            ? const Text(
+                                '💥',
+                                key: ValueKey('hit'),
+                                style: TextStyle(fontSize: 28),
+                              )
+                            : Container(
+                                key: const ValueKey('empty'),
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: NunuColors.backgroundDefault
+                                      .withOpacity(0.5),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
                       ),
                     ),
                   ),
@@ -394,8 +360,10 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: NunuColors.primaryMain,
                 foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 56, vertical: 18),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 56,
+                  vertical: 18,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -413,15 +381,11 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
             const SizedBox(height: 14),
             const Text(
               '5 minutes — moles get faster',
-              style: TextStyle(
-                color: NunuColors.textSecondary,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: NunuColors.textSecondary, fontSize: 12),
             ),
           ],
         ),
       ),
     );
   }
-
 }

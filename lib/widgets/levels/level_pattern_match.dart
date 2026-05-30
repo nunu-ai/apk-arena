@@ -3,6 +3,7 @@ import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 
 class LevelPatternMatch extends LevelWidget {
   const LevelPatternMatch({super.key, required super.onComplete});
@@ -188,61 +189,72 @@ class _LevelPatternMatchState extends State<LevelPatternMatch> {
     return Container(
       color: NunuColors.backgroundDefault,
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Text(
-                'stage ${_stageIndex + 1} / ${_stageGridSizes.length} · ${_gridSize}x$_gridSize',
+        child: Column(
+          children: [
+            LevelHud(
+              stageText: '${_stageIndex + 1}/${_stageGridSizes.length}',
+              trailing: Text(
+                '${_gridSize}x$_gridSize',
                 style: const TextStyle(
-                  color: NunuColors.primaryLight,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+                  color: NunuColors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: 8),
-              _buildReferencePanel(),
-              const SizedBox(height: 20),
-              const Text(
-                'fix the submitted draft',
-                style: TextStyle(color: NunuColors.textSecondary, fontSize: 14),
-              ),
-              const SizedBox(height: 8),
-              // Player grid (interactive)
-              Expanded(child: _buildPlayerGrid()),
-              const SizedBox(height: 16),
-              // Buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _onResetDraft,
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: NunuColors.textSecondary),
-                        foregroundColor: NunuColors.textSecondary,
-                      ),
-                      child: const Text('reset'),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    flex: 2,
-                    child: ElevatedButton(
-                      onPressed: _onSubmit,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: NunuColors.primaryMain,
-                      ),
-                      child: Text(
-                        _stageIndex == _stageGridSizes.length - 1
-                            ? 'submit run'
-                            : 'submit stage',
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    _buildReferencePanel(),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'fix the submitted draft',
+                      style: TextStyle(
+                        color: NunuColors.textSecondary,
+                        fontSize: 14,
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    Expanded(child: _buildPlayerGrid()),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _onResetDraft,
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(
+                                color: NunuColors.textSecondary,
+                              ),
+                              foregroundColor: NunuColors.textSecondary,
+                            ),
+                            child: const Text('reset'),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed: _onSubmit,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: NunuColors.primaryMain,
+                            ),
+                            child: Text(
+                              _stageIndex == _stageGridSizes.length - 1
+                                  ? 'submit run'
+                                  : 'submit stage',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

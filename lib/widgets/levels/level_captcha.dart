@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 
+import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 import '../level_widget.dart';
 
 class LevelCaptcha extends LevelWidget {
@@ -149,7 +151,8 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
     if (_step == _CaptchaStep.imageGrid && _gridSelected.isNotEmpty) {
       return false;
     }
-    if (_step == _CaptchaStep.trafficLightsGrid && _trafficSelected.isNotEmpty) {
+    if (_step == _CaptchaStep.trafficLightsGrid &&
+        _trafficSelected.isNotEmpty) {
       return false;
     }
     return !_stageActionLocked && !_isFinished;
@@ -322,53 +325,35 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Colors.grey.shade900, Colors.black],
-        ),
-      ),
-      child: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [_buildStageHeader(), const SizedBox(height: 12), _buildStep()],
+      color: NunuColors.backgroundDefault,
+      child: Column(
+        children: [
+          LevelHud(
+            stageText: '$_stageNumber/$_totalStages',
+            trailing: TextButton(
+              onPressed: _canSkipStage ? _skipStage : null,
+              style: TextButton.styleFrom(
+                foregroundColor: NunuColors.primaryLight,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text('skip'),
             ),
           ),
-        ),
+          Expanded(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: _buildStep(),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
-    );
-  }
-
-  Widget _buildStageHeader() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          'stage $_stageNumber of $_totalStages',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const Spacer(),
-        TextButton(
-          onPressed: _canSkipStage ? _skipStage : null,
-          style: TextButton.styleFrom(
-            foregroundColor: Colors.white70,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            minimumSize: Size.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-          child: const Text('skip stage'),
-        ),
-      ],
     );
   }
 
@@ -378,13 +363,19 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
         return _wrapCard(_buildGate());
       case _CaptchaStep.textCaptcha1:
         return _wrapCard(
-          _buildTextCaptcha(assetPath: 'assets/captcha/text_1.png', onVerify: _verifyText1),
+          _buildTextCaptcha(
+            assetPath: 'assets/captcha/text_1.png',
+            onVerify: _verifyText1,
+          ),
         );
       case _CaptchaStep.imageGrid:
         return _buildImageGrid();
       case _CaptchaStep.textCaptcha2:
         return _wrapCard(
-          _buildTextCaptcha(assetPath: 'assets/captcha/text_2.png', onVerify: _verifyText2),
+          _buildTextCaptcha(
+            assetPath: 'assets/captcha/text_2.png',
+            onVerify: _verifyText2,
+          ),
         );
       case _CaptchaStep.trafficLightsGrid:
         return _buildTrafficLightsGrid();
@@ -417,14 +408,21 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
       children: [
         const Text(
           'before you continue!',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
         const SizedBox(height: 24),
         GestureDetector(
           onTap: _gateTap,
           child: Container(
             padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+            ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -459,7 +457,10 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
     );
   }
 
-  Widget _buildTextCaptcha({required String assetPath, required VoidCallback onVerify}) {
+  Widget _buildTextCaptcha({
+    required String assetPath,
+    required VoidCallback onVerify,
+  }) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -475,13 +476,21 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(4),
-            child: Image.asset(assetPath, fit: BoxFit.contain, width: double.infinity),
+            child: Image.asset(
+              assetPath,
+              fit: BoxFit.contain,
+              width: double.infinity,
+            ),
           ),
         ),
         const SizedBox(height: 16),
         TextField(
           controller: _textCtrl,
-          style: const TextStyle(color: Colors.white, fontSize: 18, letterSpacing: 2),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            letterSpacing: 2,
+          ),
           textCapitalization: TextCapitalization.none,
           autocorrect: false,
           decoration: InputDecoration(
@@ -531,7 +540,10 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
                   Positioned.fill(
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(4),
-                      child: Image.asset('assets/captcha/grid_taxis.png', fit: BoxFit.fill),
+                      child: Image.asset(
+                        'assets/captcha/grid_taxis.png',
+                        fit: BoxFit.fill,
+                      ),
                     ),
                   ),
                   for (var row = 0; row < 3; row++)
@@ -575,9 +587,11 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
         final width = constraints.maxWidth;
         final fullImageH = width * _trafficNaturalH / _trafficNaturalW;
         final gridTop = fullImageH * _trafficGridTopFrac;
-        final gridHeight = fullImageH * (_trafficGridBottomFrac - _trafficGridTopFrac);
+        final gridHeight =
+            fullImageH * (_trafficGridBottomFrac - _trafficGridTopFrac);
         final gridLeft = width * _trafficGridLeftFrac;
-        final gridWidth = width * (_trafficGridRightFrac - _trafficGridLeftFrac);
+        final gridWidth =
+            width * (_trafficGridRightFrac - _trafficGridLeftFrac);
         final cellW = gridWidth / 4;
         final cellH = gridHeight / 4;
 
@@ -660,15 +674,23 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           decoration: BoxDecoration(
-            color: selected ? const Color(0xFF4285F4).withValues(alpha: 0.4) : Colors.transparent,
-            border: selected ? Border.all(color: const Color(0xFF4285F4), width: 3) : null,
+            color: selected
+                ? const Color(0xFF4285F4).withValues(alpha: 0.4)
+                : Colors.transparent,
+            border: selected
+                ? Border.all(color: const Color(0xFF4285F4), width: 3)
+                : null,
           ),
           child: selected
               ? const Align(
                   alignment: Alignment.bottomRight,
                   child: Padding(
                     padding: EdgeInsets.all(4),
-                    child: Icon(Icons.check_circle, color: Colors.white, size: 24),
+                    child: Icon(
+                      Icons.check_circle,
+                      color: Colors.white,
+                      size: 24,
+                    ),
                   ),
                 )
               : null,
@@ -701,7 +723,10 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
                 floorB: _floorGreenLight,
                 child: Transform.rotate(
                   angle: _targetFacing * (pi / 4),
-                  child: CustomPaint(size: const Size(88, 88), painter: _HandPointerPainter()),
+                  child: CustomPaint(
+                    size: const Size(88, 88),
+                    painter: _HandPointerPainter(),
+                  ),
                 ),
               ),
             ),
@@ -716,14 +741,19 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
                   children: [
                     Transform.rotate(
                       angle: _animalFacing * (pi / 4),
-                      child: CustomPaint(size: const Size(88, 88), painter: _DogFacingPainter()),
+                      child: CustomPaint(
+                        size: const Size(88, 88),
+                        painter: _DogFacingPainter(),
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         IconButton.filled(
-                          onPressed: () => setState(() => _animalFacing = (_animalFacing + 7) % 8),
+                          onPressed: () => setState(
+                            () => _animalFacing = (_animalFacing + 7) % 8,
+                          ),
                           icon: const Icon(Icons.arrow_back),
                           style: IconButton.styleFrom(
                             backgroundColor: Colors.white24,
@@ -731,7 +761,9 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
                           ),
                         ),
                         IconButton.filled(
-                          onPressed: () => setState(() => _animalFacing = (_animalFacing + 1) % 8),
+                          onPressed: () => setState(
+                            () => _animalFacing = (_animalFacing + 1) % 8,
+                          ),
                           icon: const Icon(Icons.arrow_forward),
                           style: IconButton.styleFrom(
                             backgroundColor: Colors.white24,
@@ -749,7 +781,10 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
         const SizedBox(height: 18),
         SizedBox(
           width: double.infinity,
-          child: FilledButton(onPressed: _verifyMatchFacing, child: const Text('submit')),
+          child: FilledButton(
+            onPressed: _verifyMatchFacing,
+            child: const Text('submit'),
+          ),
         ),
       ],
     );
@@ -775,7 +810,10 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
                 floorB: _floorGreenLight,
                 child: Transform.rotate(
                   angle: _targetFacing * (pi / 4),
-                  child: CustomPaint(size: const Size(88, 88), painter: _ArrowPainter()),
+                  child: CustomPaint(
+                    size: const Size(88, 88),
+                    painter: _ArrowPainter(),
+                  ),
                 ),
               ),
             ),
@@ -790,14 +828,19 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
                   children: [
                     Transform.rotate(
                       angle: _animalFacing * (pi / 4),
-                      child: CustomPaint(size: const Size(88, 88), painter: _CatFacingPainter()),
+                      child: CustomPaint(
+                        size: const Size(88, 88),
+                        painter: _CatFacingPainter(),
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         IconButton.filled(
-                          onPressed: () => setState(() => _animalFacing = (_animalFacing + 7) % 8),
+                          onPressed: () => setState(
+                            () => _animalFacing = (_animalFacing + 7) % 8,
+                          ),
                           icon: const Icon(Icons.arrow_back),
                           style: IconButton.styleFrom(
                             backgroundColor: Colors.white24,
@@ -805,7 +848,9 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
                           ),
                         ),
                         IconButton.filled(
-                          onPressed: () => setState(() => _animalFacing = (_animalFacing + 1) % 8),
+                          onPressed: () => setState(
+                            () => _animalFacing = (_animalFacing + 1) % 8,
+                          ),
                           icon: const Icon(Icons.arrow_forward),
                           style: IconButton.styleFrom(
                             backgroundColor: Colors.white24,
@@ -823,7 +868,10 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
         const SizedBox(height: 18),
         SizedBox(
           width: double.infinity,
-          child: FilledButton(onPressed: _verifyMatchFacing2, child: const Text('submit')),
+          child: FilledButton(
+            onPressed: _verifyMatchFacing2,
+            child: const Text('submit'),
+          ),
         ),
       ],
     );
@@ -835,7 +883,11 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
       children: [
         const Text(
           'additional security check',
-          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 16),
         Container(
@@ -875,7 +927,11 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
         const SizedBox(height: 16),
         TextField(
           controller: _textCtrl,
-          style: const TextStyle(color: Colors.white, fontSize: 18, letterSpacing: 1),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            letterSpacing: 1,
+          ),
           textCapitalization: TextCapitalization.none,
           autocorrect: false,
           decoration: InputDecoration(
@@ -889,7 +945,10 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
         const SizedBox(height: 12),
         Align(
           alignment: Alignment.centerRight,
-          child: FilledButton(onPressed: _verifyDeathToHumans, child: const Text('submit')),
+          child: FilledButton(
+            onPressed: _verifyDeathToHumans,
+            child: const Text('submit'),
+          ),
         ),
       ],
     );
@@ -901,7 +960,11 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
       children: [
         const Text(
           'final verification',
-          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 16),
         Container(
@@ -930,7 +993,11 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
         const SizedBox(height: 12),
         TextField(
           controller: _textCtrl,
-          style: const TextStyle(color: Colors.white, fontSize: 18, letterSpacing: 1),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            letterSpacing: 1,
+          ),
           textCapitalization: TextCapitalization.none,
           autocorrect: false,
           decoration: InputDecoration(
@@ -944,7 +1011,10 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
         const SizedBox(height: 12),
         Align(
           alignment: Alignment.centerRight,
-          child: FilledButton(onPressed: _verifyConfirmHuman, child: const Text('submit')),
+          child: FilledButton(
+            onPressed: _verifyConfirmHuman,
+            child: const Text('submit'),
+          ),
         ),
       ],
     );
@@ -988,15 +1058,9 @@ class _FacingStage extends StatelessWidget {
               fit: StackFit.expand,
               children: [
                 CustomPaint(
-                  painter: _DiamondFloorPainter(
-                    colorA: floorA,
-                    colorB: floorB,
-                  ),
+                  painter: _DiamondFloorPainter(colorA: floorA, colorB: floorB),
                 ),
-                Align(
-                  alignment: const Alignment(0, 0.15),
-                  child: child,
-                ),
+                Align(alignment: const Alignment(0, 0.15), child: child),
               ],
             ),
           ),
@@ -1058,11 +1122,7 @@ class _HandPointerPainter extends CustomPainter {
 
     // Wrist cuff at the back (-x side) — a colored band identifies orientation.
     final cuffRect = RRect.fromRectAndRadius(
-      Rect.fromCenter(
-        center: Offset(cx - 26, cy + 1),
-        width: 16,
-        height: 26,
-      ),
+      Rect.fromCenter(center: Offset(cx - 26, cy + 1), width: 16, height: 26),
       const Radius.circular(3),
     );
     canvas.drawRRect(cuffRect, fillCuff);
@@ -1104,11 +1164,7 @@ class _HandPointerPainter extends CustomPainter {
 
     // Curled second/third/fourth finger ridges along the front of the fist.
     for (var i = 0; i < 3; i++) {
-      canvas.drawCircle(
-        Offset(cx + 4, cy + 2 + i * 6.0),
-        2.2,
-        fillShade,
-      );
+      canvas.drawCircle(Offset(cx + 4, cy + 2 + i * 6.0), 2.2, fillShade);
     }
 
     // Fingernail highlight near the tip.
@@ -1116,10 +1172,7 @@ class _HandPointerPainter extends CustomPainter {
       Rect.fromCenter(center: Offset(cx + 26, cy - 4), width: 6, height: 7),
       const Radius.circular(2),
     );
-    canvas.drawRRect(
-      nail,
-      Paint()..color = const Color(0xFFFFF3E2),
-    );
+    canvas.drawRRect(nail, Paint()..color = const Color(0xFFFFF3E2));
 
     // Bright tip marker in front of the fingertip — strongest direction cue.
     final tipPath = Path()
@@ -1127,10 +1180,7 @@ class _HandPointerPainter extends CustomPainter {
       ..lineTo(cx + 40, cy - 9)
       ..lineTo(cx + 40, cy + 1)
       ..close();
-    canvas.drawPath(
-      tipPath,
-      Paint()..color = const Color(0xFFE55CD8),
-    );
+    canvas.drawPath(tipPath, Paint()..color = const Color(0xFFE55CD8));
     canvas.drawPath(
       tipPath,
       Paint()

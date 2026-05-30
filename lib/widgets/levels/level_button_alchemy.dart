@@ -3,10 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:apk_arena/models/level_outcome.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 
 class LevelButtonAlchemy extends LevelWidget {
   const LevelButtonAlchemy({Key? key, required super.onComplete})
-      : super(key: key);
+    : super(key: key);
 
   @override
   State<LevelButtonAlchemy> createState() => _LevelButtonAlchemyState();
@@ -162,8 +163,9 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
     _metrics['stage_${i}_moves'] = _moveCount;
     _metrics['stage_${i}_optimal'] = optimal;
     _metrics['stage_${i}_par'] = optimal + _explorePerButton * _numButtons;
-    _metrics['stage_${i}_score'] =
-        double.parse(_stageScores.last.toStringAsFixed(2));
+    _metrics['stage_${i}_score'] = double.parse(
+      _stageScores.last.toStringAsFixed(2),
+    );
     if (skipped) _metrics['stage_${i}_skipped'] = true;
   }
 
@@ -188,20 +190,21 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
       _stageScores.add(0);
     }
 
-    final avgScore =
-        _stageScores.fold(0.0, (a, b) => a + b) / _stages.length;
+    final avgScore = _stageScores.fold(0.0, (a, b) => a + b) / _stages.length;
     int totalMoves = 0;
     for (int i = 1; i <= _stages.length; i++) {
       totalMoves += (_metrics['stage_${i}_moves'] as int?) ?? 0;
     }
     _metrics['total_moves'] = totalMoves;
-    widget.onComplete(LevelOutcome(
-      score: avgScore,
-      metrics: _metrics,
-      visibleMetricKeys: [
-        for (int i = 1; i <= _stages.length; i++) 'stage_${i}_score',
-      ],
-    ));
+    widget.onComplete(
+      LevelOutcome(
+        score: avgScore,
+        metrics: _metrics,
+        visibleMetricKeys: [
+          for (int i = 1; i <= _stages.length; i++) 'stage_${i}_score',
+        ],
+      ),
+    );
   }
 
   // ── build ──
@@ -213,77 +216,76 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
 
     return Container(
       color: NunuColors.backgroundDefault,
-      padding: const EdgeInsets.all(16),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 500),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildProgressDots(),
-              const SizedBox(height: 16),
-              _buildCard(stage, textTheme),
-              const SizedBox(height: 16),
-              Row(
-                children: List.generate(
-                  _numButtons,
-                  (i) => _buildOpButton(
-                    label: _buttonLabels[i],
-                    onPressed:
-                        _stageComplete ? null : () => _pressOp(i),
-                    color: _buttonColors[i],
+      child: Column(
+        children: [
+          LevelHud(
+            stageText: '${_stageIndex + 1}/${_stages.length}',
+            trailing: Text(
+              'moves $_moveCount',
+              style: const TextStyle(
+                color: NunuColors.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 500),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildCard(stage, textTheme),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: List.generate(
+                          _numButtons,
+                          (i) => _buildOpButton(
+                            label: _buttonLabels[i],
+                            onPressed: _stageComplete
+                                ? null
+                                : () => _pressOp(i),
+                            color: _buttonColors[i],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          TextButton.icon(
+                            onPressed: _stageComplete ? null : _reset,
+                            icon: const Icon(
+                              Icons.restart_alt,
+                              size: 18,
+                              color: NunuColors.errorLight,
+                            ),
+                            label: const Text(
+                              'reset value',
+                              style: TextStyle(color: NunuColors.errorLight),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: _stageComplete ? null : _skipStage,
+                            child: const Text(
+                              'skip stage',
+                              style: TextStyle(color: NunuColors.textSecondary),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  TextButton.icon(
-                    onPressed: _stageComplete ? null : _reset,
-                    icon: const Icon(Icons.restart_alt,
-                        size: 18, color: NunuColors.errorLight),
-                    label: const Text('reset value',
-                        style: TextStyle(color: NunuColors.errorLight)),
-                  ),
-                  TextButton(
-                    onPressed: _stageComplete ? null : _skipStage,
-                    child: const Text('skip stage',
-                        style:
-                            TextStyle(color: NunuColors.textSecondary)),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
-    );
-  }
-
-  Widget _buildProgressDots() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(_stages.length, (i) {
-        final Color color;
-        if (i < _stageIndex || (i == _stageIndex && _stageComplete)) {
-          color = NunuColors.successMain;
-        } else if (i == _stageIndex) {
-          color = NunuColors.primaryMain;
-        } else {
-          color = NunuColors.backgroundPaper;
-        }
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          width: 40,
-          height: 6,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(3),
-            color: color,
-          ),
-        );
-      }),
     );
   }
 
@@ -312,8 +314,9 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
         const SizedBox(height: 4),
         Text(
           '$_moveCount moves',
-          style:
-              textTheme.bodyMedium?.copyWith(color: NunuColors.textSecondary),
+          style: textTheme.bodyMedium?.copyWith(
+            color: NunuColors.textSecondary,
+          ),
         ),
         const SizedBox(height: 8),
       ],
@@ -326,21 +329,24 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
       children: [
         Text(
           'target',
-          style:
-              textTheme.titleSmall?.copyWith(color: NunuColors.textSecondary),
+          style: textTheme.titleSmall?.copyWith(
+            color: NunuColors.textSecondary,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           stage.target.toString(),
-          style: textTheme.headlineLarge
-              ?.copyWith(color: NunuColors.primaryLight),
+          style: textTheme.headlineLarge?.copyWith(
+            color: NunuColors.primaryLight,
+          ),
         ),
         if (stage.modulus != null) ...[
           const SizedBox(height: 4),
           Text(
             'mod ${stage.modulus}',
-            style: textTheme.bodySmall
-                ?.copyWith(color: NunuColors.textSecondary),
+            style: textTheme.bodySmall?.copyWith(
+              color: NunuColors.textSecondary,
+            ),
           ),
         ],
         const SizedBox(height: 16),
@@ -348,8 +354,9 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
         const SizedBox(height: 16),
         Text(
           'current',
-          style:
-              textTheme.titleSmall?.copyWith(color: NunuColors.textSecondary),
+          style: textTheme.titleSmall?.copyWith(
+            color: NunuColors.textSecondary,
+          ),
         ),
         const SizedBox(height: 4),
         Row(
@@ -357,21 +364,20 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
             Expanded(
               child: Text(
                 _value.toString(),
-                style: textTheme.headlineMedium
-                    ?.copyWith(color: Colors.white),
+                style: textTheme.headlineMedium?.copyWith(color: Colors.white),
               ),
             ),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: NunuColors.primaryDark.withValues(alpha: 0.25),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
                 'moves: $_moveCount',
-                style: textTheme.bodySmall
-                    ?.copyWith(color: NunuColors.primaryLight),
+                style: textTheme.bodySmall?.copyWith(
+                  color: NunuColors.primaryLight,
+                ),
               ),
             ),
           ],
@@ -392,7 +398,9 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
         child: ElevatedButton(
           onPressed: onPressed,
           style: ElevatedButton.styleFrom(
-            backgroundColor: color.withValues(alpha: onPressed != null ? 0.7 : 0.25),
+            backgroundColor: color.withValues(
+              alpha: onPressed != null ? 0.7 : 0.25,
+            ),
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 16),
           ),

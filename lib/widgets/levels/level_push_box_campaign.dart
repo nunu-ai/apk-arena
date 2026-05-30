@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 import '../level_widget.dart';
 
 /// Sokoban-style campaign: five hardcoded boards, gated progression,
@@ -132,6 +133,7 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
   @override
   void initState() {
     super.initState();
+    widget.registerTimeoutBuilder(_buildTimeoutOutcome);
     _loadStage(_stageIndex);
     _startBudgetTimer();
   }
@@ -139,7 +141,27 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
   @override
   void dispose() {
     _budgetTimer?.cancel();
+    widget.clearTimeoutBuilder();
     super.dispose();
+  }
+
+  LevelOutcome _buildTimeoutOutcome() {
+    final score = _stagesCleared / _stageCount;
+    return LevelOutcome(
+      score: score,
+      metrics: {
+        'stages_cleared': _stagesCleared,
+        'moves': _totalMoves,
+        'pushes': _totalPushes,
+      },
+    );
+  }
+
+  String _formatTime(int seconds) {
+    final safe = seconds.clamp(0, 99999);
+    final m = (safe ~/ 60).toString().padLeft(2, '0');
+    final s = (safe % 60).toString().padLeft(2, '0');
+    return '$m:$s';
   }
 
   void _startBudgetTimer() {
@@ -364,6 +386,13 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
       child: SafeArea(
         child: Column(
           children: [
+            LevelHud(
+              timerText: _formatTime(_secondsRemaining),
+              stageText: '${_stageIndex + 1}/$_stageCount',
+              infoTitle: 'push-box gauntlet',
+              infoBody:
+                  'push every crate onto a glowing goal. use undo for one move back or reset for the current board. the run starts with 15:00 and earns +3:00 after each cleared stage.',
+            ),
             Expanded(child: Center(child: _buildGrid())),
             const SizedBox(height: 4),
             _buildControls(),

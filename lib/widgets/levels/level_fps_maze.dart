@@ -69,6 +69,7 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
   @override
   void initState() {
     super.initState();
+    widget.registerTimeoutBuilder(_buildTimeoutOutcome);
 
     // Find exit position
     for (int y = 0; y < _maze.length; y++) {
@@ -97,6 +98,7 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
   @override
   void dispose() {
     _runTimer?.cancel();
+    widget.clearTimeoutBuilder();
     _controller.dispose();
     super.dispose();
   }
@@ -199,6 +201,14 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
     };
   }
 
+  LevelOutcome _buildTimeoutOutcome() {
+    return LevelOutcome(
+      score: _progressScore(),
+      metrics: _progressMetrics(timedOut: true),
+      visibleMetricKeys: const ['progress_pct', 'distance_remaining'],
+    );
+  }
+
   void _completeMaze() {
     if (_completed) return;
     _completed = true;
@@ -220,13 +230,7 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
     if (_completed) return;
     _completed = true;
     _controller.stop();
-    widget.onComplete(
-      LevelOutcome(
-        score: _progressScore(),
-        metrics: _progressMetrics(timedOut: true),
-        visibleMetricKeys: const ['progress_pct', 'distance_remaining'],
-      ),
-    );
+    widget.onComplete(_buildTimeoutOutcome());
   }
 
   void _finishGivenUp() {

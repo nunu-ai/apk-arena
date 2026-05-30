@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
 import '../level_components/contact_list_item.dart';
+import '../level_components/level_hud.dart';
 import '../level_widget.dart';
 
 /// Five scrolling challenges: list, document bottom, speed find, horizontal, 2d grid.
@@ -490,19 +491,22 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
   }
 
   Widget _header(String subtitle) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(10),
-      color: NunuColors.backgroundPaper,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
+    return Column(
+      children: [
+        LevelHud(
+          stageText: '${_stage + 1}/5',
+          lives: LevelHud.emojiLives(maxWrongTaps - _wrongTaps, maxWrongTaps),
+        ),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(10),
+          color: NunuColors.backgroundPaper,
+          child: Text(
             subtitle,
             style: const TextStyle(color: NunuColors.textPrimary, fontSize: 13),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

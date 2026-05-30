@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 import '../level_widget.dart';
 
 class LevelScrabble extends LevelWidget {
@@ -46,12 +47,14 @@ class _LevelScrabbleState extends State<LevelScrabble> {
   @override
   void initState() {
     super.initState();
+    widget.registerTimeoutBuilder(_buildOutcome);
     _start();
   }
 
   @override
   void dispose() {
     _ticker?.cancel();
+    widget.clearTimeoutBuilder();
     _boardController.dispose();
     super.dispose();
   }
@@ -491,24 +494,26 @@ class _LevelScrabbleState extends State<LevelScrabble> {
     _boardController.value = Matrix4.identity();
   }
 
+  LevelOutcome _buildOutcome() {
+    final normalized = (_playerScore / _targetScore).clamp(0.0, 1.0);
+    return LevelOutcome(
+      score: normalized,
+      metrics: {
+        'player_score': _playerScore,
+        'turns': _turns,
+        'tiles_left': _bag.length,
+      },
+      visibleMetricKeys: const {'player_score', 'turns', 'tiles_left'},
+    );
+  }
+
   void _finish() {
     if (_completed) return;
     _completed = true;
     _ticker?.cancel();
-    final normalized = (_playerScore / _targetScore).clamp(0.0, 1.0);
     Future<void>.delayed(const Duration(milliseconds: 250), () {
       if (!mounted) return;
-      widget.onComplete(
-        LevelOutcome(
-          score: normalized,
-          metrics: {
-            'player_score': _playerScore,
-            'turns': _turns,
-            'tiles_left': _bag.length,
-          },
-          visibleMetricKeys: const {'player_score', 'turns', 'tiles_left'},
-        ),
-      );
+      widget.onComplete(_buildOutcome());
     });
   }
 
@@ -563,36 +568,34 @@ class _LevelScrabbleState extends State<LevelScrabble> {
   }
 
   Widget _buildHud() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              _HudPill(label: 'you', value: '$_playerScore'),
-              const SizedBox(width: 8),
-              _HudPill(label: 'bag', value: '${_bag.length}'),
-              const Spacer(),
-              Text(
-                _formatTime(_timeLeft),
-                style: const TextStyle(
-                  color: NunuColors.warningMain,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
+    return Column(
+      children: [
+        LevelHud(
+          timerText: _formatTime(_timeLeft),
+          stageText: 'score $_playerScore/$_targetScore',
+          trailing: Text(
+            'bag ${_bag.length}',
+            style: const TextStyle(
+              color: NunuColors.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-          const SizedBox(height: 6),
-          Text(
+          infoTitle: 'scrabble',
+          infoBody:
+              'drag rack tiles onto the board and submit valid dictionary words. the first word must cross the center star and later words must connect to locked tiles. board multipliers apply, using all 7 rack tiles adds a bingo bonus, and reshuffling costs 1 point.',
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
+          child: Text(
             _message,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
             style: const TextStyle(color: NunuColors.textSecondary),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -902,35 +905,6 @@ class _MoveResult {
 
   factory _MoveResult.invalid(String error) {
     return _MoveResult._(valid: false, error: error);
-  }
-}
-
-class _HudPill extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _HudPill({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: NunuColors.backgroundPaper,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: NunuColors.primaryDark.withValues(alpha: 0.4),
-        ),
-      ),
-      child: Text(
-        '$label $value',
-        style: const TextStyle(
-          color: NunuColors.textPrimary,
-          fontWeight: FontWeight.w700,
-          fontSize: 12,
-        ),
-      ),
-    );
   }
 }
 

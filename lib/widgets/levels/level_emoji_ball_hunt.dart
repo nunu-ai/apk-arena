@@ -3,6 +3,7 @@ import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 
 class _StageConfig {
   final String hint; // what to look for
@@ -24,7 +25,7 @@ class _StageConfig {
 
 class LevelEmojiBallHunt extends LevelWidget {
   const LevelEmojiBallHunt({Key? key, required super.onComplete})
-      : super(key: key);
+    : super(key: key);
 
   @override
   State<LevelEmojiBallHunt> createState() => _LevelEmojiBallHuntState();
@@ -43,8 +44,26 @@ class _LevelEmojiBallHuntState extends State<LevelEmojiBallHunt> {
       hint: 'tap the 3 balls 🏀⚽🏈',
       targets: ['🏀', '⚽', '🏈'],
       distractors: [
-        '😀','😃','😄','😁','😆','😅','😂','🙂','😉','😜',
-        '🤪','🤗','😏','😎','😴','😡','😱','😭','🤔','😬',
+        '😀',
+        '😃',
+        '😄',
+        '😁',
+        '😆',
+        '😅',
+        '😂',
+        '🙂',
+        '😉',
+        '😜',
+        '🤪',
+        '🤗',
+        '😏',
+        '😎',
+        '😴',
+        '😡',
+        '😱',
+        '😭',
+        '🤔',
+        '😬',
       ],
       distractorCount: 80,
     ),
@@ -52,9 +71,7 @@ class _LevelEmojiBallHuntState extends State<LevelEmojiBallHunt> {
     _StageConfig(
       hint: 'tap the 3 basketballs 🏀',
       targets: ['🏀', '🏀', '🏀'],
-      distractors: [
-        '🍊','🍎','🍑','🟠','🟤','🥯','🫓','🥮', '😡'
-      ],
+      distractors: ['🍊', '🍎', '🍑', '🟠', '🟤', '🥯', '🫓', '🥮', '😡'],
       distractorCount: 90,
       distractorSizes: [24, 32, 40, 48],
       targetSize: 16,
@@ -64,7 +81,22 @@ class _LevelEmojiBallHuntState extends State<LevelEmojiBallHunt> {
       hint: 'tap the 3 red circles 🔴',
       targets: ['🔴', '🔴', '🔴'],
       distractors: [
-        '⭕', '⭕', '🟥', '🟥', '🟥', '♥️', '♥️', '♥️', '😡', '😡', '🔘','⚪','🪬','🧿', '🍎', '🍎'
+        '⭕',
+        '⭕',
+        '🟥',
+        '🟥',
+        '🟥',
+        '♥️',
+        '♥️',
+        '♥️',
+        '😡',
+        '😡',
+        '🔘',
+        '⚪',
+        '🪬',
+        '🧿',
+        '🍎',
+        '🍎',
       ],
       distractorCount: 120,
       targetSize: 16,
@@ -75,7 +107,17 @@ class _LevelEmojiBallHuntState extends State<LevelEmojiBallHunt> {
       hint: 'tap the 3 broken hearts 💔',
       targets: ['💔', '💔', '💔'],
       distractors: [
-        '❤️','❤️','❤️','❤️','❤️','❤️','♥️','♥️','♥️','♥️','🩷',
+        '❤️',
+        '❤️',
+        '❤️',
+        '❤️',
+        '❤️',
+        '❤️',
+        '♥️',
+        '♥️',
+        '♥️',
+        '♥️',
+        '🩷',
       ],
       distractorSizes: [14, 16, 18, 20, 30, 36, 36, 40, 40, 48, 48],
       distractorCount: 140,
@@ -86,8 +128,26 @@ class _LevelEmojiBallHuntState extends State<LevelEmojiBallHunt> {
       hint: 'tap the 3 slightly smiling faces 🙂',
       targets: ['🙂', '🙂', '🙂'],
       distractors: [
-        '😀','😀','😀','😃','😃','😃','😄','😄','😊','😊',
-        '🙃','🙃','🙃','😶','😶','😐','😐','😑','😑','🫠',
+        '😀',
+        '😀',
+        '😀',
+        '😃',
+        '😃',
+        '😃',
+        '😄',
+        '😄',
+        '😊',
+        '😊',
+        '🙃',
+        '🙃',
+        '🙃',
+        '😶',
+        '😶',
+        '😐',
+        '😐',
+        '😑',
+        '😑',
+        '🫠',
       ],
       distractorCount: 150,
       targetSize: 24,
@@ -98,14 +158,30 @@ class _LevelEmojiBallHuntState extends State<LevelEmojiBallHunt> {
       hint: 'tap the 3 devil faces 😈',
       targets: ['😈', '😈', '😈'],
       distractors: [
-        '😡','😡','😡','😠','😠','😠','🤬','🤬','👿',
-        '😤','😤','😤','🥵','🥵','😾','😾','👹','👹','👺',
+        '😡',
+        '😡',
+        '😡',
+        '😠',
+        '😠',
+        '😠',
+        '🤬',
+        '🤬',
+        '👿',
+        '😤',
+        '😤',
+        '😤',
+        '🥵',
+        '🥵',
+        '😾',
+        '😾',
+        '👹',
+        '👹',
+        '👺',
       ],
       distractorCount: 160,
       targetSize: 14,
       distractorSizes: [12, 14, 16, 20, 24, 32, 37, 48],
     ),
-
   ];
 
   int _stageIndex = 0;
@@ -137,20 +213,25 @@ class _LevelEmojiBallHuntState extends State<LevelEmojiBallHunt> {
     // distractors
     for (int i = 0; i < cfg.distractorCount; i++) {
       final emoji = cfg.distractors[_rand.nextInt(cfg.distractors.length)];
-      final double fontSize = cfg.distractorSizes[_rand.nextInt(cfg.distractorSizes.length)];
+      final double fontSize =
+          cfg.distractorSizes[_rand.nextInt(cfg.distractorSizes.length)];
       final double x = _rand.nextDouble() * max(0, width - fontSize);
-      final double y = topSafe + _rand.nextDouble() * max(0, usableHeight - fontSize);
-      _distractors
-          .add(_EmojiItem(emoji: emoji, size: fontSize, offset: Offset(x, y)));
+      final double y =
+          topSafe + _rand.nextDouble() * max(0, usableHeight - fontSize);
+      _distractors.add(
+        _EmojiItem(emoji: emoji, size: fontSize, offset: Offset(x, y)),
+      );
     }
 
     // targets
     for (final emoji in cfg.targets) {
       final double fontSize = cfg.targetSize;
       final double x = _rand.nextDouble() * max(0, width - fontSize);
-      final double y = topSafe + _rand.nextDouble() * max(0, usableHeight - fontSize);
-      _targets
-          .add(_EmojiItem(emoji: emoji, size: fontSize, offset: Offset(x, y)));
+      final double y =
+          topSafe + _rand.nextDouble() * max(0, usableHeight - fontSize);
+      _targets.add(
+        _EmojiItem(emoji: emoji, size: fontSize, offset: Offset(x, y)),
+      );
     }
   }
 
@@ -178,9 +259,8 @@ class _LevelEmojiBallHuntState extends State<LevelEmojiBallHunt> {
     _stageEnded = true;
     final cfg = _stages[_stageIndex];
     final hits = _foundTargets.length;
-    final stageScore =
-        (hits * (1.0 / cfg.targets.length) - _misses * 0.1)
-            .clamp(0.0, 1.0);
+    final stageScore = (hits * (1.0 / cfg.targets.length) - _misses * 0.1)
+        .clamp(0.0, 1.0);
     _scoreAccum += stageScore / _stages.length;
 
     late final String feedback;
@@ -204,10 +284,12 @@ class _LevelEmojiBallHuntState extends State<LevelEmojiBallHunt> {
     Future.delayed(const Duration(milliseconds: 900), () {
       if (!mounted) return;
       if (_stageIndex + 1 >= _stages.length) {
-        widget.onComplete(LevelOutcome(
-          score: _scoreAccum.clamp(0, 1).toDouble(),
-          metrics: {'total_stages': _stages.length},
-        ));
+        widget.onComplete(
+          LevelOutcome(
+            score: _scoreAccum.clamp(0, 1).toDouble(),
+            metrics: {'total_stages': _stages.length},
+          ),
+        );
       } else {
         _stageIndex++;
         _distractors.clear();
@@ -232,128 +314,93 @@ class _LevelEmojiBallHuntState extends State<LevelEmojiBallHunt> {
           behavior: HitTestBehavior.translucent,
           onTap: _handleWrongTap, // tapping void = miss
           child: Container(
-          color: NunuColors.backgroundDefault,
-          child: Stack(
-            children: [
-              // distractors (wrong tap)
-              for (final f in _distractors)
-                Positioned(
-                  left: f.offset.dx,
-                  top: f.offset.dy,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: _handleWrongTap,
-                    child: Text(
-                      f.emoji,
-                      style: TextStyle(fontSize: f.size, height: 1.0),
-                    ),
-                  ),
-                ),
-
-              // targets
-              for (int i = 0; i < _targets.length; i++)
-                Positioned(
-                  left: _targets[i].offset.dx,
-                  top: _targets[i].offset.dy,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => _handleTargetTap(i),
-                    child: Opacity(
-                      opacity: _foundTargets.contains(i) ? 0.35 : 1.0,
+            color: NunuColors.backgroundDefault,
+            child: Stack(
+              children: [
+                // distractors (wrong tap)
+                for (final f in _distractors)
+                  Positioned(
+                    left: f.offset.dx,
+                    top: f.offset.dy,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _handleWrongTap,
                       child: Text(
-                        _targets[i].emoji,
-                        style: TextStyle(
-                          fontSize: _targets[i].size,
-                          height: 1.0,
+                        f.emoji,
+                        style: TextStyle(fontSize: f.size, height: 1.0),
+                      ),
+                    ),
+                  ),
+
+                // targets
+                for (int i = 0; i < _targets.length; i++)
+                  Positioned(
+                    left: _targets[i].offset.dx,
+                    top: _targets[i].offset.dy,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => _handleTargetTap(i),
+                      child: Opacity(
+                        opacity: _foundTargets.contains(i) ? 0.35 : 1.0,
+                        child: Text(
+                          _targets[i].emoji,
+                          style: TextStyle(
+                            fontSize: _targets[i].size,
+                            height: 1.0,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
 
-              // top hint
-              Positioned(
-                left: 12,
-                top: 12,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: NunuColors.backgroundPaper.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: NunuColors.primaryMain.withOpacity(0.6)),
-                  ),
-                  child: Text(
-                    _stages[_stageIndex].hint,
-                    style: const TextStyle(fontSize: 12, color: NunuColors.textPrimary),
-                  ),
-                ),
-              ),
-
-              // feedback overlay
-              if (_feedbackText != null)
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 16),
-                    decoration: BoxDecoration(
-                      color: _feedbackColor!.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(12),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: 0,
+                  child: LevelHud(
+                    stageText: '${_stageIndex + 1}/${_stages.length}',
+                    lives: LevelHud.emojiLives(
+                      _maxMisses - _misses,
+                      _maxMisses,
                     ),
-                    child: Text(
-                      _feedbackText!,
+                    trailing: Text(
+                      'tap on: ${_stages[_stageIndex].targets.join()}',
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: NunuColors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
                 ),
 
-              // bottom bar: stage + progress + lives
-              Positioned(
-                left: 12,
-                right: 12,
-                bottom: 12,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: NunuColors.backgroundPaper.withOpacity(0.8),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: NunuColors.primaryMain.withOpacity(0.6)),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'stage ${_stageIndex + 1}/${_stages.length}',
+                // feedback overlay
+                if (_feedbackText != null)
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _feedbackColor!.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        _feedbackText!,
                         style: const TextStyle(
-                          color: NunuColors.textPrimary,
-                          fontSize: 12,
+                          fontSize: 20,
                           fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
                       ),
-                      Text(
-                        'found: ${_foundTargets.length}/${_targets.length}',
-                        style: const TextStyle(
-                          color: NunuColors.textPrimary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        'lives: ${'❤️' * (_maxMisses - _misses)}${'🖤' * _misses}',
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ));
+        );
       },
     );
   }

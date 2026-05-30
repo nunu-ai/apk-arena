@@ -5,6 +5,7 @@ import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 import '../level_widget.dart';
 
 class LevelDoubleMaze extends LevelWidget {
@@ -451,12 +452,16 @@ class _PokemonMazeStageState extends State<_PokemonMazeStage>
     return SafeArea(
       child: Column(
         children: [
-          _StageHeader(
-            stageLabel: widget.stageLabel,
-            moveCount: _moveCount,
-            accent: NunuColors.primaryMain,
-            iconColor: NunuColors.primaryLight,
-            icon: Icons.directions_walk_rounded,
+          LevelHud(
+            stageText: widget.stageLabel.replaceAll('stage ', ''),
+            trailing: Text(
+              'moves $_moveCount',
+              style: const TextStyle(
+                color: NunuColors.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
           Expanded(
             child: Center(
@@ -466,8 +471,7 @@ class _PokemonMazeStageState extends State<_PokemonMazeStage>
                     constraints.maxWidth - 24,
                     constraints.maxHeight - 24,
                   );
-                  final cellSize =
-                      availableSize / max(_mazeWidth, _mazeHeight);
+                  final cellSize = availableSize / max(_mazeWidth, _mazeHeight);
 
                   return Container(
                     decoration: BoxDecoration(
@@ -845,43 +849,39 @@ class _WarpMazeStageState extends State<_WarpMazeStage> {
       child: SafeArea(
         child: Column(
           children: [
-            _StageHeader(
-              stageLabel: widget.stageLabel,
-              moveCount: _moveCount,
-              accent: NunuColors.primaryMain,
-              iconColor: NunuColors.primaryLight,
-              icon: Icons.swap_calls_rounded,
+            LevelHud(
+              stageText: widget.stageLabel.replaceAll('stage ', ''),
               trailing: _lastWarpUsed != null
-                  ? Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _warpColor.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: _warpColor),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.blur_on_rounded,
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'moves $_moveCount',
+                          style: const TextStyle(
+                            color: NunuColors.textSecondary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'warped',
+                          style: TextStyle(
                             color: _warpColor,
-                            size: 14,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            "warped!",
-                            style: TextStyle(
-                              color: _warpColor,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     )
-                  : null,
+                  : Text(
+                      'moves $_moveCount',
+                      style: const TextStyle(
+                        color: NunuColors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
             ),
             Expanded(
               child: Center(
@@ -903,7 +903,9 @@ class _WarpMazeStageState extends State<_WarpMazeStage> {
                         borderRadius: BorderRadius.circular(8),
                         boxShadow: [
                           BoxShadow(
-                            color: NunuColors.primaryMain.withValues(alpha: 0.2),
+                            color: NunuColors.primaryMain.withValues(
+                              alpha: 0.2,
+                            ),
                             blurRadius: 20,
                             spreadRadius: 2,
                           ),
@@ -951,76 +953,6 @@ class _WarpMazeStageState extends State<_WarpMazeStage> {
 // ─────────────────────────────────────────────────────────────────────────────
 // shared widgets
 // ─────────────────────────────────────────────────────────────────────────────
-
-class _StageHeader extends StatelessWidget {
-  final String stageLabel;
-  final int moveCount;
-  final Color accent;
-  final Color iconColor;
-  final IconData icon;
-  final Widget? trailing;
-
-  const _StageHeader({
-    required this.stageLabel,
-    required this.moveCount,
-    required this.accent,
-    required this.iconColor,
-    required this.icon,
-    this.trailing,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: NunuColors.backgroundPaper,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: accent.withValues(alpha: 0.6)),
-            ),
-            child: Row(
-              children: [
-                Icon(icon, color: iconColor, size: 16),
-                const SizedBox(width: 6),
-                Text(
-                  '$moveCount',
-                  style: const TextStyle(
-                    color: NunuColors.textPrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    fontFamily: 'monospace',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Spacer(),
-          if (trailing != null) ...[trailing!, const SizedBox(width: 8)],
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: NunuColors.backgroundPaper,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: accent.withValues(alpha: 0.4)),
-            ),
-            child: Text(
-              stageLabel,
-              style: const TextStyle(
-                color: NunuColors.textPrimary,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _DPad extends StatelessWidget {
   final VoidCallback onUp;

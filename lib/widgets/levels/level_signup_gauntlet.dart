@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:apk_arena/models/level_outcome.dart';
+import '../level_components/level_hud.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 import '../level_components/signup_gauntlet/stage_airline.dart';
@@ -10,7 +11,7 @@ import '../level_components/signup_gauntlet/stage_enterprise.dart';
 
 class LevelSignupGauntlet extends LevelWidget {
   const LevelSignupGauntlet({Key? key, required super.onComplete})
-      : super(key: key);
+    : super(key: key);
 
   @override
   State<LevelSignupGauntlet> createState() => _LevelSignupGauntletState();
@@ -39,6 +40,18 @@ class _LevelSignupGauntletState extends State<LevelSignupGauntlet> {
   _Phase _phase = _Phase.intro;
   final List<double> _stageScores = [];
   int _totalTraps = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.registerTimeoutBuilder(_buildTimeoutOutcome);
+  }
+
+  @override
+  void dispose() {
+    widget.clearTimeoutBuilder();
+    super.dispose();
+  }
 
   static final List<_StageInfo> _stages = [
     _StageInfo(
@@ -92,14 +105,27 @@ class _LevelSignupGauntletState extends State<LevelSignupGauntlet> {
       });
     } else {
       final avg = _stageScores.reduce((a, b) => a + b) / 5.0;
-      widget.onComplete(LevelOutcome(
-        score: avg,
-        metrics: {
-          'stages_completed': _stageScores.length,
-          'traps_fallen': _totalTraps,
-        },
-      ));
+      widget.onComplete(
+        LevelOutcome(
+          score: avg,
+          metrics: {
+            'stages_completed': _stageScores.length,
+            'traps_fallen': _totalTraps,
+          },
+        ),
+      );
     }
+  }
+
+  LevelOutcome _buildTimeoutOutcome() {
+    final completedScore = _stageScores.fold<double>(0, (sum, s) => sum + s);
+    return LevelOutcome(
+      score: completedScore / _stages.length,
+      metrics: {
+        'stages_completed': _stageScores.length,
+        'traps_fallen': _totalTraps,
+      },
+    );
   }
 
   @override
@@ -108,7 +134,12 @@ class _LevelSignupGauntletState extends State<LevelSignupGauntlet> {
       case _Phase.intro:
         return _buildIntro();
       case _Phase.playing:
-        return _stages[_currentStage].builder(_onStageComplete);
+        return Column(
+          children: [
+            LevelHud(stageText: '${_currentStage + 1}/${_stages.length}'),
+            Expanded(child: _stages[_currentStage].builder(_onStageComplete)),
+          ],
+        );
       case _Phase.results:
         return _buildResults();
     }
@@ -119,87 +150,89 @@ class _LevelSignupGauntletState extends State<LevelSignupGauntlet> {
     return Container(
       color: s.color,
       child: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'STAGE ${_currentStage + 1} / 5',
-                  style: const TextStyle(
-                    color: Colors.white60,
-                    fontSize: 14,
-                    letterSpacing: 4,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                Icon(s.icon, size: 80, color: Colors.white),
-                const SizedBox(height: 20),
-                Text(
-                  s.name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 34,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  s.tagline,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 16,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                // Progress dots
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(5, (i) {
-                    final done = i < _currentStage;
-                    final current = i == _currentStage;
-                    return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      width: current ? 12 : 8,
-                      height: current ? 12 : 8,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: done
-                            ? Colors.white
-                            : current
-                                ? Colors.white
-                                : Colors.white30,
-                        border: current
-                            ? Border.all(color: Colors.white, width: 2)
-                            : null,
+        child: Column(
+          children: [
+            LevelHud(stageText: '${_currentStage + 1}/${_stages.length}'),
+            Expanded(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(s.icon, size: 80, color: Colors.white),
+                      const SizedBox(height: 20),
+                      Text(
+                        s.name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 34,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    );
-                  }),
-                ),
-                const SizedBox(height: 48),
-                FilledButton(
-                  onPressed: () =>
-                      setState(() => _phase = _Phase.playing),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: s.color,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 48, vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                      const SizedBox(height: 8),
+                      Text(
+                        s.tagline,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 16,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // Progress dots
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(5, (i) {
+                          final done = i < _currentStage;
+                          final current = i == _currentStage;
+                          return Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            width: current ? 12 : 8,
+                            height: current ? 12 : 8,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: done
+                                  ? Colors.white
+                                  : current
+                                  ? Colors.white
+                                  : Colors.white30,
+                              border: current
+                                  ? Border.all(color: Colors.white, width: 2)
+                                  : null,
+                            ),
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: 48),
+                      FilledButton(
+                        onPressed: () =>
+                            setState(() => _phase = _Phase.playing),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: s.color,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 48,
+                            vertical: 16,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'BEGIN',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  child: const Text(
-                    'BEGIN',
-                    style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -242,8 +275,8 @@ class _LevelSignupGauntletState extends State<LevelSignupGauntlet> {
                     color: score >= 0.8
                         ? NunuColors.successMain
                         : score >= 0.5
-                            ? NunuColors.warningMain
-                            : NunuColors.errorMain,
+                        ? NunuColors.warningMain
+                        : NunuColors.errorMain,
                     fontSize: 72,
                     fontWeight: FontWeight.bold,
                   ),
@@ -259,12 +292,12 @@ class _LevelSignupGauntletState extends State<LevelSignupGauntlet> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _stat(
-                          '${_stageScores.length}/5', 'stages'),
+                      _stat('${_stageScores.length}/5', 'stages'),
                       _stat('$_totalTraps', 'traps hit'),
                       _stat(
-                          '${(_stageScores.reduce((a, b) => a + b) / _stageScores.length * 100).toStringAsFixed(0)}%',
-                          'avg score'),
+                        '${(_stageScores.reduce((a, b) => a + b) / _stageScores.length * 100).toStringAsFixed(0)}%',
+                        'avg score',
+                      ),
                     ],
                   ),
                 ),
@@ -275,7 +308,9 @@ class _LevelSignupGauntletState extends State<LevelSignupGauntlet> {
                     backgroundColor: NunuColors.primaryMain,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 48, vertical: 16),
+                      horizontal: 48,
+                      vertical: 16,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -283,7 +318,9 @@ class _LevelSignupGauntletState extends State<LevelSignupGauntlet> {
                   child: Text(
                     isLast ? 'SEE RESULTS' : 'NEXT STAGE',
                     style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
@@ -297,14 +334,19 @@ class _LevelSignupGauntletState extends State<LevelSignupGauntlet> {
   Widget _stat(String value, String label) {
     return Column(
       children: [
-        Text(value,
-            style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold)),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 4),
-        Text(label,
-            style: const TextStyle(color: Colors.white60, fontSize: 12)),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white60, fontSize: 12),
+        ),
       ],
     );
   }
