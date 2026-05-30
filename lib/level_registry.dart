@@ -30,6 +30,7 @@ import 'package:apk_arena/widgets/levels/level_multi_tap_sync.dart';
 import 'package:apk_arena/widgets/levels/level_odd_one_out.dart';
 import 'package:apk_arena/widgets/levels/level_pattern_match.dart';
 import 'package:apk_arena/widgets/levels/level_push_box_campaign.dart';
+import 'package:apk_arena/widgets/levels/level_rush_hour.dart';
 import 'package:apk_arena/widgets/levels/level_scrabble.dart';
 import 'package:apk_arena/widgets/levels/level_scroll_mastery.dart';
 import 'package:apk_arena/widgets/levels/level_sequence_memory.dart';
@@ -60,57 +61,67 @@ class LevelEntry {
 
 final List<LevelEntry> primitivesLevels = [
   LevelEntry(
-    data: LevelData(title: "click accuracy", instructions: "tap the logo"),
-    widgetBuilder: (onComplete) => LevelClickAccuracy(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "Swipe Lab",
-      instructions: "swipe as shown and pass through the gap.",
-    ),
-    widgetBuilder: (onComplete) => LevelSwipeDirections(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "Scroll Lab",
-      instructions: "complete each scroll challenge.",
-    ),
-    widgetBuilder: (onComplete) => LevelScrollMastery(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "Slider Gauntlet",
-      instructions: "set each slider to the target and submit.",
-    ),
-    widgetBuilder: (onComplete) => LevelSliderSkills(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "ink discipline",
-      instructions: "trace each shape inside the glow.",
-    ),
-    widgetBuilder: (onComplete) => LevelTraceDrawing(onComplete: onComplete),
-  ),
-  LevelEntry(
     data: LevelData(
       title: "star lanes",
-      instructions: "drag through the numbers in order without lifting.",
+      instructions:
+          "start on 1 and drag through every number in order in one stroke; wrong first touch, wrong next body, or lifting early costs a life.",
     ),
     widgetBuilder: (onComplete) => LevelConnectTheDots(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
-      title: "enchanted socket",
-      instructions: "place each gem in the correct socket.",
+      title: "ink discipline",
+      instructions: "trace 5 shapes. stay inside the glow. 3 lives per shape.",
     ),
-    widgetBuilder: (onComplete) => LevelGemSocket(onComplete: onComplete),
+    widgetBuilder: (onComplete) => LevelTraceDrawing(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Click Gauntlet",
+      instructions:
+          "stage 1: tap the logo 20 times; it shrinks each hit. 10 hearts — a miss costs one. stage 2: six constellations — the last three scramble the numbers. connect in order and protect your 10 lives.",
+    ),
+    widgetBuilder: (onComplete) => LevelClickAccuracy(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Swipe Lab",
+      instructions:
+          "Follow the card, then escape through the shrinking gap. Five hearts — wrong swipes cost one.",
+    ),
+    widgetBuilder: (onComplete) => LevelSwipeDirections(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
       title: "Sync Chamber",
-      instructions: "hold all pads, then swipe up on all lanes.",
+      instructions:
+          "Hold all 3 pads together, then swipe up on all 3 lanes at once!",
     ),
     widgetBuilder: (onComplete) => LevelMultiTapSync(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Slider Gauntlet",
+      instructions:
+          "Set the age and decimal targets. Ten lives — wrong submits cost one.",
+    ),
+    widgetBuilder: (onComplete) => LevelSliderSkills(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Scroll Lab",
+      instructions:
+          "Five scroll challenges: lists, documents, find target, horizontal, 2D grid.",
+    ),
+    widgetBuilder: (onComplete) => LevelScrollMastery(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "enchanted socket",
+      instructions:
+          "four enchantments — each more treacherous than the last. 10 lives.",
+    ),
+    widgetBuilder: (onComplete) => LevelGemSocket(onComplete: onComplete),
   ),
 ];
 
@@ -118,7 +129,7 @@ final List<LevelEntry> visionLevels = [
   LevelEntry(
     data: LevelData(
       title: "parade of nations",
-      instructions: "count the flags and enter the total.",
+      instructions: "count the country flags and enter the total.",
     ),
     widgetBuilder: (onComplete) => LevelEmojiCountFlags(onComplete: onComplete),
   ),
@@ -132,15 +143,8 @@ final List<LevelEntry> visionLevels = [
   ),
   LevelEntry(
     data: LevelData(
-      title: "emoji soup",
-      instructions: "find and tap the targets.",
-    ),
-    widgetBuilder: (onComplete) => LevelEmojiBallHunt(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
       title: "Count the Dots",
-      instructions: "enter each die value from left to right.",
+      instructions: "Enter the numbers on each die from left to right!",
     ),
     widgetBuilder: (onComplete) => LevelDiceRecognition(onComplete: onComplete),
   ),
@@ -153,22 +157,32 @@ final List<LevelEntry> visionLevels = [
   ),
   LevelEntry(
     data: LevelData(
+      title: "emoji soup",
+      instructions:
+          "find and tap the 3 targets in each stage. 3 lives per stage.",
+    ),
+    widgetBuilder: (onComplete) => LevelEmojiBallHunt(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
       title: "pixel perfect",
-      instructions: "recreate the shown pattern.",
+      instructions: "recreate the pattern shown above!",
     ),
     widgetBuilder: (onComplete) => LevelPatternMatch(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
       title: "Prove You're Human",
-      instructions: "complete every captcha step.",
+      instructions:
+          "Complete every captcha step in order. 10 lives — wrong answers cost one. Your total time is recorded at the end.",
     ),
     widgetBuilder: (onComplete) => LevelCaptcha(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
       title: "Spot the Bug",
-      instructions: "decide if the two screens match.",
+      instructions:
+          "Compare the Reference Design with the Production Build. Are they the same or different?",
     ),
     widgetBuilder: (onComplete) => LevelSpotDifference(onComplete: onComplete),
   ),
@@ -183,16 +197,22 @@ final List<LevelEntry> memoryLevels = [
     widgetBuilder: (onComplete) => LevelTosQuiz(onComplete: onComplete),
   ),
   LevelEntry(
+    data: LevelData(title: "memory match", instructions: "clear all boards."),
+    widgetBuilder: (onComplete) => LevelMemoryMatch(onComplete: onComplete),
+  ),
+  LevelEntry(
     data: LevelData(
       title: "rabbit hole",
-      instructions: "find answers in the filesystem.",
+      instructions:
+          "explore the filesystem efficiently and answer all questions!",
     ),
     widgetBuilder: (onComplete) => LevelFileExplorer(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
       title: "trial & error",
-      instructions: "remember the correct symbols and survive.",
+      instructions:
+          "survive the full session. each screen has one correct symbol. wrong picks reset the chain.",
       timeLimit: Duration(minutes: 31),
     ),
     widgetBuilder: (onComplete) => LevelTrialSequence(onComplete: onComplete),
@@ -200,30 +220,28 @@ final List<LevelEntry> memoryLevels = [
   LevelEntry(
     data: LevelData(
       title: "Count & Submit",
-      instructions: "count your presses and submit the totals.",
+      instructions:
+          "Three counting stages — buttons shuffle after every tap, no tallies. Track your presses and prove it.",
     ),
     widgetBuilder: (onComplete) => LevelActionCounter(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(title: "memory match", instructions: "clear all boards."),
-    widgetBuilder: (onComplete) => LevelMemoryMatch(onComplete: onComplete),
   ),
 ];
 
 final List<LevelEntry> iqLevels = [
   LevelEntry(
     data: LevelData(
+      title: "push-box gauntlet",
+      instructions: "push the boxes into the holes.",
+      timeLimit: Duration(minutes: 30),
+    ),
+    widgetBuilder: (onComplete) => LevelPushBoxCampaign(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
       title: "spot the imposter",
       instructions: "find the odd one out in each round.",
     ),
     widgetBuilder: (onComplete) => LevelOddOneOut(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "button alchemy",
-      instructions: "reach the target using buttons a, b, c.",
-    ),
-    widgetBuilder: (onComplete) => LevelButtonAlchemy(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
@@ -234,11 +252,10 @@ final List<LevelEntry> iqLevels = [
   ),
   LevelEntry(
     data: LevelData(
-      title: "push-box gauntlet",
-      instructions: "push the boxes into the holes.",
-      timeLimit: Duration(minutes: 30),
+      title: "button alchemy",
+      instructions: "reach the target using buttons a, b, c.",
     ),
-    widgetBuilder: (onComplete) => LevelPushBoxCampaign(onComplete: onComplete),
+    widgetBuilder: (onComplete) => LevelButtonAlchemy(onComplete: onComplete),
   ),
 ];
 
@@ -246,16 +263,9 @@ final List<LevelEntry> tempospatialLevels = [
   LevelEntry(
     data: LevelData(
       title: "labyrinth gauntlet",
-      instructions: "clear both mazes.",
+      instructions: "clear two mazes back to back. fewer moves = higher score.",
     ),
     widgetBuilder: (onComplete) => LevelDoubleMaze(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "Space Collector",
-      instructions: "collect all coins and enter the total.",
-    ),
-    widgetBuilder: (onComplete) => LevelCoinCollector(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
@@ -266,76 +276,102 @@ final List<LevelEntry> tempospatialLevels = [
   ),
   LevelEntry(
     data: LevelData(
-      title: "Sequence Memory",
-      instructions: "memorize and repeat the sequence.",
-    ),
-    widgetBuilder: (onComplete) => LevelSequenceMemory(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "reflex arena",
-      instructions: "whack the moles.",
-    ),
-    widgetBuilder: (onComplete) => LevelWhackAMole(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
       title: "road rage",
-      instructions: "dodge obstacles and reach the finish.",
+      instructions:
+          "steer left and right to dodge obstacles. reach the finish line!",
     ),
     widgetBuilder: (onComplete) => LevelCarSteering(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
       title: "pixel serpent",
-      instructions: "eat apples without crashing.",
+      instructions: "eat 15 apples without hitting yourself or the wall.",
     ),
     widgetBuilder: (onComplete) => LevelSnake(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
       title: "escape the simulation",
-      instructions: "find the exit.",
+      instructions: "find the exit. you are inside the machine.",
     ),
     widgetBuilder: (onComplete) => LevelFpsMaze(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Sequence Memory",
+      instructions: "Memorize and repeat the sequence!",
+    ),
+    widgetBuilder: (onComplete) => LevelSequenceMemory(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Space Collector",
+      instructions: "Collect all coins and enter the total count!",
+    ),
+    widgetBuilder: (onComplete) => LevelCoinCollector(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "reflex arena",
+      instructions: "whack the moles! 30 seconds on the clock.",
+    ),
+    widgetBuilder: (onComplete) => LevelWhackAMole(onComplete: onComplete),
   ),
 ];
 
 final List<LevelEntry> gamesLevels = [
   LevelEntry(
     data: LevelData(
-      title: "Bingo",
-      instructions: "mark called numbers to get bingo.",
-    ),
-    widgetBuilder: (onComplete) => LevelBingo(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "Mega Merge",
-      instructions: "complete orders to score points.",
-      timeLimit: Duration(minutes: 30),
-    ),
-    widgetBuilder: (onComplete) => LevelMegaMerge(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "match three",
-      instructions: "make matches before time runs out.",
+      title: "merge protocol",
+      instructions: "score as high as you can before time runs out",
       timeLimit: Duration(minutes: 30),
     ),
     widgetBuilder: (onComplete) => LevelCascadeProtocol(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
-      title: "chain reaction",
-      instructions: "link matching gems to score points.",
+      title: "Mega Merge",
+      instructions: "Score as much as possible by completing orders",
+      timeLimit: Duration(minutes: 30),
     ),
-    widgetBuilder: (onComplete) => LevelLinkChain(onComplete: onComplete),
+    widgetBuilder: (onComplete) => LevelMegaMerge(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
-      title: "scrabble",
-      instructions: "place tiles to make valid words and score points.",
+      title: "traffic jam",
+      instructions: "clear all rush hour jams.",
+      timeLimit: Duration(hours: 1),
+    ),
+    widgetBuilder: (onComplete) => LevelRushHour(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "sector defense",
+      instructions: "drag towers onto the grid to defend against all waves",
+      timeLimit: Duration(minutes: 30),
+    ),
+    widgetBuilder: (onComplete) => LevelTowerDefense(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "tiny factory",
+      instructions:
+          "earn as many parts as possible by delivering high quality items",
+      timeLimit: Duration(minutes: 30),
+    ),
+    widgetBuilder: (onComplete) => LevelTinyFactory(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Bingo",
+      instructions: "Mark the called numbers quickly to get a BINGO!",
+    ),
+    widgetBuilder: (onComplete) => LevelBingo(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "word builder",
+      instructions: "make the word \"paper\"",
     ),
     widgetBuilder: (onComplete) => LevelScrabble(onComplete: onComplete),
   ),
@@ -345,19 +381,11 @@ final List<LevelEntry> gamesLevels = [
   ),
   LevelEntry(
     data: LevelData(
-      title: "sector defense",
-      instructions: "place towers to stop all waves.",
-      timeLimit: Duration(minutes: 30),
+      title: "chain reaction",
+      instructions:
+          "link matching gems by dragging through neighbours. longer chains = more points. reach 50 to pass.",
     ),
-    widgetBuilder: (onComplete) => LevelTowerDefense(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "tiny factory",
-      instructions: "deliver quality items to earn parts.",
-      timeLimit: Duration(minutes: 30),
-    ),
-    widgetBuilder: (onComplete) => LevelTinyFactory(onComplete: onComplete),
+    widgetBuilder: (onComplete) => LevelLinkChain(onComplete: onComplete),
   ),
 ];
 
@@ -365,39 +393,10 @@ final List<LevelEntry> tasksLevels = [
   LevelEntry(
     data: LevelData(
       title: "sleep logistics",
-      instructions: "set the alarms for next week.",
+      instructions: "make sure all alarms are set correctly for next week!",
     ),
     widgetBuilder: (onComplete) =>
         LevelCalendarAlarmPlanner(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "signup gauntlet",
-      instructions: "complete each signup and login flow.",
-      timeLimit: Duration(minutes: 30),
-    ),
-    widgetBuilder: (onComplete) => LevelSignupGauntlet(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "breakfast checkout",
-      instructions: "order exactly one plain bagel.",
-    ),
-    widgetBuilder: (onComplete) => LevelUpsellCheckout(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "Email Riddle",
-      instructions: "send the riddle answer to the right person.",
-    ),
-    widgetBuilder: (onComplete) => LevelEmailRiddle(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "pizza night",
-      instructions: "order everyone's final picks.",
-    ),
-    widgetBuilder: (onComplete) => LevelGroupOrder(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
@@ -406,6 +405,36 @@ final List<LevelEntry> tasksLevels = [
     ),
     widgetBuilder: (onComplete) =>
         LevelInventoryReconciliation(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "pizza night",
+      instructions: "read the chat. order everyone's final picks.",
+    ),
+    widgetBuilder: (onComplete) => LevelGroupOrder(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "signup gauntlet",
+      instructions:
+          "complete all 5 signup flows using the given account details, then finish each login.",
+      timeLimit: Duration(minutes: 30),
+    ),
+    widgetBuilder: (onComplete) => LevelSignupGauntlet(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "Email Riddle",
+      instructions: "Handle your inbox. Reply, archive, or delete every email until no new ones arrive.",
+    ),
+    widgetBuilder: (onComplete) => LevelEmailRiddle(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "breakfast checkout",
+      instructions: "order exactly one plain bagel.",
+    ),
+    widgetBuilder: (onComplete) => LevelUpsellCheckout(onComplete: onComplete),
   ),
 ];
 

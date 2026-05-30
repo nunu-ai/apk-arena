@@ -1160,7 +1160,7 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
     final canAfford = _cash >= spec.cost;
     return LongPressDraggable<_TowerKind>(
       data: kind,
-      delay: const Duration(milliseconds: 60),
+      delay: const Duration(milliseconds: 30),
       dragAnchorStrategy: pointerDragAnchorStrategy,
       onDragStarted: () {
         setState(() {
