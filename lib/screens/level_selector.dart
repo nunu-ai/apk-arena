@@ -1,14 +1,12 @@
 
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import '../services/progress_service.dart';
 import '../services/navigation.dart';
 import '../theme/app_theme.dart';
 import '../level_registry.dart';
 import 'level_screen.dart';
 import 'category_levels_screen.dart';
-import 'debug_level_gallery.dart';
 import 'analytics_viewer_screen.dart';
 
 class _CategoryInfo {
@@ -145,14 +143,6 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> with RouteAwa
       appBar: AppBar(
         title: const Text('APK ARENA', style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
-          if (kDebugMode)
-            IconButton(
-              icon: const Icon(Icons.grid_view),
-              onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const DebugLevelGallery()));
-              },
-              tooltip: 'debug gallery',
-            ),
           IconButton(
             icon: const Icon(Icons.bar_chart_rounded, size: 22),
             onPressed: () {
