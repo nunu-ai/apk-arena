@@ -33,7 +33,6 @@ const _categories = [
   _CategoryInfo(index: 4, name: 'tempospatial', icon: Icons.speed_rounded, color: NunuColors.secondaryLight),
   _CategoryInfo(index: 5, name: 'games', icon: Icons.sports_esports_rounded, color: NunuColors.secondaryLight),
   _CategoryInfo(index: 6, name: 'tasks', icon: Icons.checklist_rounded, color: NunuColors.secondaryLight),
-  _CategoryInfo(index: 7, name: 'unsorted', icon: Icons.shuffle_rounded, color: NunuColors.secondaryLight),
 ];
 
 class LevelSelectorScreen extends StatefulWidget {
