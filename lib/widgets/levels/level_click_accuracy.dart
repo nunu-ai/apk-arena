@@ -5,11 +5,8 @@ import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
 import '../level_widget.dart';
-import 'level_connect_the_dots.dart';
 
-enum _ClickGauntletPhase { clickAccuracy, connectStars }
-
-/// Stage 1: shrinking logo taps. Stage 2: connect-the-dots constellations (see `LevelConnectTheDots`).
+/// Shrinking logo taps — 20 rounds, 10 hearts; a miss costs one.
 class LevelClickAccuracy extends LevelWidget {
   const LevelClickAccuracy({super.key, required super.onComplete});
 
@@ -21,34 +18,30 @@ class _LevelClickAccuracyState extends State<LevelClickAccuracy> {
   static const int roundCount = 20;
   static const int maxLives = 10;
 
-  _ClickGauntletPhase _phase = _ClickGauntletPhase.clickAccuracy;
-  double? _stage1Score;
-  Map<String, dynamic> _stage1Metrics = {};
-
   // Hardcoded hitbox sizes for each round, computed using previous curve settings.
   // These values should be updated if the original curve is changed.
   // They represent logical pixels (width & height), indexed by round index (0..19).
   static const List<double> _hitboxSizes = [
     120, // round 1
-    80,  // round 2
-    65,  // round 3
-    52,  // round 4
-    44,  // round 5
-    37,  // round 6
-    31,  // round 7
-    26,  // round 8
-    22,  // round 9
-    18,  // round 10
-    15,  // round 11
-    12,  // round 12
-    10,  // round 13
-    8,   // round 14
-    6,   // round 15
-    5,   // round 16
-    4,   // round 17
-    3,   // round 18
-    2,   // round 19
-    1,   // round 20
+    80, // round 2
+    65, // round 3
+    52, // round 4
+    44, // round 5
+    37, // round 6
+    31, // round 7
+    26, // round 8
+    22, // round 9
+    18, // round 10
+    15, // round 11
+    12, // round 12
+    10, // round 13
+    8, // round 14
+    6, // round 15
+    5, // round 16
+    4, // round 17
+    3, // round 18
+    2, // round 19
+    1, // round 20
   ];
 
   final Random _rng = Random();
@@ -56,8 +49,6 @@ class _LevelClickAccuracyState extends State<LevelClickAccuracy> {
   /// Successful hits so far (0 … roundCount); size uses this index clamped to roundCount - 1.
   int _roundIndex = 0;
   int _lives = maxLives;
-  int _misses = 0;
-  int _hitsTotal = 0;
   Alignment _targetAlign = Alignment.center;
 
   @override
@@ -87,8 +78,10 @@ class _LevelClickAccuracyState extends State<LevelClickAccuracy> {
       return (_scoreWeightStages * stageFraction).clamp(0.0, 1.0);
     }
     final livesFraction = (livesRemaining / maxLives).clamp(0.0, 1.0);
-    return (_scoreWeightStages + _scoreWeightLives * livesFraction)
-        .clamp(0.0, 1.0);
+    return (_scoreWeightStages + _scoreWeightLives * livesFraction).clamp(
+      0.0,
+      1.0,
+    );
   }
 
   void _fail() {
@@ -98,35 +91,17 @@ class _LevelClickAccuracyState extends State<LevelClickAccuracy> {
       livesRemaining: _lives,
       clearedAllRounds: false,
     );
-    widget.onComplete(LevelOutcome(
-      score: s,
-      metrics: {
-        'rounds_cleared': roundsCleared,
-        'lives_remaining': _lives,
-        'misses': _misses,
-        'hits': _hitsTotal,
-      },
-    ));
+    widget.onComplete(LevelOutcome(score: s));
   }
 
   void _onTargetHit() {
-    _hitsTotal++;
     if (_roundIndex >= roundCount - 1) {
       final s = scoreForRun(
         roundsCleared: roundCount,
         livesRemaining: _lives,
         clearedAllRounds: true,
       );
-      setState(() {
-        _stage1Score = s;
-        _stage1Metrics = {
-          'rounds_cleared': roundCount,
-          'lives_remaining': _lives,
-          'misses': _misses,
-          'hits': _hitsTotal,
-        };
-        _phase = _ClickGauntletPhase.connectStars;
-      });
+      widget.onComplete(LevelOutcome(score: s));
       return;
     }
     setState(() {
@@ -136,7 +111,6 @@ class _LevelClickAccuracyState extends State<LevelClickAccuracy> {
   }
 
   void _onMiss() {
-    _misses++;
     if (_lives <= 1) {
       _lives = 0;
       _fail();
@@ -155,20 +129,6 @@ class _LevelClickAccuracyState extends State<LevelClickAccuracy> {
 
   static const String _nunuLogoAsset =
       'assets/icon/nunu-icon-transparent@4x.png';
-
-  void _onConnectComplete(LevelOutcome stage2) {
-    final s1 = _stage1Score ?? 0;
-    final combined = ((s1 + stage2.score) / 2).clamp(0.0, 1.0);
-    widget.onComplete(LevelOutcome(
-      score: combined,
-      metrics: {
-        'stage1': Map<String, dynamic>.from(_stage1Metrics),
-        'stage2': stage2.metrics,
-        'stage1_score': s1,
-        'stage2_score': stage2.score,
-      },
-    ));
-  }
 
   Widget _livesHeartsRow() {
     return Row(
@@ -191,30 +151,6 @@ class _LevelClickAccuracyState extends State<LevelClickAccuracy> {
 
   @override
   Widget build(BuildContext context) {
-    if (_phase == _ClickGauntletPhase.connectStars) {
-      return Stack(
-        children: [
-          Positioned.fill(
-            child: LevelConnectTheDots(onComplete: _onConnectComplete),
-          ),
-          Positioned(
-            left: 12,
-            top: 8,
-            child: IgnorePointer(
-              child: Text(
-                'stage 2/2 · constellations',
-                style: TextStyle(
-                  color: NunuColors.primaryLight.withValues(alpha: 0.85),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
     final side = _currentHitboxSize;
     final logoPad = (side * 0.1).clamp(1.0, 12.0);
 
@@ -233,7 +169,7 @@ class _LevelClickAccuracyState extends State<LevelClickAccuracy> {
           child: Row(
             children: [
               Text(
-                'stage 1/2 · round ${_roundIndex + 1}/$roundCount',
+                'round ${_roundIndex + 1}/$roundCount',
                 style: TextStyle(
                   color: NunuColors.primaryLight.withValues(alpha: 0.85),
                   fontSize: 13,

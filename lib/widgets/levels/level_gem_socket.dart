@@ -18,6 +18,8 @@ class _LevelGemSocketState extends State<LevelGemSocket>
   static const double _gemSize = 64.0;
   static const double _targetSize = 80.0;
   static const double _hitRadius = 40.0;
+  static const double _scorePerStage = 0.15;
+  static const double _scorePerLife = 0.04;
 
   static const int _totalStages = 4;
   static const int _maxLives = 10;
@@ -154,7 +156,7 @@ class _LevelGemSocketState extends State<LevelGemSocket>
   }
 
   double _calculateScore() {
-    return (_stagesCleared * 0.20) + (_lives * 0.02);
+    return (_stagesCleared * _scorePerStage) + (_lives * _scorePerLife);
   }
 
   void _finishLevel() {

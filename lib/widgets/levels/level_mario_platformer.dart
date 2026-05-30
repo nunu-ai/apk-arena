@@ -1,30 +1,37 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+import 'dart:math';
+
 import 'package:apk_arena/models/level_outcome.dart';
-import '../level_widget.dart';
+import 'package:flutter/material.dart';
+
 import '../../theme/app_theme.dart';
+import '../level_widget.dart';
 
-class Platform {
-  final double x; // normalized 0.0-1.0
-  final double y; // normalized 0.0-1.0 (0 = top, 1 = bottom)
-  final double width; // normalized width
-
-  Platform({required this.x, required this.y, required this.width});
-}
-
-class Enemy {
-  double x; // normalized position
-  final double y; // normalized position (on platform)
-  final double minX; // patrol left bound
-  final double maxX; // patrol right bound
-  double direction; // 1 = right, -1 = left
-
-  Enemy({
+class _Platform {
+  _Platform({
     required this.x,
     required this.y,
+    required this.width,
+    required this.altitude,
+    required this.speed,
     required this.minX,
     required this.maxX,
-    this.direction = 1,
-  });
+    required this.brittle,
+  }) : direction = 1,
+       previousX = x;
+
+  double x;
+  final double y;
+  final double width;
+  final int altitude;
+  final double speed;
+  final double minX;
+  final double maxX;
+  final bool brittle;
+  double direction;
+  double previousX;
+
+  double get deltaX => x - previousX;
 }
 
 class LevelMarioPlatformer extends LevelWidget {
@@ -36,532 +43,481 @@ class LevelMarioPlatformer extends LevelWidget {
 
 class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
+  static const _winAltitude = 200;
+  static const _startingLives = 3;
+  static const _sessionDuration = Duration(minutes: 30);
 
-  // Player state
-  double _playerX = 0.08;
-  double _playerY = 0.84; // Start on ground (ground at 0.92 - playerHeight 0.08)
+  static const _groundY = 0.92;
+  static const _rowGap = 0.14;
+  static const _platformHeight = 0.025;
+  static const _playerWidth = 0.08;
+  static const _playerHeight = 0.08;
+
+  static const _gravity = 0.0010;
+  static const _jumpVelocity = -0.032;
+  static const _moveSpeed = 0.009;
+  static const _terminalVelocity = 0.022;
+  static const _friction = 0.85;
+
+  static const _cameraPlayerY = 0.58;
+  static const _cameraLerp = 0.18;
+  static const _retainRowsBelowPeak = 5;
+  static const _spawnRowsAhead = 36;
+  static const _fallPastLowestRow = 0.10;
+
+  late final AnimationController _ticker;
+  Timer? _sessionTimer;
+  final _rng = Random();
+
+  final List<_Platform> _platforms = [];
+
+  double _playerX = 0;
+  double _playerY = 0;
+  double _previousPlayerY = 0;
   double _velocityX = 0;
   double _velocityY = 0;
-  bool _isGrounded = true; // Start grounded
+  bool _grounded = true;
 
-  // Controls
-  bool _isPressingLeft = false;
-  bool _isPressingRight = false;
-  bool _isChargingJump = false;
-  DateTime? _jumpChargeStart;
-  double _jumpChargePercent = 0.0; // For visual indicator
+  bool _pressingLeft = false;
+  bool _pressingRight = false;
+  bool _chargingJump = false;
+  DateTime? _chargeStartedAt;
+  double _chargePercent = 0;
 
-  // Game state
-  bool _gameOver = false;
+  double _cameraY = 0;
+  int _altitude = 0;
+  int _peakAltitude = 0;
+  int _bestAltitude = 0;
+  int _lives = _startingLives;
+  int _highestSpawned = 0;
+  double _previousSpawnCenter = 0.5;
+  bool _finished = false;
 
-  // Physics constants
-  final double _gravity = 0.0010;
-  final double _jumpVelocity = -0.032; // Higher jump
-  final double _moveSpeed = 0.009;
-  final double _terminalVelocity = 0.022;
-  final double _friction = 0.85;
-
-  // Player dimensions (normalized)
-  final double _playerWidth = 0.08;
-  final double _playerHeight = 0.08;
-
-  // Platform height (normalized)
-  final double _platformHeight = 0.025;
-
-  // Flag position (on the final platform)
-  final double _flagX = 0.88;
-  final double _flagY = 0.18;
-
-  // Platforms
-  late List<Platform> _platforms;
-
-  // Enemies
-  late List<Enemy> _enemies;
-
-  Size _screenSize = Size.zero;
+  Size _size = Size.zero;
 
   @override
   void initState() {
     super.initState();
-    _initLevel();
-    _controller = AnimationController(
+    _startSession();
+    _ticker = AnimationController(
       vsync: this,
       duration: const Duration(days: 1),
-    )..addListener(_gameLoop);
-    _controller.repeat();
-  }
-
-  void _initLevel() {
-    // Create platforms - easier ascending staircase to the flag
-    _platforms = [
-      // Ground - full width
-      Platform(x: 0, y: 0.92, width: 1.0),
-      // Easy stepping platforms - wider and closer together
-      Platform(x: 0.10, y: 0.78, width: 0.22),
-      Platform(x: 0.38, y: 0.66, width: 0.22),
-      Platform(x: 0.15, y: 0.52, width: 0.22),
-      Platform(x: 0.45, y: 0.40, width: 0.25),
-      Platform(x: 0.72, y: 0.30, width: 0.25), // Flag platform
-    ];
-
-    // Just one enemy on a middle platform
-    _enemies = [
-      Enemy(x: 0.48, y: 0.40 - 0.06, minX: 0.46, maxX: 0.66),
-    ];
+    )..addListener(_tick);
+    _ticker.repeat();
+    _sessionTimer = Timer(_sessionDuration, _onSessionTimer);
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _sessionTimer?.cancel();
+    _ticker.dispose();
     super.dispose();
   }
 
-  void _resetPlayer() {
-    setState(() {
-      _playerX = 0.08;
-      _playerY = 0.84;
-      _velocityX = 0;
-      _velocityY = 0;
-      _isGrounded = true;
-      _isChargingJump = false;
-      _jumpChargeStart = null;
-      _jumpChargePercent = 0.0;
-    });
+  void _startSession() {
+    _finished = false;
+    _lives = _startingLives;
+    _bestAltitude = 0;
+    _startLife();
   }
 
-  void _gameLoop() {
-    if (!mounted || _screenSize == Size.zero || _gameOver) return;
+  void _startLife() {
+    _platforms
+      ..clear()
+      ..add(
+        _Platform(
+          x: 0,
+          y: _worldY(0),
+          width: 1,
+          altitude: 0,
+          speed: 0,
+          minX: 0,
+          maxX: 0,
+          brittle: false,
+        ),
+      );
+
+    _playerX = 0.08;
+    _playerY = _worldY(0) - _playerHeight;
+    _previousPlayerY = _playerY;
+    _velocityX = 0;
+    _velocityY = 0;
+    _grounded = true;
+
+    _cameraY = _playerY - _cameraPlayerY;
+    _altitude = 0;
+    _peakAltitude = 0;
+    _highestSpawned = 0;
+    _previousSpawnCenter = 0.5;
+    _chargingJump = false;
+    _chargeStartedAt = null;
+    _chargePercent = 0;
+
+    _ensurePlatformsAhead();
+  }
+
+  double _worldY(int altitude) => _groundY - altitude * _rowGap;
+
+  void _ensurePlatformsAhead() {
+    final target = min(
+      _winAltitude + _spawnRowsAhead,
+      _peakAltitude + _spawnRowsAhead,
+    );
+    while (_highestSpawned < target) {
+      _spawnPlatform(_highestSpawned + 1);
+    }
+  }
+
+  void _spawnPlatform(int altitude) {
+    final width = altitude < 20
+        ? 0.22
+        : altitude < 50
+        ? 0.20
+        : altitude < 80
+        ? 0.16
+        : 0.12;
+    final moveChance = altitude < 20
+        ? 0.0
+        : altitude < 50
+        ? 0.4
+        : altitude < 80
+        ? 0.7
+        : 0.95;
+    final baseSpeed = altitude < 20
+        ? 0.0
+        : altitude < 50
+        ? 0.0015
+        : altitude < 80
+        ? 0.0025
+        : 0.0035;
+    final speed = baseSpeed * (1 + (altitude / 250).clamp(0.0, 8.0));
+    final brittleChance = altitude < 6
+        ? 0.0
+        : (0.06 + altitude / 2500).clamp(0.06, 0.32);
+    final brittle = _rng.nextDouble() < brittleChance;
+
+    const minX = 0.05;
+    final maxX = 0.95 - width;
+    final minCenter = minX + width / 2;
+    final maxCenter = maxX + width / 2;
+    final drift = (_rng.nextDouble() * 2 - 1) * 0.14;
+    final centerPull = (0.5 - _previousSpawnCenter) * 0.12;
+    final center = (_previousSpawnCenter + drift + centerPull).clamp(
+      minCenter,
+      maxCenter,
+    );
+    final x = center - width / 2;
+
+    _platforms.add(
+      _Platform(
+        x: x,
+        y: _worldY(altitude),
+        width: width,
+        altitude: altitude,
+        speed: !brittle && _rng.nextDouble() < moveChance ? speed : 0,
+        minX: minX,
+        maxX: maxX,
+        brittle: brittle,
+      ),
+    );
+    _previousSpawnCenter = center;
+    _highestSpawned = altitude;
+  }
+
+  void _tick() {
+    if (!mounted || _size == Size.zero || _finished) return;
+
+    var finishNow = false;
+    var perfect = false;
 
     setState(() {
-      // Update jump charge indicator
-      if (_isChargingJump && _jumpChargeStart != null) {
-        final chargeDuration = DateTime.now().difference(_jumpChargeStart!).inMilliseconds;
-        _jumpChargePercent = (chargeDuration / 500.0).clamp(0.0, 1.0);
-      }
+      _updateCharge();
+      _movePlatforms();
+      _applyInput();
+      _applyPhysics();
+      _landIfNeeded();
+      _updateCamera();
+      _cullOldPlatforms();
 
-      // Horizontal movement
-      if (_isPressingLeft && !_isPressingRight) {
-        _velocityX = -_moveSpeed;
-      } else if (_isPressingRight && !_isPressingLeft) {
-        _velocityX = _moveSpeed;
-      } else {
-        _velocityX *= _friction;
-        if (_velocityX.abs() < 0.001) _velocityX = 0;
-      }
-
-      // Apply gravity
-      if (!_isGrounded) {
-        _velocityY += _gravity;
-        if (_velocityY > _terminalVelocity) {
-          _velocityY = _terminalVelocity;
-        }
-      }
-
-      // Update position
-      _playerX += _velocityX;
-      _playerY += _velocityY;
-
-      // Clamp horizontal position
-      _playerX = _playerX.clamp(0.0, 1.0 - _playerWidth);
-
-      // Platform collision
-      _isGrounded = false;
-      for (final platform in _platforms) {
-        if (_checkPlatformCollision(platform)) {
-          _playerY = platform.y - _playerHeight;
-          _velocityY = 0;
-          _isGrounded = true;
-          break;
-        }
-      }
-
-      // Update enemies
-      for (final enemy in _enemies) {
-        enemy.x += 0.002 * enemy.direction; // Slower patrol
-        if (enemy.x <= enemy.minX || enemy.x >= enemy.maxX) {
-          enemy.direction *= -1;
-        }
-
-        // Check enemy collision - reset instead of fail
-        if (_checkEnemyCollision(enemy)) {
-          _resetPlayer();
-          return;
-        }
-      }
-
-      // Check fall off screen - reset instead of fail
-      if (_playerY > 1.1) {
-        _resetPlayer();
+      if (_fellPastRetainedPlatforms()) {
+        _loseLife();
+        finishNow = _finished;
         return;
       }
 
-      // Check win condition (touch the flag)
-      if (_checkFlagCollision()) {
-        _gameOver = true;
-        _controller.stop();
-        widget.onComplete(LevelOutcome(score: 1));
-        return;
+      if (_peakAltitude >= _winAltitude) {
+        _bestAltitude = _winAltitude;
+        _finished = true;
+        finishNow = true;
+        perfect = true;
       }
     });
+
+    if (finishNow) {
+      _finishSession(perfect: perfect);
+    }
   }
 
-  bool _checkPlatformCollision(Platform platform) {
-    // Only collide when falling or standing still
-    if (_velocityY < 0) return false;
-
-    final playerBottom = _playerY + _playerHeight;
-    final playerLeft = _playerX;
-    final playerRight = _playerX + _playerWidth;
-
-    final platformTop = platform.y;
-    final platformBottom = platform.y + _platformHeight;
-    final platformLeft = platform.x;
-    final platformRight = platform.x + platform.width;
-
-    // Check horizontal overlap
-    final horizontalOverlap =
-        playerRight > platformLeft && playerLeft < platformRight;
-
-    if (!horizontalOverlap) return false;
-
-    // Check if player is landing on platform (feet near platform top)
-    final feetNearPlatform = playerBottom >= platformTop && 
-        playerBottom <= platformBottom + 0.02;
-
-    return feetNearPlatform;
+  void _updateCharge() {
+    final started = _chargeStartedAt;
+    if (!_chargingJump || started == null) return;
+    _chargePercent = (DateTime.now().difference(started).inMilliseconds / 500)
+        .clamp(0, 1);
   }
 
-  bool _checkEnemyCollision(Enemy enemy) {
-    const enemyWidth = 0.06;
-    const enemyHeight = 0.06;
+  void _movePlatforms() {
+    for (final p in _platforms) {
+      p.previousX = p.x;
+      if (p.speed == 0) continue;
 
-    final playerLeft = _playerX;
-    final playerRight = _playerX + _playerWidth;
-    final playerTop = _playerY;
-    final playerBottom = _playerY + _playerHeight;
-
-    final enemyLeft = enemy.x;
-    final enemyRight = enemy.x + enemyWidth;
-    final enemyTop = enemy.y;
-    final enemyBottom = enemy.y + enemyHeight;
-
-    return playerLeft < enemyRight &&
-        playerRight > enemyLeft &&
-        playerTop < enemyBottom &&
-        playerBottom > enemyTop;
+      p.x += p.speed * p.direction;
+      if (p.x < p.minX) {
+        p.x = p.minX;
+        p.direction = 1;
+      } else if (p.x > p.maxX) {
+        p.x = p.maxX;
+        p.direction = -1;
+      }
+    }
   }
 
-  bool _checkFlagCollision() {
-    const flagWidth = 0.06;
-    const flagHeight = 0.12;
+  void _applyInput() {
+    if (_pressingLeft && !_pressingRight) {
+      _velocityX = -_moveSpeed;
+    } else if (_pressingRight && !_pressingLeft) {
+      _velocityX = _moveSpeed;
+    } else {
+      _velocityX *= _friction;
+      if (_velocityX.abs() < 0.001) _velocityX = 0;
+    }
+  }
 
-    final playerLeft = _playerX;
-    final playerRight = _playerX + _playerWidth;
-    final playerTop = _playerY;
+  void _applyPhysics() {
+    _previousPlayerY = _playerY;
+
+    _playerX = (_playerX + _velocityX).clamp(0.0, 1.0 - _playerWidth);
+
+    if (_grounded && _velocityY == 0) {
+      final support = _supportingPlatform();
+      if (support != null) {
+        _playerX = (_playerX + support.deltaX).clamp(0.0, 1.0 - _playerWidth);
+        _playerY = support.y - _playerHeight;
+        return;
+      }
+      _grounded = false;
+    }
+
+    _velocityY = min(_velocityY + _gravity, _terminalVelocity);
+    _playerY += _velocityY;
+  }
+
+  _Platform? _supportingPlatform() {
     final playerBottom = _playerY + _playerHeight;
+    for (final p in _platforms) {
+      if (!_isRetained(p) || p.brittle) continue;
+      if (_playerX + _playerWidth <= p.x || _playerX >= p.x + p.width) continue;
+      if ((playerBottom - p.y).abs() <= 0.02) return p;
+    }
+    return null;
+  }
 
-    final flagLeft = _flagX;
-    final flagRight = _flagX + flagWidth;
-    final flagTop = _flagY;
-    final flagBottom = _flagY + flagHeight;
+  void _landIfNeeded() {
+    if (_velocityY <= 0) return;
 
-    return playerLeft < flagRight &&
-        playerRight > flagLeft &&
-        playerTop < flagBottom &&
-        playerBottom > flagTop;
+    final previousBottom = _previousPlayerY + _playerHeight;
+    final currentBottom = _playerY + _playerHeight;
+    _Platform? landing;
+
+    for (final p in _platforms) {
+      if (!_isRetained(p)) continue;
+      if (_playerX + _playerWidth <= p.x || _playerX >= p.x + p.width) continue;
+      if (previousBottom > p.y + 0.012) continue;
+      if (currentBottom < p.y || currentBottom > p.y + 0.055) continue;
+
+      // Pick the first surface crossed while falling.
+      if (landing == null || p.y > landing.y) {
+        landing = p;
+      }
+    }
+
+    if (landing == null) return;
+
+    if (landing.brittle) {
+      _platforms.remove(landing);
+      _velocityY = max(_velocityY, 0.012);
+      return;
+    }
+
+    _playerY = landing.y - _playerHeight;
+    _velocityY = 0;
+    _grounded = true;
+    _playerX = (_playerX + landing.deltaX).clamp(0.0, 1.0 - _playerWidth);
+
+    _altitude = max(_altitude, landing.altitude);
+    if (landing.altitude > _peakAltitude) {
+      _peakAltitude = landing.altitude;
+      _bestAltitude = max(_bestAltitude, _peakAltitude);
+      _ensurePlatformsAhead();
+    }
+  }
+
+  void _updateCamera() {
+    final target = _playerY - _cameraPlayerY;
+    _cameraY += (target - _cameraY) * _cameraLerp;
+  }
+
+  bool _isRetained(_Platform p) {
+    return p.altitude >= _peakAltitude - _retainRowsBelowPeak;
+  }
+
+  void _cullOldPlatforms() {
+    _platforms.removeWhere((p) => !_isRetained(p));
+  }
+
+  bool _fellPastRetainedPlatforms() {
+    var lowestBottom = double.negativeInfinity;
+    for (final p in _platforms) {
+      if (!_isRetained(p)) continue;
+      lowestBottom = max(lowestBottom, p.y + _platformHeight);
+    }
+
+    if (lowestBottom == double.negativeInfinity) return true;
+    return _playerY + _playerHeight > lowestBottom + _fallPastLowestRow;
+  }
+
+  void _loseLife() {
+    _bestAltitude = max(_bestAltitude, _peakAltitude);
+    _lives--;
+    if (_lives <= 0) {
+      _finished = true;
+      return;
+    }
+    _startLife();
+  }
+
+  void _onSessionTimer() {
+    if (_finished || !mounted) return;
+    _bestAltitude = max(_bestAltitude, _peakAltitude);
+    _finished = true;
+    _finishSession();
+  }
+
+  void _finishSession({bool perfect = false}) {
+    if (!_finished) _finished = true;
+    _sessionTimer?.cancel();
+    _ticker.stop();
+
+    final bestAltitude = perfect ? _winAltitude : _bestAltitude;
+    final score = perfect ? 1.0 : (bestAltitude / _winAltitude).clamp(0.0, 1.0);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      widget.onComplete(
+        LevelOutcome(
+          score: score,
+          metrics: {
+            'altitude': bestAltitude,
+            'lives_used': _startingLives - _lives,
+          },
+          visibleMetricKeys: const {'altitude'},
+        ),
+      );
+    });
   }
 
   void _onJumpPressed() {
-    if (_isGrounded && !_gameOver) {
-      _isChargingJump = true;
-      _jumpChargeStart = DateTime.now();
-    }
+    if (!_grounded || _finished) return;
+    _chargingJump = true;
+    _chargeStartedAt = DateTime.now();
   }
 
   void _onJumpReleased() {
-    if (_isChargingJump && _isGrounded && !_gameOver) {
-      // Use the tracked charge percent (min 20%)
-      final chargePercent = _jumpChargePercent.clamp(0.2, 1.0);
-      
+    if (_chargingJump && !_finished) {
+      final charge = _chargePercent.clamp(0.2, 1.0);
       setState(() {
-        _velocityY = _jumpVelocity * chargePercent;
-        _isGrounded = false;
+        _velocityY = _jumpVelocity * charge;
+        _grounded = false;
       });
     }
-    _isChargingJump = false;
-    _jumpChargeStart = null;
-    _jumpChargePercent = 0.0;
+    _chargingJump = false;
+    _chargeStartedAt = null;
+    _chargePercent = 0;
   }
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        _screenSize = Size(constraints.maxWidth, constraints.maxHeight);
+        _size = Size(constraints.maxWidth, constraints.maxHeight);
 
-        return Container(
-          color: NunuColors.backgroundDefault,
-          child: Stack(
-            children: [
-              // Background decorations
-              _buildBackground(),
-
-              // Platforms
-              ..._platforms.map((p) => _buildPlatform(p)),
-
-              // Flag
-              _buildFlag(),
-
-              // Enemies
-              ..._enemies.map((e) => _buildEnemy(e)),
-
-              // Player
-              _buildPlayer(),
-
-              // Controls
-              _buildControls(),
-            ],
+        return ClipRect(
+          child: ColoredBox(
+            color: NunuColors.backgroundDefault,
+            child: Stack(
+              children: [
+                CustomPaint(
+                  size: _size,
+                  painter: _JumpKingPainter(
+                    platforms: _platforms,
+                    cameraY: _cameraY,
+                    playerX: _playerX,
+                    playerY: _playerY,
+                    playerWidth: _playerWidth,
+                    playerHeight: _playerHeight,
+                    platformHeight: _platformHeight,
+                    chargePercent: _chargingJump ? _chargePercent : 0,
+                  ),
+                ),
+                _buildHud(),
+                _buildControls(),
+              ],
+            ),
           ),
         );
       },
     );
   }
 
-  Widget _buildBackground() {
-    return CustomPaint(
-      size: _screenSize,
-      painter: BackgroundPainter(),
-    );
-  }
-
-  Widget _buildPlatform(Platform platform) {
-    return Positioned(
-      left: platform.x * _screenSize.width,
-      top: platform.y * _screenSize.height,
-      child: Container(
-        width: platform.width * _screenSize.width,
-        height: _platformHeight * _screenSize.height,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              NunuColors.secondaryMain,
-              NunuColors.secondaryDark,
-            ],
-          ),
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: NunuColors.secondaryLight, width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: NunuColors.secondaryMain.withValues(alpha: 0.4),
-              blurRadius: 8,
-              spreadRadius: 1,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFlag() {
-    const flagWidth = 0.06;
-    const flagHeight = 0.12;
-
-    return Positioned(
-      left: _flagX * _screenSize.width,
-      top: _flagY * _screenSize.height,
-      child: SizedBox(
-        width: flagWidth * _screenSize.width,
-        height: flagHeight * _screenSize.height,
-        child: Stack(
+  Widget _buildHud() {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Pole
-            Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              child: Container(
-                width: 4,
-                decoration: BoxDecoration(
-                  color: NunuColors.textPrimary,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            // Flag
-            Positioned(
-              left: 4,
-              top: 0,
-              child: Container(
-                width: flagWidth * _screenSize.width - 8,
-                height: flagHeight * _screenSize.height * 0.5,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [
-                      NunuColors.successMain,
-                      NunuColors.successDark,
-                    ],
-                  ),
-                  borderRadius: const BorderRadius.only(
-                    topRight: Radius.circular(4),
-                    bottomRight: Radius.circular(4),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: NunuColors.successMain.withValues(alpha: 0.6),
-                      blurRadius: 12,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                child: const Center(
-                  child: Icon(
-                    Icons.flag,
-                    color: Colors.white,
-                    size: 16,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEnemy(Enemy enemy) {
-    const enemyWidth = 0.06;
-    const enemyHeight = 0.06;
-
-    return Positioned(
-      left: enemy.x * _screenSize.width,
-      top: enemy.y * _screenSize.height,
-      child: Container(
-        width: enemyWidth * _screenSize.width,
-        height: enemyHeight * _screenSize.height,
-        decoration: BoxDecoration(
-          gradient: const RadialGradient(
-            colors: [
-              NunuColors.errorLight,
-              NunuColors.errorMain,
-              NunuColors.errorDark,
-            ],
-          ),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: NunuColors.errorLight, width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: NunuColors.errorMain.withValues(alpha: 0.6),
-              blurRadius: 10,
-              spreadRadius: 2,
-            ),
-          ],
-        ),
-        child: Center(
-          child: Transform.flip(
-            flipX: enemy.direction < 0,
-            child: const Icon(
-              Icons.bug_report,
-              color: Colors.white,
-              size: 20,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPlayer() {
-    final playerWidth = _playerWidth * _screenSize.width;
-    final playerHeight = _playerHeight * _screenSize.height;
-    
-    return Positioned(
-      left: _playerX * _screenSize.width,
-      top: _playerY * _screenSize.height - (_isChargingJump ? 12 : 0), // Offset for charge bar
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Jump charge bar
-          if (_isChargingJump)
             Container(
-              width: playerWidth,
-              height: 8,
-              margin: const EdgeInsets.only(bottom: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: NunuColors.backgroundPaper,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: NunuColors.successDark, width: 1),
+                color: NunuColors.backgroundPaper.withValues(alpha: 0.85),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: NunuColors.primaryDark),
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(3),
-                child: FractionallySizedBox(
-                  alignment: Alignment.centerLeft,
-                  widthFactor: _jumpChargePercent,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          NunuColors.successLight,
-                          _jumpChargePercent >= 1.0 
-                              ? NunuColors.warningMain 
-                              : NunuColors.successMain,
-                        ],
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: NunuColors.successMain.withValues(alpha: 0.6),
-                          blurRadius: 4,
-                        ),
-                      ],
-                    ),
+              child: Text(
+                'altitude  $_altitude',
+                style: const TextStyle(
+                  color: NunuColors.primaryLight,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const Spacer(),
+            Row(
+              children: List.generate(_startingLives, (i) {
+                final filled = i < _lives;
+                return Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: Icon(
+                    filled ? Icons.favorite : Icons.favorite_border,
+                    color: filled
+                        ? NunuColors.errorMain
+                        : NunuColors.errorDark.withValues(alpha: 0.45),
+                    size: 28,
                   ),
-                ),
-              ),
+                );
+              }),
             ),
-          // Player body
-          Container(
-            width: playerWidth,
-            height: playerHeight,
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                colors: _isChargingJump
-                    ? [
-                        NunuColors.successLight,
-                        NunuColors.primaryMain,
-                        NunuColors.primaryDark,
-                      ]
-                    : [
-                        NunuColors.primaryLighter,
-                        NunuColors.primaryMain,
-                        NunuColors.primaryDark,
-                      ],
-                stops: const [0.0, 0.5, 1.0],
-              ),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: _isChargingJump ? NunuColors.successLight : NunuColors.primaryLight,
-                width: 2,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: (_isChargingJump ? NunuColors.successMain : NunuColors.primaryMain)
-                      .withValues(alpha: 0.7),
-                  blurRadius: _isChargingJump ? 20 : 15,
-                  spreadRadius: _isChargingJump ? 5 : 3,
-                ),
-              ],
-            ),
-            child: Center(
-              child: Icon(
-                Icons.person,
-                color: Colors.white,
-                size: playerHeight * 0.5,
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -574,86 +530,74 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Left/Right controls
           Row(
             children: [
               GestureDetector(
-                onTapDown: (_) => _isPressingLeft = true,
-                onTapUp: (_) => _isPressingLeft = false,
-                onTapCancel: () => _isPressingLeft = false,
-                child: _buildControlButton(
+                onTapDown: (_) => setState(() => _pressingLeft = true),
+                onTapUp: (_) => setState(() => _pressingLeft = false),
+                onTapCancel: () => setState(() => _pressingLeft = false),
+                child: _controlButton(
                   icon: Icons.arrow_back,
                   label: 'left',
-                  isPressed: _isPressingLeft,
+                  pressed: _pressingLeft,
                 ),
               ),
               const SizedBox(width: 12),
               GestureDetector(
-                onTapDown: (_) => _isPressingRight = true,
-                onTapUp: (_) => _isPressingRight = false,
-                onTapCancel: () => _isPressingRight = false,
-                child: _buildControlButton(
+                onTapDown: (_) => setState(() => _pressingRight = true),
+                onTapUp: (_) => setState(() => _pressingRight = false),
+                onTapCancel: () => setState(() => _pressingRight = false),
+                child: _controlButton(
                   icon: Icons.arrow_forward,
                   label: 'right',
-                  isPressed: _isPressingRight,
+                  pressed: _pressingRight,
                 ),
               ),
             ],
           ),
-          // Jump button
           GestureDetector(
             onTapDown: (_) => _onJumpPressed(),
             onTapUp: (_) => _onJumpReleased(),
             onTapCancel: () => _onJumpReleased(),
-            child: _buildJumpButton(),
+            child: _jumpButton(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildControlButton({
+  Widget _controlButton({
     required IconData icon,
     required String label,
-    required bool isPressed,
+    required bool pressed,
   }) {
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 100),
+      duration: const Duration(milliseconds: 80),
       width: 70,
       height: 70,
       decoration: BoxDecoration(
-        color: isPressed
+        color: pressed
             ? NunuColors.primaryMain.withValues(alpha: 0.3)
             : NunuColors.backgroundPaper.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isPressed ? NunuColors.primaryMain : NunuColors.primaryDark,
-          width: isPressed ? 3 : 2,
+          color: pressed ? NunuColors.primaryMain : NunuColors.primaryDark,
+          width: pressed ? 3 : 2,
         ),
-        boxShadow: isPressed
-            ? [
-                BoxShadow(
-                  color: NunuColors.primaryMain.withValues(alpha: 0.5),
-                  blurRadius: 12,
-                  spreadRadius: 2,
-                ),
-              ]
-            : [],
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             icon,
-            color: isPressed ? NunuColors.primaryLight : NunuColors.primaryMain,
+            color: pressed ? NunuColors.primaryLight : NunuColors.primaryMain,
             size: 28,
           ),
           const SizedBox(height: 2),
           Text(
             label,
             style: TextStyle(
-              color:
-                  isPressed ? NunuColors.primaryLight : NunuColors.primaryMain,
+              color: pressed ? NunuColors.primaryLight : NunuColors.primaryMain,
               fontSize: 10,
               fontWeight: FontWeight.bold,
             ),
@@ -663,7 +607,7 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
     );
   }
 
-  Widget _buildJumpButton() {
+  Widget _jumpButton() {
     return Container(
       width: 90,
       height: 90,
@@ -679,20 +623,16 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
         border: Border.all(color: NunuColors.successLight, width: 3),
         boxShadow: [
           BoxShadow(
-            color: NunuColors.successMain.withValues(alpha: 0.6),
-            blurRadius: 15,
-            spreadRadius: 3,
+            color: NunuColors.successMain.withValues(alpha: 0.5),
+            blurRadius: 14,
+            spreadRadius: 2,
           ),
         ],
       ),
       child: const Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.keyboard_arrow_up,
-            color: Colors.white,
-            size: 36,
-          ),
+          Icon(Icons.keyboard_arrow_up, color: Colors.white, size: 36),
           Text(
             'jump',
             style: TextStyle(
@@ -707,35 +647,164 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
   }
 }
 
-class BackgroundPainter extends CustomPainter {
+class _JumpKingPainter extends CustomPainter {
+  const _JumpKingPainter({
+    required this.platforms,
+    required this.cameraY,
+    required this.playerX,
+    required this.playerY,
+    required this.playerWidth,
+    required this.playerHeight,
+    required this.platformHeight,
+    required this.chargePercent,
+  });
+
+  final List<_Platform> platforms;
+  final double cameraY;
+  final double playerX;
+  final double playerY;
+  final double playerWidth;
+  final double playerHeight;
+  final double platformHeight;
+  final double chargePercent;
+
   @override
   void paint(Canvas canvas, Size size) {
-    // Gradient background
-    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
-    final gradient = LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: [
-        const Color(0xFF0D0D24),
-        NunuColors.backgroundDefault,
-        const Color(0xFF12102A),
-      ],
-    );
-    final paint = Paint()..shader = gradient.createShader(rect);
+    _paintBackground(canvas, size);
+    _paintPlatforms(canvas, size);
+    _paintPlayer(canvas, size);
+  }
+
+  void _paintBackground(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final paint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Color(0xFF0D0D24),
+          NunuColors.backgroundDefault,
+          Color(0xFF12102A),
+        ],
+      ).createShader(rect);
     canvas.drawRect(rect, paint);
 
-    // Draw some stars/dots for decoration
     final starPaint = Paint()
-      ..color = NunuColors.primaryDark.withValues(alpha: 0.3);
-
-    for (int i = 0; i < 30; i++) {
-      final x = (i * 37) % size.width;
-      final y = (i * 23) % (size.height * 0.6);
-      final radius = (i % 3) + 1.0;
-      canvas.drawCircle(Offset(x, y), radius, starPaint);
+      ..color = NunuColors.primaryDark.withValues(alpha: 0.28);
+    for (var i = 0; i < 40; i++) {
+      final x = (i * 37 + cameraY * size.width * 0.3) % size.width;
+      final y = (i * 23 + cameraY * size.height * 0.5) % (size.height * 0.7);
+      canvas.drawCircle(Offset(x, y), (i % 3) + 1.0, starPaint);
     }
   }
 
+  void _paintPlatforms(Canvas canvas, Size size) {
+    for (final p in platforms) {
+      final top = (p.y - cameraY) * size.height;
+      final height = platformHeight * size.height;
+      if (top + height < -8 || top > size.height + 8) continue;
+
+      final rect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(p.x * size.width, top, p.width * size.width, height),
+        const Radius.circular(4),
+      );
+      final fill = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: p.brittle
+              ? const [
+                  NunuColors.warningMain,
+                  Color(0xFFB45309),
+                  NunuColors.warningDark,
+                ]
+              : const [NunuColors.secondaryMain, NunuColors.secondaryDark],
+        ).createShader(rect.outerRect);
+      final border = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = p.brittle
+            ? NunuColors.warningLight
+            : NunuColors.secondaryLight;
+
+      canvas.drawRRect(rect, fill);
+      canvas.drawRRect(rect, border);
+    }
+  }
+
+  void _paintPlayer(Canvas canvas, Size size) {
+    final width = playerWidth * size.width;
+    final height = playerHeight * size.height;
+    final left = playerX * size.width;
+    final top = (playerY - cameraY) * size.height;
+
+    if (chargePercent > 0) {
+      final chargeRect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(left, top - 12, width, 8),
+        const Radius.circular(4),
+      );
+      canvas.drawRRect(chargeRect, Paint()..color = NunuColors.backgroundPaper);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(left, top - 12, width * chargePercent, 8),
+          const Radius.circular(4),
+        ),
+        Paint()
+          ..color = chargePercent >= 1
+              ? NunuColors.warningMain
+              : NunuColors.successMain,
+      );
+    }
+
+    final rect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(left, top, width, height),
+      const Radius.circular(8),
+    );
+    final fill = Paint()
+      ..shader = RadialGradient(
+        colors: chargePercent > 0
+            ? const [
+                NunuColors.successLight,
+                NunuColors.primaryMain,
+                NunuColors.primaryDark,
+              ]
+            : const [
+                NunuColors.primaryLighter,
+                NunuColors.primaryMain,
+                NunuColors.primaryDark,
+              ],
+      ).createShader(rect.outerRect);
+    final border = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..color = chargePercent > 0
+          ? NunuColors.successLight
+          : NunuColors.primaryLight;
+
+    canvas.drawRRect(rect, fill);
+    canvas.drawRRect(rect, border);
+
+    final iconPainter = TextPainter(
+      text: TextSpan(
+        text: String.fromCharCode(Icons.person.codePoint),
+        style: TextStyle(
+          fontFamily: Icons.person.fontFamily,
+          package: Icons.person.fontPackage,
+          color: Colors.white,
+          fontSize: height * 0.55,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    iconPainter.paint(
+      canvas,
+      Offset(
+        left + (width - iconPainter.width) / 2,
+        top + (height - iconPainter.height) / 2,
+      ),
+    );
+  }
+
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _JumpKingPainter oldDelegate) => true;
 }

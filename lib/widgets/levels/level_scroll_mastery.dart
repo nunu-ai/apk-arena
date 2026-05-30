@@ -17,6 +17,10 @@ class LevelScrollMastery extends LevelWidget {
 
 class _LevelScrollMasteryState extends State<LevelScrollMastery> {
   static const int maxWrongTaps = 12;
+  static const int _levelSeed = 1234;
+  static const int _speedRowCount = 220;
+  static const Duration _maxScoreTime = Duration(seconds: 30);
+  static const Duration _minScoreTime = Duration(minutes: 30);
   int _stage = 0;
   int _wrongTaps = 0;
   final Stopwatch _sw = Stopwatch();
@@ -32,7 +36,7 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
 
   // Stage 2: speed list
   late List<int> _speedIndices;
-  late int _highlightIndex;
+  late int _highlightPosition;
   // Stage 3: horizontal
   late List<String> _carousel;
   late int _carouselTarget;
@@ -56,11 +60,22 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
     _tosCtrl.addListener(_tosListen);
   }
 
+  Random _rngForStage(int offset) => Random(_levelSeed + offset);
+
   void _initContacts() {
-    final rng = Random();
+    final rng = _rngForStage(0);
     const firstNames = [
-      'Alex', 'Casey', 'Jordan', 'Sam', 'Taylor',
-      'Uma', 'Victor', 'Wesley', 'Xavier', 'Yara', 'Zane',
+      'Alex',
+      'Casey',
+      'Jordan',
+      'Sam',
+      'Taylor',
+      'Uma',
+      'Victor',
+      'Wesley',
+      'Xavier',
+      'Yara',
+      'Zane',
     ];
     const lastNames = ['Smith', 'Lee', 'Kim', 'Brown', 'Davis'];
     _contacts = [];
@@ -71,35 +86,31 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
         'phone': '(555) ${rng.nextInt(900) + 100}-${rng.nextInt(9000) + 1000}',
       });
     }
-    _contacts.add({
-      'name': 'Saul Goodman',
-      'phone': '(505) CALL-SAUL',
-    });
+    _contacts.add({'name': 'Saul Goodman', 'phone': '(505) CALL-SAUL'});
     _contacts.sort((a, b) => a['name']!.compareTo(b['name']!));
     _saulIndex = _contacts.indexWhere((c) => c['name'] == 'Saul Goodman');
   }
 
   void _initSpeed() {
-    final rng = Random();
-    _speedIndices = List.generate(60, (i) => i)..shuffle(rng);
-    _highlightIndex = 15 + rng.nextInt(35);
+    final rng = _rngForStage(1);
+    _speedIndices = List.generate(_speedRowCount, (i) => i);
+    _highlightPosition = 180 + rng.nextInt(24);
   }
 
   void _initCarousel() {
-    final rng = Random();
+    final rng = _rngForStage(2);
     _carousel = List.generate(
-      30,
+      52,
       (i) => 'item ${String.fromCharCode(65 + (i % 26))}-$i',
     )..shuffle(rng);
-    _carouselTarget = 10 + rng.nextInt(_carousel.length - 10);
+    _carouselTarget = 24 + rng.nextInt(8);
   }
 
   void _initGrid() {
-    final rng = Random();
     _gridW = 14;
     _gridH = 16;
-    _gx = 3 + rng.nextInt(_gridW - 6);
-    _gy = 3 + rng.nextInt(_gridH - 6);
+    _gx = 7;
+    _gy = 10;
   }
 
   @override
@@ -128,24 +139,39 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
   }
 
   void _fail() {
-    widget.onComplete(LevelOutcome(
-      score: 0,
-      metrics: {
-        'time_ms': _sw.elapsedMilliseconds,
-        'stages_cleared': _stage,
-      },
-    ));
+    _sw.stop();
+    widget.onComplete(
+      LevelOutcome(
+        score: 0,
+        metrics: {'time_ms': _sw.elapsedMilliseconds, 'stages_cleared': _stage},
+      ),
+    );
+  }
+
+  double _scoreForElapsed(Duration elapsed) {
+    final elapsedMs = elapsed.inMilliseconds.toDouble();
+    final maxScoreMs = _maxScoreTime.inMilliseconds.toDouble();
+    final minScoreMs = _minScoreTime.inMilliseconds.toDouble();
+    if (elapsedMs <= maxScoreMs) return 1;
+    if (elapsedMs >= minScoreMs) return 0;
+    final score = 1 - ((elapsedMs - maxScoreMs) / (minScoreMs - maxScoreMs));
+    return score.clamp(0.0, 1.0).toDouble();
   }
 
   void _nextStage() {
     if (_stage >= 4) {
-      widget.onComplete(LevelOutcome(
-        score: 1,
-        metrics: {
-          'time_ms': _sw.elapsedMilliseconds,
-          'stages_cleared': 5,
-        },
-      ));
+      _sw.stop();
+      final elapsed = _sw.elapsed;
+      widget.onComplete(
+        LevelOutcome(
+          score: _scoreForElapsed(elapsed),
+          metrics: {
+            'time_ms': elapsed.inMilliseconds,
+            'stages_cleared': 5,
+            'seed': _levelSeed,
+          },
+        ),
+      );
       return;
     }
     setState(() {
@@ -262,11 +288,17 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
                         width: 22,
                         height: 22,
                         decoration: BoxDecoration(
-                          color: _tosChecked ? Colors.blue.shade700 : Colors.white,
+                          color: _tosChecked
+                              ? Colors.blue.shade700
+                              : Colors.white,
                           border: Border.all(color: Colors.blue.shade700),
                         ),
                         child: _tosChecked
-                            ? const Icon(Icons.check, color: Colors.white, size: 16)
+                            ? const Icon(
+                                Icons.check,
+                                color: Colors.white,
+                                size: 16,
+                              )
                             : null,
                       ),
                       const SizedBox(width: 8),
@@ -297,13 +329,13 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
   Widget _buildSpeedList() {
     return Column(
       children: [
-        _header('tap the row marked TARGET'),
+        _header('scroll down to the row marked TARGET and tap it'),
         Expanded(
           child: ListView.builder(
             itemCount: _speedIndices.length,
             itemBuilder: (context, i) {
               final idx = _speedIndices[i];
-              final isTarget = idx == _highlightIndex;
+              final isTarget = i == _highlightPosition;
               return ListTile(
                 tileColor: isTarget
                     ? NunuColors.primaryMain.withValues(alpha: 0.25)
@@ -395,8 +427,7 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
               child: Scrollbar(
                 controller: _gridHCtrl,
                 thumbVisibility: true,
-                notificationPredicate: (n) =>
-                    n.metrics.axis == Axis.horizontal,
+                notificationPredicate: (n) => n.metrics.axis == Axis.horizontal,
                 child: SingleChildScrollView(
                   controller: _gridHCtrl,
                   scrollDirection: Axis.horizontal,
@@ -422,19 +453,24 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
                                 color: here
-                                    ? NunuColors.secondaryMain.withValues(alpha: 0.35)
+                                    ? NunuColors.secondaryMain.withValues(
+                                        alpha: 0.35,
+                                      )
                                     : NunuColors.backgroundPaper,
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                  color: NunuColors.primaryDark.withValues(alpha: 0.4),
+                                  color: NunuColors.primaryDark.withValues(
+                                    alpha: 0.4,
+                                  ),
                                 ),
                               ),
                               child: Text(
                                 here ? 'HERE' : '$x,$y',
                                 style: TextStyle(
                                   fontSize: here ? 13 : 11,
-                                  fontWeight:
-                                      here ? FontWeight.bold : FontWeight.normal,
+                                  fontWeight: here
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
                                   color: NunuColors.textPrimary,
                                 ),
                               ),

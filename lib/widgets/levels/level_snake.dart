@@ -1,8 +1,10 @@
 import 'dart:async';
-import 'package:apk_arena/models/level_outcome.dart';
 import 'dart:math';
+
+import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 
@@ -13,42 +15,132 @@ class LevelSnake extends LevelWidget {
   State<LevelSnake> createState() => _LevelSnakeState();
 }
 
+class _StageConfig {
+  final int number;
+  final int gridSize;
+  final int initialLength;
+  final int? targetLength;
+  final int maxAttempts;
+  final double scoreWeight;
+  final double partialScorePerLength;
+  final Duration tickDuration;
+
+  const _StageConfig({
+    required this.number,
+    required this.gridSize,
+    required this.initialLength,
+    required this.targetLength,
+    required this.maxAttempts,
+    required this.scoreWeight,
+    required this.partialScorePerLength,
+    required this.tickDuration,
+  });
+}
+
 class _LevelSnakeState extends State<LevelSnake> {
-  static const int _gridSize = 15;
-  static const int _targetLength = 15;
-  static const Duration _tickDuration = Duration(milliseconds: 300);
+  static const List<_StageConfig> _stageConfigs = [
+    _StageConfig(
+      number: 1,
+      gridSize: 10,
+      initialLength: 5,
+      targetLength: 10,
+      maxAttempts: 3,
+      scoreWeight: 0.10,
+      partialScorePerLength: 0.02,
+      tickDuration: Duration(seconds: 5),
+    ),
+    _StageConfig(
+      number: 2,
+      gridSize: 10,
+      initialLength: 5,
+      targetLength: 10,
+      maxAttempts: 3,
+      scoreWeight: 0.15,
+      partialScorePerLength: 0.02,
+      tickDuration: Duration(milliseconds: 2500),
+    ),
+    _StageConfig(
+      number: 3,
+      gridSize: 15,
+      initialLength: 10,
+      targetLength: 20,
+      maxAttempts: 3,
+      scoreWeight: 0.15,
+      partialScorePerLength: 0.01,
+      tickDuration: Duration(seconds: 1),
+    ),
+    _StageConfig(
+      number: 4,
+      gridSize: 15,
+      initialLength: 3,
+      targetLength: null,
+      maxAttempts: 2,
+      scoreWeight: 0.60,
+      partialScorePerLength: 0.005,
+      tickDuration: Duration(milliseconds: 500),
+    ),
+  ];
 
   final List<List<int>> _snake = [];
   List<int> _food = [0, 0];
   int _dx = 1, _dy = 0;
   int _nextDx = 1, _nextDy = 0;
-  Timer? _timer;
+  Timer? _movementTimer;
+
+  int _stageIndex = 0;
+  late List<int> _attemptsByStage;
+  late List<int> _bestLengthsByStage;
+  late List<bool> _clearedByStage;
+
   bool _gameOver = false;
   bool _started = false;
+  bool _finishing = false;
   final _rng = Random();
+
+  _StageConfig get _config => _stageConfigs[_stageIndex];
 
   @override
   void initState() {
     super.initState();
-    final mid = _gridSize ~/ 2;
-    _snake.addAll([
-      [mid, mid],
-      [mid, mid - 1],
-      [mid, mid - 2],
-    ]);
+    _attemptsByStage = List.filled(_stageConfigs.length, 0);
+    _bestLengthsByStage = _stageConfigs
+        .map((config) => config.initialLength)
+        .toList();
+    _clearedByStage = List.filled(_stageConfigs.length, false);
+    _resetBoard();
+  }
+
+  void _resetBoard() {
+    _movementTimer?.cancel();
+    _movementTimer = null;
+    _snake.clear();
+    final row = _config.gridSize ~/ 2;
+    final startColumn = min(_config.initialLength, _config.gridSize - 1);
+    for (var i = 0; i < _config.initialLength; i++) {
+      _snake.add([row, startColumn - i]);
+    }
+    _dx = 1;
+    _dy = 0;
+    _nextDx = 1;
+    _nextDy = 0;
+    _gameOver = false;
+    _started = false;
     _spawnFood();
   }
 
-  void _startGame() {
-    if (_started) return;
+  void _startAttempt() {
+    if (_started || _finishing) return;
     _started = true;
-    _timer = Timer.periodic(_tickDuration, (_) => _tick());
+    _attemptsByStage[_stageIndex]++;
+    _movementTimer = Timer.periodic(_config.tickDuration, (_) => _tick());
   }
 
   void _spawnFood() {
+    if (_snake.length >= _config.gridSize * _config.gridSize) return;
+
     while (true) {
-      final r = _rng.nextInt(_gridSize);
-      final c = _rng.nextInt(_gridSize);
+      final r = _rng.nextInt(_config.gridSize);
+      final c = _rng.nextInt(_config.gridSize);
       if (!_snake.any((s) => s[0] == r && s[1] == c)) {
         _food = [r, c];
         break;
@@ -57,8 +149,10 @@ class _LevelSnakeState extends State<LevelSnake> {
   }
 
   void _tick() {
-    if (_gameOver || !mounted) return;
+    if (_gameOver || !mounted || _finishing) return;
 
+    var crashed = false;
+    var reachedTarget = false;
     setState(() {
       _dx = _nextDx;
       _dy = _nextDy;
@@ -68,16 +162,16 @@ class _LevelSnakeState extends State<LevelSnake> {
 
       // Wall collision
       if (newHead[0] < 0 ||
-          newHead[0] >= _gridSize ||
+          newHead[0] >= _config.gridSize ||
           newHead[1] < 0 ||
-          newHead[1] >= _gridSize) {
-        _endGame(false);
+          newHead[1] >= _config.gridSize) {
+        crashed = true;
         return;
       }
 
       // Self collision
       if (_snake.any((s) => s[0] == newHead[0] && s[1] == newHead[1])) {
-        _endGame(false);
+        crashed = true;
         return;
       }
 
@@ -86,41 +180,124 @@ class _LevelSnakeState extends State<LevelSnake> {
       // Eat food?
       if (newHead[0] == _food[0] && newHead[1] == _food[1]) {
         HapticFeedback.lightImpact();
-        if (_snake.length >= _targetLength) {
-          _endGame(true);
-          return;
-        }
+        _recordBestLength();
+        reachedTarget =
+            _config.targetLength != null &&
+            _snake.length >= _config.targetLength!;
+        if (reachedTarget) return;
         _spawnFood();
       } else {
         _snake.removeLast();
       }
     });
+
+    if (crashed) {
+      _handleCrash();
+      return;
+    }
+
+    if (reachedTarget) {
+      _handleStageClear();
+    }
   }
 
-  void _endGame(bool won) {
+  void _recordBestLength() {
+    _bestLengthsByStage[_stageIndex] = max(
+      _bestLengthsByStage[_stageIndex],
+      _snake.length,
+    );
+  }
+
+  void _handleCrash() {
+    _recordBestLength();
     _gameOver = true;
-    _timer?.cancel();
-    if (won) HapticFeedback.mediumImpact();
-    else HapticFeedback.heavyImpact();
+    _movementTimer?.cancel();
+    _movementTimer = null;
+    HapticFeedback.heavyImpact();
+
     Future.delayed(const Duration(milliseconds: 600), () {
-      widget.onComplete(LevelOutcome(score: won ? 1 : 0, metrics: {
-        'snakeLength': _snake.length,
-        'targetLength': _targetLength,
-      }));
+      if (!mounted || _finishing) return;
+      if (_attemptsByStage[_stageIndex] >= _config.maxAttempts) {
+        _advanceStageOrFinish();
+        return;
+      }
+      setState(_resetBoard);
     });
   }
 
+  void _handleStageClear() {
+    _recordBestLength();
+    _movementTimer?.cancel();
+    _movementTimer = null;
+    HapticFeedback.mediumImpact();
+    _clearedByStage[_stageIndex] = true;
+
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted && !_finishing) _advanceStageOrFinish();
+    });
+  }
+
+  void _advanceStageOrFinish() {
+    if (_stageIndex >= _stageConfigs.length - 1) {
+      _finishLevel();
+      return;
+    }
+
+    setState(() {
+      _stageIndex++;
+      _resetBoard();
+    });
+  }
+
+  double _stageScore(int index) {
+    final config = _stageConfigs[index];
+    if (config.targetLength != null && _clearedByStage[index]) {
+      return config.scoreWeight;
+    }
+
+    final extraLength = max(
+      0,
+      _bestLengthsByStage[index] - config.initialLength,
+    );
+    return min(config.scoreWeight, extraLength * config.partialScorePerLength);
+  }
+
+  void _finishLevel() {
+    if (_finishing) return;
+    _finishing = true;
+    _movementTimer?.cancel();
+
+    final stageScores = [
+      for (var i = 0; i < _stageConfigs.length; i++) _stageScore(i),
+    ];
+    final totalScore = stageScores.reduce((a, b) => a + b);
+
+    widget.onComplete(
+      LevelOutcome(
+        score: totalScore,
+        metrics: {
+          'stage1Score': stageScores[0],
+          'stage2Score': stageScores[1],
+          'stage3Score': stageScores[2],
+          'stage4Score': stageScores[3],
+          'stage4BestLength': _bestLengthsByStage[3],
+        },
+      ),
+    );
+  }
+
   void _setDirection(int dx, int dy) {
+    if (_gameOver || _finishing) return;
     // Prevent 180-degree turns
     if (_dx == -dx && _dy == -dy) return;
     _nextDx = dx;
     _nextDy = dy;
-    _startGame();
+    _startAttempt();
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _movementTimer?.cancel();
     super.dispose();
   }
 
@@ -146,40 +323,52 @@ class _LevelSnakeState extends State<LevelSnake> {
   Widget _buildHeader() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'length',
-                style: TextStyle(color: NunuColors.textSecondary, fontSize: 12),
+              Text(
+                'stage ${_config.number}',
+                style: const TextStyle(
+                  color: NunuColors.primaryLight,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               Text(
-                '${_snake.length}',
+                'attempt $_displayAttempt/${_config.maxAttempts}',
                 style: const TextStyle(
-                  fontSize: 28,
+                  color: NunuColors.textPrimary,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: NunuColors.primaryMain,
                 ),
               ),
             ],
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'target',
-                style: TextStyle(color: NunuColors.textSecondary, fontSize: 12),
+              _buildStat(
+                label: 'length',
+                value: '${_snake.length}',
+                color: NunuColors.primaryMain,
               ),
-              const Text(
-                '$_targetLength',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: NunuColors.secondaryMain,
-                ),
+              _buildStat(
+                label: 'best',
+                value: '${_bestLengthsByStage[_stageIndex]}',
+                color: NunuColors.warningMain,
+                alignEnd: false,
+              ),
+              _buildStat(
+                label: _config.targetLength == null ? 'cap' : 'target',
+                value: _config.targetLength == null
+                    ? '${(_config.scoreWeight * 100).round()}%'
+                    : '${_config.targetLength}',
+                color: NunuColors.secondaryMain,
+                alignEnd: true,
               ),
             ],
           ),
@@ -188,36 +377,75 @@ class _LevelSnakeState extends State<LevelSnake> {
     );
   }
 
+  Widget _buildStat({
+    required String label,
+    required String value,
+    required Color color,
+    bool alignEnd = false,
+  }) {
+    return Column(
+      crossAxisAlignment: alignEnd
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(color: NunuColors.textSecondary, fontSize: 12),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+
+  int get _displayAttempt {
+    final usedAttempts = _attemptsByStage[_stageIndex];
+    return min(usedAttempts + (_started ? 0 : 1), _config.maxAttempts);
+  }
+
   Widget _buildGrid() {
     return LayoutBuilder(
       builder: (context, constraints) {
         final cellSize = min(
-          (constraints.maxWidth - 16) / _gridSize,
-          (constraints.maxHeight - 8) / _gridSize,
+          (constraints.maxWidth - 16) / _config.gridSize,
+          (constraints.maxHeight - 8) / _config.gridSize,
         );
 
         return Container(
           decoration: BoxDecoration(
-            border: Border.all(color: NunuColors.primaryDark.withOpacity(0.5), width: 2),
+            border: Border.all(
+              color: NunuColors.primaryDark.withValues(alpha: 0.5),
+              width: 2,
+            ),
             borderRadius: BorderRadius.circular(4),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(2),
             child: SizedBox(
-              width: cellSize * _gridSize,
-              height: cellSize * _gridSize,
+              width: cellSize * _config.gridSize,
+              height: cellSize * _config.gridSize,
               child: GridView.builder(
                 physics: const NeverScrollableScrollPhysics(),
                 padding: EdgeInsets.zero,
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: _gridSize,
+                  crossAxisCount: _config.gridSize,
                 ),
-                itemCount: _gridSize * _gridSize,
+                itemCount: _config.gridSize * _config.gridSize,
                 itemBuilder: (_, i) {
-                  final r = i ~/ _gridSize, c = i % _gridSize;
+                  final r = i ~/ _config.gridSize, c = i % _config.gridSize;
                   final isHead =
-                      _snake.isNotEmpty && _snake.first[0] == r && _snake.first[1] == c;
-                  final snakeIndex = _snake.indexWhere((s) => s[0] == r && s[1] == c);
+                      _snake.isNotEmpty &&
+                      _snake.first[0] == r &&
+                      _snake.first[1] == c;
+                  final snakeIndex = _snake.indexWhere(
+                    (s) => s[0] == r && s[1] == c,
+                  );
                   final isSnake = snakeIndex >= 0;
                   final isFood = _food[0] == r && _food[1] == c;
 
@@ -227,23 +455,35 @@ class _LevelSnakeState extends State<LevelSnake> {
                   } else if (isSnake) {
                     // Gradient from primary to secondary along body
                     final t = snakeIndex / max(_snake.length - 1, 1);
-                    bg = Color.lerp(NunuColors.primaryLight, NunuColors.secondaryMain, t)!;
+                    bg = Color.lerp(
+                      NunuColors.primaryLight,
+                      NunuColors.secondaryMain,
+                      t,
+                    )!;
                   } else if (isFood) {
                     bg = NunuColors.warningMain;
                   } else {
                     bg = (r + c) % 2 == 0
-                        ? NunuColors.backgroundDefault
-                        : NunuColors.backgroundPaper.withOpacity(0.3);
+                        ? const Color(0xFF080817)
+                        : const Color(0xFF241B4A);
                   }
 
                   return Container(
                     decoration: BoxDecoration(
                       color: bg,
+                      border: isSnake || isFood
+                          ? null
+                          : Border.all(
+                              color: NunuColors.primaryDark.withValues(
+                                alpha: 0.18,
+                              ),
+                              width: 0.5,
+                            ),
                       borderRadius: isHead
                           ? BorderRadius.circular(cellSize * 0.3)
                           : isFood
-                              ? BorderRadius.circular(cellSize * 0.5)
-                              : null,
+                          ? BorderRadius.circular(cellSize * 0.5)
+                          : null,
                     ),
                   );
                 },
@@ -265,7 +505,9 @@ class _LevelSnakeState extends State<LevelSnake> {
           decoration: BoxDecoration(
             color: NunuColors.backgroundPaper,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: NunuColors.primaryDark.withOpacity(0.5)),
+            border: Border.all(
+              color: NunuColors.primaryDark.withValues(alpha: 0.5),
+            ),
           ),
           child: Icon(icon, color: NunuColors.primaryMain, size: 32),
         ),

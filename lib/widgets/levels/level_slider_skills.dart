@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:apk_arena/models/level_outcome.dart';
@@ -6,7 +7,8 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../level_widget.dart';
 
-/// Four stages: age range, exact age, two decimals (last: value only while dragging). Ten lives; score = 20%/stage + 2%/life (win).
+/// Five stages: age range, exact age, two decimals, then reactor stabilization.
+/// Ten lives; score = 16%/stage + 2%/life on a full clear.
 class LevelSliderSkills extends LevelWidget {
   const LevelSliderSkills({super.key, required super.onComplete});
 
@@ -16,10 +18,12 @@ class LevelSliderSkills extends LevelWidget {
 
 class _LevelSliderSkillsState extends State<LevelSliderSkills> {
   static const int _startingLives = 10;
-  static const int _totalStages = 4;
-  static const double _scorePerStage = 0.2;
+  static const int _totalStages = 5;
+  static const double _scorePerStage = 0.16;
   static const double _scorePerLife = 0.02;
   static const Color _subtleGrey = Color(0xFF9CA3AF);
+  static const double _reactorTargetMin = 0.45;
+  static const double _reactorTargetMax = 0.55;
   final Random _rng = Random();
 
   int _stage = 0;
@@ -36,11 +40,22 @@ class _LevelSliderSkillsState extends State<LevelSliderSkills> {
 
   double _vDec2 = 5;
   late double _tDec2;
+  double _rodA = 0.0;
+  double _rodB = 0.0;
+  double _rodC = 0.0;
+  double _stability = 0.0;
+  Timer? _stabilityTimer;
 
   @override
   void initState() {
     super.initState();
     _randomizeTargets();
+  }
+
+  @override
+  void dispose() {
+    _stabilityTimer?.cancel();
+    super.dispose();
   }
 
   void _randomizeTargets() {
@@ -62,6 +77,41 @@ class _LevelSliderSkillsState extends State<LevelSliderSkills> {
   double _scoreFromLives(int lives) =>
       lives.clamp(0, _startingLives) * _scorePerLife;
 
+  double get _temp => (_rodA * 0.6 + _rodB * 0.4 - 0.06).clamp(0.0, 1.0);
+  double get _pressure =>
+      (_rodB * 0.4 + _rodC * 0.6 + 0.12).clamp(0.0, 1.0);
+  double get _output => (_rodA * 0.3 + _rodC * 0.7 - 0.09).clamp(0.0, 1.0);
+
+  bool _isStable(double value) =>
+      value >= _reactorTargetMin && value <= _reactorTargetMax;
+
+  void _startReactorStage() {
+    _stabilityTimer?.cancel();
+    _stability = 0.0;
+    _rodA = 0.0;
+    _rodB = 0.0;
+    _rodC = 0.0;
+    _stabilityTimer = Timer.periodic(const Duration(milliseconds: 50), (_) {
+      if (!mounted || _stage != 4) return;
+      final stable =
+          _isStable(_temp) && _isStable(_pressure) && _isStable(_output);
+
+      setState(() {
+        if (stable) {
+          _stability += 0.02;
+        } else {
+          _stability -= 0.05;
+        }
+        _stability = _stability.clamp(0.0, 1.0);
+      });
+
+      if (_stability >= 1.0) {
+        _stabilityTimer?.cancel();
+        _advanceOrWin();
+      }
+    });
+  }
+
   void _fail() {
     final stageScore = _scoreFromStages(_stage);
     final lifeScore = _scoreFromLives(_lives);
@@ -78,7 +128,8 @@ class _LevelSliderSkillsState extends State<LevelSliderSkills> {
   }
 
   void _advanceOrWin() {
-    if (_stage >= 3) {
+    if (_stage >= _totalStages - 1) {
+      _stabilityTimer?.cancel();
       final stageScore = _scoreFromStages(_totalStages);
       final lifeScore = _scoreFromLives(_lives);
       widget.onComplete(LevelOutcome(
@@ -94,6 +145,9 @@ class _LevelSliderSkillsState extends State<LevelSliderSkills> {
       return;
     }
     setState(() => _stage++);
+    if (_stage == 4) {
+      _startReactorStage();
+    }
   }
 
   bool _closeEnough(double a, double b, double tol) => (a - b).abs() <= tol;
@@ -136,8 +190,11 @@ class _LevelSliderSkillsState extends State<LevelSliderSkills> {
         return 'confirm range';
       case 1:
         return 'confirm age';
-      default:
+      case 2:
+      case 3:
         return 'submit';
+      default:
+        return '';
     }
   }
 
@@ -484,6 +541,215 @@ class _LevelSliderSkillsState extends State<LevelSliderSkills> {
     ];
   }
 
+  Widget _reactorGauge(String label, double value, Color color) {
+    final bool isInZone = _isStable(value);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 40,
+          height: 160,
+          child: Stack(
+            alignment: Alignment.bottomCenter,
+            children: [
+              Positioned.fill(
+                child: Container(
+                  width: 28,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade900,
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(color: Colors.grey.shade800),
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final h = constraints.maxHeight;
+                    return Stack(
+                      children: [
+                        Positioned(
+                          top: (1 - _reactorTargetMax) * h,
+                          height: (_reactorTargetMax - _reactorTargetMin) * h,
+                          left: 2,
+                          right: 2,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: NunuColors.successMain.withValues(
+                                alpha: 0.26,
+                              ),
+                              border: Border.symmetric(
+                                horizontal: BorderSide(
+                                  color: NunuColors.successMain.withValues(
+                                    alpha: 0.8,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Align(
+                          alignment: Alignment.bottomCenter,
+                          child: Container(
+                            width: 18,
+                            height: h * value,
+                            decoration: BoxDecoration(
+                              color: isInZone ? NunuColors.successMain : color,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: TextStyle(
+            color: isInZone ? NunuColors.successMain : NunuColors.textSecondary,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _reactorRod(
+    String label,
+    double value,
+    ValueChanged<double> onChanged,
+  ) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 72,
+          height: 220,
+          child: RotatedBox(
+            quarterTurns: 3,
+            child: SliderTheme(
+              data: SliderThemeData(
+                trackHeight: 18,
+                activeTrackColor: Colors.grey.shade700,
+                inactiveTrackColor: Colors.black,
+                thumbColor: NunuColors.primaryMain,
+                overlayColor: NunuColors.primaryMain.withValues(alpha: 0.18),
+                thumbShape: const RoundSliderThumbShape(
+                  enabledThumbRadius: 13,
+                ),
+              ),
+              child: Slider(
+                value: value,
+                onChanged: (v) => setState(() => onChanged(v)),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          label,
+          style: const TextStyle(
+            color: NunuColors.textPrimary,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _buildReactorStage() {
+    return [
+      _hintLine('keep all three readings in the green zone to stabilize'),
+      const SizedBox(height: 18),
+      Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: NunuColors.backgroundPaper,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: NunuColors.primaryMain, width: 1.5),
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _reactorGauge('temp', _temp, NunuColors.errorMain),
+                const SizedBox(width: 12),
+                _reactorGauge('pressure', _pressure, NunuColors.warningMain),
+                const SizedBox(width: 12),
+                _reactorGauge('output', _output, NunuColors.secondaryMain),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'system stability',
+                  style: TextStyle(
+                    color: _stability > 0
+                        ? NunuColors.successMain
+                        : NunuColors.textSecondary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
+                Text(
+                  '${(_stability * 100).toInt()}%',
+                  style: TextStyle(
+                    color: _stability > 0
+                        ? NunuColors.successMain
+                        : NunuColors.textSecondary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            LinearProgressIndicator(
+              value: _stability,
+              minHeight: 10,
+              backgroundColor: Colors.grey.shade900,
+              color: NunuColors.successMain,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 18),
+      Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade800,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: SizedBox(
+          height: 280,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _reactorRod('alpha', _rodA, (v) => _rodA = v),
+              const SizedBox(width: 12),
+              _reactorRod('beta', _rodB, (v) => _rodB = v),
+              const SizedBox(width: 12),
+              _reactorRod('gamma', _rodC, (v) => _rodC = v),
+            ],
+          ),
+        ),
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -513,19 +779,22 @@ class _LevelSliderSkillsState extends State<LevelSliderSkills> {
               icon: Icons.linear_scale_rounded,
               showPersistentValueCard: false,
             ),
-          const SizedBox(height: 24),
-          FilledButton(
-            onPressed: _submit,
-            style: FilledButton.styleFrom(
-              backgroundColor: NunuColors.primaryMain,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+          if (_stage == 4) ..._buildReactorStage(),
+          if (_stage != 4) ...[
+            const SizedBox(height: 24),
+            FilledButton(
+              onPressed: _submit,
+              style: FilledButton.styleFrom(
+                backgroundColor: NunuColors.primaryMain,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: Text(
+                _primaryButtonLabel,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
-            child: Text(
-              _primaryButtonLabel,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
+          ],
         ],
       ),
     );

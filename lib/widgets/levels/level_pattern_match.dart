@@ -5,101 +5,76 @@ import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 
 class LevelPatternMatch extends LevelWidget {
-  const LevelPatternMatch({Key? key, required super.onComplete})
-      : super(key: key);
+  const LevelPatternMatch({super.key, required super.onComplete});
 
   @override
   State<LevelPatternMatch> createState() => _LevelPatternMatchState();
 }
 
 class _LevelPatternMatchState extends State<LevelPatternMatch> {
-  static const int _gridSize = 8;
+  static const List<int> _stageGridSizes = [5, 8, 8, 8, 11];
+  static const List<int> _seededMistakes = [2, 3, 4, 4, 5];
+  static const List<double> _stageScoresByMistakes = [
+    0.2,
+    0.1,
+    0.05,
+    0.03,
+    0.01,
+  ];
+
   final Random _random = Random();
 
+  int _stageIndex = 0;
+  double _score = 0;
+  bool _referenceSpent = false;
+  final List<int> _stageMistakes = [];
+  final List<int> _stagePercentages = [];
   late List<List<bool>> _targetPattern;
+  late List<List<bool>> _draftPattern;
   late List<List<bool>> _playerPattern;
-
-  // Pattern definitions (8x8 grids)
-  // 1 = filled, 0 = empty
-  static final List<List<List<int>>> _patterns = [
-    // Smiley face
-    [
-      [0, 0, 1, 1, 1, 1, 0, 0],
-      [0, 1, 0, 0, 0, 0, 1, 0],
-      [1, 0, 1, 0, 0, 1, 0, 1],
-      [1, 0, 0, 0, 0, 0, 0, 1],
-      [1, 0, 1, 0, 0, 1, 0, 1],
-      [1, 0, 0, 1, 1, 0, 0, 1],
-      [0, 1, 0, 0, 0, 0, 1, 0],
-      [0, 0, 1, 1, 1, 1, 0, 0],
-    ],
-    // Rocket/spaceship
-    [
-      [0, 0, 0, 1, 1, 0, 0, 0],
-      [0, 0, 1, 1, 1, 1, 0, 0],
-      [0, 0, 1, 1, 1, 1, 0, 0],
-      [0, 1, 1, 1, 1, 1, 1, 0],
-      [0, 1, 1, 1, 1, 1, 1, 0],
-      [1, 0, 1, 1, 1, 1, 0, 1],
-      [1, 0, 1, 0, 0, 1, 0, 1],
-      [1, 0, 0, 0, 0, 0, 0, 1],
-    ],
-    // Heart
-    [
-      [0, 1, 1, 0, 0, 1, 1, 0],
-      [1, 1, 1, 1, 1, 1, 1, 1],
-      [1, 1, 1, 1, 1, 1, 1, 1],
-      [1, 1, 1, 1, 1, 1, 1, 1],
-      [0, 1, 1, 1, 1, 1, 1, 0],
-      [0, 0, 1, 1, 1, 1, 0, 0],
-      [0, 0, 0, 1, 1, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0],
-    ],
-    // Arrow (pointing up)
-    [
-      [0, 0, 0, 1, 1, 0, 0, 0],
-      [0, 0, 1, 1, 1, 1, 0, 0],
-      [0, 1, 1, 1, 1, 1, 1, 0],
-      [1, 1, 0, 1, 1, 0, 1, 1],
-      [0, 0, 0, 1, 1, 0, 0, 0],
-      [0, 0, 0, 1, 1, 0, 0, 0],
-      [0, 0, 0, 1, 1, 0, 0, 0],
-      [0, 0, 0, 1, 1, 0, 0, 0],
-    ],
-    // Star
-    [
-      [0, 0, 0, 1, 1, 0, 0, 0],
-      [0, 0, 0, 1, 1, 0, 0, 0],
-      [1, 1, 1, 1, 1, 1, 1, 1],
-      [0, 1, 1, 1, 1, 1, 1, 0],
-      [0, 0, 1, 1, 1, 1, 0, 0],
-      [0, 1, 1, 0, 0, 1, 1, 0],
-      [1, 1, 0, 0, 0, 0, 1, 1],
-      [1, 0, 0, 0, 0, 0, 0, 1],
-    ],
-  ];
 
   @override
   void initState() {
     super.initState();
-    _initializePattern();
+    _startStage();
   }
 
-  void _initializePattern() {
-    // Pick a random pattern
-    final patternIndex = _random.nextInt(_patterns.length);
-    final pattern = _patterns[patternIndex];
+  int get _gridSize => _stageGridSizes[_stageIndex];
 
-    // Convert to List<List<bool>>
-    _targetPattern = pattern
-        .map((row) => row.map((cell) => cell == 1).toList())
-        .toList();
+  bool get _needsManualReference => _stageIndex == 2;
 
-    // Initialize empty player pattern
-    _playerPattern = List.generate(
-      _gridSize,
-      (_) => List.generate(_gridSize, (_) => false),
+  bool get _hasOneLookReference => _stageIndex == 3;
+
+  void _startStage() {
+    final size = _gridSize;
+    _targetPattern = _generateRandomPattern(size);
+    _draftPattern = _copyPattern(_targetPattern);
+    _addSeededMistakes(_draftPattern, _seededMistakes[_stageIndex]);
+    _playerPattern = _copyPattern(_draftPattern);
+    _referenceSpent = false;
+  }
+
+  List<List<bool>> _generateRandomPattern(int size) {
+    final density = 0.38 + _random.nextDouble() * 0.24;
+    return List.generate(
+      size,
+      (_) => List.generate(size, (_) => _random.nextDouble() < density),
     );
+  }
+
+  List<List<bool>> _copyPattern(List<List<bool>> pattern) {
+    return pattern.map((row) => List<bool>.from(row)).toList();
+  }
+
+  void _addSeededMistakes(List<List<bool>> pattern, int mistakeCount) {
+    final cells = [
+      for (var row = 0; row < pattern.length; row++)
+        for (var col = 0; col < pattern.length; col++) Point(row, col),
+    ]..shuffle(_random);
+
+    for (final cell in cells.take(mistakeCount)) {
+      pattern[cell.x][cell.y] = !pattern[cell.x][cell.y];
+    }
   }
 
   void _toggleCell(int row, int col) {
@@ -108,28 +83,104 @@ class _LevelPatternMatchState extends State<LevelPatternMatch> {
     });
   }
 
-  bool _checkMatch() {
+  int _countMistakes() {
+    var mistakes = 0;
     for (int row = 0; row < _gridSize; row++) {
       for (int col = 0; col < _gridSize; col++) {
         if (_targetPattern[row][col] != _playerPattern[row][col]) {
-          return false;
+          mistakes++;
         }
       }
     }
-    return true;
+    return mistakes;
+  }
+
+  double _scoreForMistakes(int mistakes) {
+    if (mistakes >= _stageScoresByMistakes.length) return 0;
+    return _stageScoresByMistakes[mistakes];
   }
 
   void _onSubmit() {
-    widget.onComplete(LevelOutcome(score: _checkMatch() ? 1 : 0));
+    final mistakes = _countMistakes();
+    final stageScore = _scoreForMistakes(mistakes);
+    _score += stageScore;
+    _stageMistakes.add(mistakes);
+    _stagePercentages.add((stageScore * 100).round());
+
+    if (_stageIndex == _stageGridSizes.length - 1) {
+      widget.onComplete(
+        LevelOutcome(
+          score: _score,
+          metrics: {
+            'stage_mistakes': _stageMistakes,
+            'stage_percentages': _stagePercentages,
+            'stages': _stageGridSizes.length,
+          },
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _stageIndex++;
+      _startStage();
+    });
   }
 
-  void _onClear() {
+  void _onResetDraft() {
     setState(() {
-      _playerPattern = List.generate(
-        _gridSize,
-        (_) => List.generate(_gridSize, (_) => false),
-      );
+      _playerPattern = _copyPattern(_draftPattern);
     });
+  }
+
+  Future<void> _openReferencePopup() async {
+    if (_hasOneLookReference) {
+      setState(() {
+        _referenceSpent = true;
+      });
+    }
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: !_hasOneLookReference,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: NunuColors.backgroundPaper,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: NunuColors.primaryDark.withValues(alpha: 0.6),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'reference',
+                  style: TextStyle(
+                    color: NunuColors.primaryLight,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildReferenceGrid(maxSize: 320, widthFraction: 1),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: NunuColors.primaryMain,
+                  ),
+                  child: Text(_hasOneLookReference ? 'close forever' : 'close'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -141,43 +192,36 @@ class _LevelPatternMatchState extends State<LevelPatternMatch> {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              // Reference label
-              const Text(
-                'reference',
-                style: TextStyle(
-                  color: NunuColors.textSecondary,
-                  fontSize: 14,
+              Text(
+                'stage ${_stageIndex + 1} / ${_stageGridSizes.length} · ${_gridSize}x$_gridSize',
+                style: const TextStyle(
+                  color: NunuColors.primaryLight,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 8),
-              // Reference grid (smaller, read-only)
-              _buildReferenceGrid(),
-              const SizedBox(height: 24),
-              // Your pattern label
+              _buildReferencePanel(),
+              const SizedBox(height: 20),
               const Text(
-                'your pattern',
-                style: TextStyle(
-                  color: NunuColors.textSecondary,
-                  fontSize: 14,
-                ),
+                'fix the submitted draft',
+                style: TextStyle(color: NunuColors.textSecondary, fontSize: 14),
               ),
               const SizedBox(height: 8),
               // Player grid (interactive)
-              Expanded(
-                child: _buildPlayerGrid(),
-              ),
+              Expanded(child: _buildPlayerGrid()),
               const SizedBox(height: 16),
               // Buttons
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: _onClear,
+                      onPressed: _onResetDraft,
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: NunuColors.textSecondary),
                         foregroundColor: NunuColors.textSecondary,
                       ),
-                      child: const Text('clear'),
+                      child: const Text('reset'),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -188,7 +232,11 @@ class _LevelPatternMatchState extends State<LevelPatternMatch> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: NunuColors.primaryMain,
                       ),
-                      child: const Text('submit'),
+                      child: Text(
+                        _stageIndex == _stageGridSizes.length - 1
+                            ? 'submit run'
+                            : 'submit stage',
+                      ),
                     ),
                   ),
                 ],
@@ -200,18 +248,60 @@ class _LevelPatternMatchState extends State<LevelPatternMatch> {
     );
   }
 
-  Widget _buildReferenceGrid() {
+  Widget _buildReferencePanel() {
+    final showToggle = _needsManualReference || _hasOneLookReference;
+    final disabled = _hasOneLookReference && _referenceSpent;
+
+    if (showToggle) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          OutlinedButton(
+            onPressed: disabled ? null : _openReferencePopup,
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: NunuColors.primaryDark),
+              foregroundColor: NunuColors.primaryLight,
+              disabledForegroundColor: NunuColors.textSecondary,
+            ),
+            child: Text(_referenceButtonLabel(disabled)),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      children: [
+        const Text(
+          'reference',
+          style: TextStyle(color: NunuColors.textSecondary, fontSize: 14),
+        ),
+        const SizedBox(height: 8),
+        _buildReferenceGrid(),
+      ],
+    );
+  }
+
+  String _referenceButtonLabel(bool disabled) {
+    if (disabled) return 'reference spent';
+    return 'open reference';
+  }
+
+  Widget _buildReferenceGrid({
+    double maxSize = 160,
+    double widthFraction = 0.5,
+  }) {
     return LayoutBuilder(
       builder: (context, constraints) {
         // Reference grid is smaller - about 40% of available width
-        final gridSize = min(constraints.maxWidth * 0.5, 160.0);
+        final gridSize = min(constraints.maxWidth * widthFraction, maxSize);
 
         return SizedBox(
+          key: ValueKey('reference-$_stageIndex'),
           width: gridSize,
           height: gridSize,
           child: GridView.builder(
             physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: _gridSize,
               mainAxisSpacing: 2,
               crossAxisSpacing: 2,
@@ -248,7 +338,7 @@ class _LevelPatternMatchState extends State<LevelPatternMatch> {
             height: gridSize,
             child: GridView.builder(
               physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: _gridSize,
                 mainAxisSpacing: 3,
                 crossAxisSpacing: 3,
@@ -270,8 +360,8 @@ class _LevelPatternMatchState extends State<LevelPatternMatch> {
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(
                         color: isFilled
-                            ? NunuColors.secondaryLight.withOpacity(0.5)
-                            : NunuColors.primaryDark.withOpacity(0.3),
+                            ? NunuColors.secondaryLight.withValues(alpha: 0.5)
+                            : NunuColors.primaryDark.withValues(alpha: 0.3),
                         width: 1,
                       ),
                     ),

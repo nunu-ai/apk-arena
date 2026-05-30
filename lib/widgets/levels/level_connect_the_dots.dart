@@ -169,20 +169,28 @@ class _LevelConnectTheDotsState extends State<LevelConnectTheDots> {
 
   void _onPanStart(DragStartDetails details) {
     if (_dotPositions.isEmpty || _levelFinished) return;
+    if (_isDrawing) return;
+    // Full constellation on screen while the next stage loads — ignore stray touches.
+    if (_connectedPositions.length == _totalDots) return;
 
     final localPosition = details.localPosition;
     final posIndex = _getDotAtPosition(localPosition);
-    if (posIndex == null) return;
-
     final startPosition = _positionForNumber[0];
-    if (posIndex == startPosition && !_connectedPositions.contains(posIndex)) {
+
+    if (posIndex != null &&
+        posIndex == startPosition &&
+        !_connectedPositions.contains(posIndex)) {
       setState(() {
         _isDrawing = true;
         _connectedPositions.add(posIndex);
         _linePoints.add(_dotPositions[posIndex]);
         _nextExpectedNumber = 1;
       });
+      return;
     }
+
+    // Wrong planet, empty space, or any other invalid first contact.
+    _loseLife();
   }
 
   void _onPanUpdate(DragUpdateDetails details) {
