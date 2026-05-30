@@ -8,6 +8,7 @@ class GmailEmailList extends StatelessWidget {
   final Function(EmailItem)? onEmailArchive;
   final Function(EmailItem)? onEmailDelete;
   final String searchHint;
+  final VoidCallback? onMenuTap;
 
   const GmailEmailList({
     Key? key,
@@ -16,6 +17,7 @@ class GmailEmailList extends StatelessWidget {
     this.onEmailArchive,
     this.onEmailDelete,
     this.searchHint = 'Search in emails',
+    this.onMenuTap,
   }) : super(key: key);
 
   @override
@@ -40,7 +42,7 @@ class GmailEmailList extends StatelessWidget {
               bottom: false,
               child: Row(
                 children: [
-                  const Icon(Icons.menu, color: Colors.grey),
+                  GestureDetector(onTap: onMenuTap, child: const Icon(Icons.menu, color: Colors.grey)),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Container(

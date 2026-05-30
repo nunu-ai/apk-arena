@@ -6,6 +6,7 @@ class GmailEmailDetail extends StatelessWidget {
   final EmailDetailData email;
   final VoidCallback? onBack;
   final VoidCallback? onReply;
+  final VoidCallback? onReplyAll;
   final VoidCallback? onForward;
   final VoidCallback? onArchive;
   final VoidCallback? onDelete;
@@ -16,6 +17,7 @@ class GmailEmailDetail extends StatelessWidget {
     required this.email,
     this.onBack,
     this.onReply,
+    this.onReplyAll,
     this.onForward,
     this.onArchive,
     this.onDelete,
@@ -176,27 +178,28 @@ class GmailEmailDetail extends StatelessWidget {
                               const SizedBox(height: 2),
                               Row(
                                 children: [
-                                  if (email.senderEmail != null) ...[
-                                    Text(
-                                      '<${email.senderEmail}>',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey.shade600,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                  ],
-                                  const Text(
-                                    'to me',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
+                                  Flexible(
+                                    child: Text(
+                                      email.senderEmail != null ? '<${email.senderEmail}>' : '',
+                                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
+                                  const SizedBox(width: 6),
+                                  const Text('to me', style: TextStyle(fontSize: 12, color: Colors.grey)),
                                   const SizedBox(width: 4),
                                   Icon(Icons.keyboard_arrow_down, size: 16, color: Colors.grey.shade600),
                                 ],
                               ),
+                              if (email.ccLine != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Text(
+                                    'cc: ${email.ccLine}',
+                                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
                             ],
                           ),
                         ),
@@ -229,6 +232,38 @@ class GmailEmailDetail extends StatelessWidget {
                       ),
                     ),
                   ),
+
+                  // Attachment chips
+                  if (email.attachments.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: email.attachments.map((att) {
+                          return InkWell(
+                            onTap: att.onTap,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade50,
+                                border: Border.all(color: Colors.red.shade200),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.picture_as_pdf, color: Colors.red.shade700, size: 18),
+                                  const SizedBox(width: 6),
+                                  Text(att.name, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.red.shade900)),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
 
                   // Smart reply chips (if provided)
                   if (smartReplyOptions != null && smartReplyOptions!.isNotEmpty)
@@ -298,7 +333,25 @@ class GmailEmailDetail extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  if (onReplyAll != null) ...[
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: onReplyAll,
+                        icon: const Icon(Icons.reply_all, size: 20),
+                        label: const Text('Reply All'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey.shade500,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(width: 8),
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: onForward,
@@ -315,18 +368,6 @@ class GmailEmailDetail extends StatelessWidget {
                           borderRadius: BorderRadius.circular(24),
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.emoji_emotions_outlined),
-                      color: Colors.grey.shade700,
-                      onPressed: () {},
                     ),
                   ),
                 ],
@@ -354,25 +395,36 @@ class GmailEmailDetail extends StatelessWidget {
   }
 }
 
+/// Clickable attachment chip shown in email detail
+class EmailAttachment {
+  final String name;
+  final VoidCallback? onTap;
+  const EmailAttachment({required this.name, this.onTap});
+}
+
 /// Data model for email detail
 class EmailDetailData {
   final String senderName;
   final String? senderEmail;
+  final String? ccLine;
   final String subject;
   final String body;
   final String time;
   final String folder;
   final bool isStarred;
   final String? avatarUrl;
+  final List<EmailAttachment> attachments;
 
   EmailDetailData({
     required this.senderName,
     this.senderEmail,
+    this.ccLine,
     required this.subject,
     required this.body,
     required this.time,
     this.folder = 'Inbox',
     this.isStarred = false,
     this.avatarUrl,
+    this.attachments = const [],
   });
 }
