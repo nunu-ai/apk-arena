@@ -166,9 +166,7 @@ const _root = _FileNode(
                     _FileNode(
                       name: 'archive',
                       isFolder: true,
-                      children: [
-                        _FileNode(name: 'sprite_old.png'),
-                      ],
+                      children: [_FileNode(name: 'sprite_old.png')],
                     ),
                   ],
                 ),
@@ -232,9 +230,7 @@ const _root = _FileNode(
                     _FileNode(
                       name: 'cache',
                       isFolder: true,
-                      children: [
-                        _FileNode(name: 'memory_map.png'),
-                      ],
+                      children: [_FileNode(name: 'memory_map.png')],
                     ),
                   ],
                 ),
@@ -363,9 +359,7 @@ const _root = _FileNode(
         _FileNode(
           name: 'cache',
           isFolder: true,
-          children: [
-            _FileNode(name: 'ops_notes.txt'),
-          ],
+          children: [_FileNode(name: 'ops_notes.txt')],
         ),
       ],
     ),
@@ -423,8 +417,12 @@ const _root = _FileNode(
                                               name: 'memory',
                                               isFolder: true,
                                               children: [
-                                                _FileNode(name: 'mission_seed_42.txt'),
-                                                _FileNode(name: 'mission_seed_42.png'),
+                                                _FileNode(
+                                                  name: 'mission_seed_42.txt',
+                                                ),
+                                                _FileNode(
+                                                  name: 'mission_seed_42.png',
+                                                ),
                                               ],
                                             ),
                                           ],
@@ -445,21 +443,24 @@ const _root = _FileNode(
                                           name: 'release',
                                           isFolder: true,
                                           children: [
-                                        _FileNode(
-                                          name: 'final',
-                                          isFolder: true,
-                                          children: [
+                                            _FileNode(
+                                              name: 'final',
+                                              isFolder: true,
+                                              children: [
                                                 _FileNode(
                                                   name: 'sealed',
                                                   isFolder: true,
                                                   children: [
-                                                    _FileNode(name: 'vault_key_final.png'),
+                                                    _FileNode(
+                                                      name:
+                                                          'vault_key_final.png',
+                                                    ),
                                                   ],
                                                 ),
+                                              ],
+                                            ),
                                           ],
                                         ),
-                                      ],
-                                    ),
                                       ],
                                     ),
                                   ],
@@ -511,8 +512,8 @@ class _QuizQuestion {
     required this.id,
     required this.prompt,
     required this.answer,
-  })  : kind = _QuestionKind.number,
-        options = const [];
+  }) : kind = _QuestionKind.number,
+       options = const [];
 
   const _QuizQuestion.choice({
     required this.id,
@@ -568,19 +569,29 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
     super.initState();
     _questions = _buildQuestions();
     _numberControllers = {
-      for (final question in _questions.where((q) => q.kind == _QuestionKind.number))
+      for (final question in _questions.where(
+        (q) => q.kind == _QuestionKind.number,
+      ))
         question.id: TextEditingController(),
     };
     _finalChallenges = [
       _buildFinalChallenge(_finalBossFileName, const []),
-      _buildFinalChallenge(
-        _secondChallengeFileName,
-        const ['assets', 'archive', 'icons', 'mobile'],
-      ),
-      _buildFinalChallenge(
-        _thirdChallengeFileName,
-        const ['notes', 'archive', 'tmp', 'final', 'deeper', 'branch', 'vault', 'hold'],
-      ),
+      _buildFinalChallenge(_secondChallengeFileName, const [
+        'assets',
+        'archive',
+        'icons',
+        'mobile',
+      ]),
+      _buildFinalChallenge(_thirdChallengeFileName, const [
+        'notes',
+        'archive',
+        'tmp',
+        'final',
+        'deeper',
+        'branch',
+        'vault',
+        'hold',
+      ]),
     ];
     _challengeMistakes = List<int>.filled(_finalChallenges.length, 0);
   }
@@ -631,12 +642,7 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
         id: 'most_common_name',
         prompt: 'which exact name appears most often?',
         answer: mostCommonName,
-        options: const [
-          'cache',
-          'archive',
-          'draft.txt',
-          'notes.txt',
-        ],
+        options: const ['cache', 'archive', 'draft.txt', 'notes.txt'],
       ),
     ];
   }
@@ -739,13 +745,19 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
     final double bossScore = _finalChallenges.isEmpty
         ? 0
         : _finalChallenges
-                .asMap()
-                .entries
-                .map((entry) => _clamp01(1 - (_challengeMistakes[entry.key] * 0.2)))
-                .fold<double>(0, (sum, value) => sum + value) /
-            _finalChallenges.length;
+                  .asMap()
+                  .entries
+                  .map(
+                    (entry) =>
+                        _clamp01(1 - (_challengeMistakes[entry.key] * 0.2)),
+                  )
+                  .fold<double>(0, (sum, value) => sum + value) /
+              _finalChallenges.length;
     final finalScore = (0.7 * _quizScore) + (0.3 * bossScore);
-    final totalBossMistakes = _challengeMistakes.fold<int>(0, (sum, value) => sum + value);
+    final totalBossMistakes = _challengeMistakes.fold<int>(
+      0,
+      (sum, value) => sum + value,
+    );
 
     widget.onComplete(
       LevelOutcome(
@@ -753,12 +765,8 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
         metrics: {
           'quiz_score': _round(_quizScore),
           'quiz_correct': _quizCorrect,
-          'quiz_revisits': _quizRevisits,
           'boss_score': _round(bossScore),
           'boss_mistakes': totalBossMistakes,
-          'challenge_1_mistakes': _challengeMistakes[0],
-          'challenge_2_mistakes': _challengeMistakes[1],
-          'challenge_3_mistakes': _challengeMistakes[2],
         },
       ),
     );
@@ -771,11 +779,17 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
 
   _FinalChallenge get _currentChallenge => _finalChallenges[_challengeIndex];
 
-  _FinalChallenge _buildFinalChallenge(String targetFileName, List<String> startFolderPath) {
+  _FinalChallenge _buildFinalChallenge(
+    String targetFileName,
+    List<String> startFolderPath,
+  ) {
     final targetPath = _findPathToName(_root, targetFileName);
     final targetFolderPath = targetPath == null
         ? const <String>[]
-        : targetPath.sublist(1, targetPath.length - 1).map((node) => node.name).toList();
+        : targetPath
+              .sublist(1, targetPath.length - 1)
+              .map((node) => node.name)
+              .toList();
     return _FinalChallenge(
       targetFileName: targetFileName,
       startFolderPath: List<String>.from(startFolderPath),
@@ -787,7 +801,9 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
     final trail = <_FileNode>[_root];
     var current = _root;
     for (final name in pathNames) {
-      final next = current.children.where((node) => node.isFolder && node.name == name).first;
+      final next = current.children
+          .where((node) => node.isFolder && node.name == name)
+          .first;
       trail.add(next);
       current = next;
     }
@@ -828,7 +844,10 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
 
   bool _isCorrectBossFileTap(String fileName) {
     return fileName == _currentChallenge.targetFileName &&
-        _listsEqual(_currentFolderPathNames, _currentChallenge.targetFolderPath);
+        _listsEqual(
+          _currentFolderPathNames,
+          _currentChallenge.targetFolderPath,
+        );
   }
 
   double _clamp01(double value) {
@@ -886,7 +905,9 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
                     });
                   },
                   style: FilledButton.styleFrom(
-                    backgroundColor: NunuColors.secondaryMain.withValues(alpha: 0.28),
+                    backgroundColor: NunuColors.secondaryMain.withValues(
+                      alpha: 0.28,
+                    ),
                     foregroundColor: NunuColors.secondaryLight,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
@@ -914,7 +935,9 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
                           width: 18,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                           ),
                         )
                       : const Text('submit quiz'),
@@ -949,7 +972,9 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
       decoration: BoxDecoration(
         color: NunuColors.backgroundPaper,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: NunuColors.primaryDark.withValues(alpha: 0.4)),
+        border: Border.all(
+          color: NunuColors.primaryDark.withValues(alpha: 0.4),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -995,7 +1020,10 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
                 ),
                 focusedBorder: const OutlineInputBorder(
                   borderRadius: BorderRadius.all(Radius.circular(10)),
-                  borderSide: BorderSide(color: NunuColors.primaryMain, width: 2),
+                  borderSide: BorderSide(
+                    color: NunuColors.primaryMain,
+                    width: 2,
+                  ),
                 ),
               ),
             )
@@ -1009,7 +1037,10 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
                   label: Text(option),
                   selected: selected,
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
+                  visualDensity: const VisualDensity(
+                    horizontal: -2,
+                    vertical: -2,
+                  ),
                   labelPadding: const EdgeInsets.symmetric(horizontal: 6),
                   onSelected: (_) {
                     setState(() {
@@ -1054,7 +1085,9 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
       decoration: BoxDecoration(
         color: NunuColors.backgroundPaper,
         border: Border(
-          bottom: BorderSide(color: NunuColors.primaryDark.withValues(alpha: 0.4)),
+          bottom: BorderSide(
+            color: NunuColors.primaryDark.withValues(alpha: 0.4),
+          ),
         ),
       ),
       child: Row(
@@ -1077,7 +1110,9 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
             )
           else
             Icon(
-              _phase == _ExplorerPhase.quiz ? Icons.folder_open : Icons.warning_amber_rounded,
+              _phase == _ExplorerPhase.quiz
+                  ? Icons.folder_open
+                  : Icons.warning_amber_rounded,
               color: _phase == _ExplorerPhase.quiz
                   ? NunuColors.warningMain
                   : NunuColors.errorMain,
@@ -1138,7 +1173,8 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
 
   Widget _buildRow(_FileNode node) {
     final isFolder = node.isFolder;
-    final isBossTarget = _phase == _ExplorerPhase.boss && node.name == _finalBossFileName;
+    final isBossTarget =
+        _phase == _ExplorerPhase.boss && node.name == _finalBossFileName;
 
     return Material(
       color: Colors.transparent,
@@ -1154,8 +1190,8 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
                 color: isFolder
                     ? NunuColors.warningMain
                     : (isBossTarget
-                        ? NunuColors.primaryLight
-                        : Colors.white.withValues(alpha: 0.55)),
+                          ? NunuColors.primaryLight
+                          : Colors.white.withValues(alpha: 0.55)),
                 size: 22,
               ),
               const SizedBox(width: 14),
@@ -1258,7 +1294,10 @@ int _countFiles(_FileNode node) {
   return total;
 }
 
-List<_FileNode> _findDeepestFilePath(_FileNode node, [List<_FileNode> trail = const []]) {
+List<_FileNode> _findDeepestFilePath(
+  _FileNode node, [
+  List<_FileNode> trail = const [],
+]) {
   final nextTrail = [...trail, node];
   if (!node.isFolder) return nextTrail;
 

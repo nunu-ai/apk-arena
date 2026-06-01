@@ -211,12 +211,10 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
       LevelOutcome(
         score: score,
         metrics: {
-          'duration_ms': _playSw.elapsedMilliseconds,
           'stages_scored': _stageScores.length,
           'total_stages': _totalStages,
           'wrong_attempts': _totalWrongAttempts,
           'skipped_stages': _skippedStages,
-          'score_percent': (score * 100).round(),
         },
         visibleMetricKeys: const ['wrong_attempts', 'skipped_stages'],
       ),

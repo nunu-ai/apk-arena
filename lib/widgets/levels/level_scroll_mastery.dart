@@ -17,13 +17,14 @@ class LevelScrollMastery extends LevelWidget {
 }
 
 class _LevelScrollMasteryState extends State<LevelScrollMastery> {
-  static const int maxWrongTaps = 12;
   static const int _levelSeed = 1234;
   static const int _speedRowCount = 220;
-  static const Duration _maxScoreTime = Duration(seconds: 30);
-  static const Duration _minScoreTime = Duration(minutes: 30);
+  static const List<int> _perfectScrollsByStage = [3, 2, 6, 7, 6];
   int _stage = 0;
   int _wrongTaps = 0;
+  final List<int> _stageScrolls = List.filled(5, 0);
+  final List<int> _stageWrongTaps = List.filled(5, 0);
+  final List<double> _stageScores = [];
   final Stopwatch _sw = Stopwatch();
 
   // Stage 0: contacts
@@ -53,6 +54,7 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
   @override
   void initState() {
     super.initState();
+    widget.registerTimeoutBuilder(_buildOutcome);
     _sw.start();
     _initContacts();
     _initSpeed();
@@ -120,6 +122,7 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
     _tosCtrl.dispose();
     _gridHCtrl.dispose();
     _gridVCtrl.dispose();
+    widget.clearTimeoutBuilder();
     super.dispose();
   }
 
@@ -134,45 +137,53 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
 
   void _bumpWrong() {
     _wrongTaps++;
-    if (_wrongTaps >= maxWrongTaps) {
-      _fail();
-    }
+    _stageWrongTaps[_stage]++;
   }
 
-  void _fail() {
-    _sw.stop();
-    widget.onComplete(
-      LevelOutcome(
-        score: 0,
-        metrics: {'time_ms': _sw.elapsedMilliseconds, 'stages_cleared': _stage},
-      ),
+  bool _countScrollStart(ScrollStartNotification notification) {
+    _stageScrolls[_stage]++;
+    setState(() {});
+    return false;
+  }
+
+  int _stageInteractionCount(int stage) =>
+      _stageScrolls[stage] + _stageWrongTaps[stage];
+
+  double _scoreForStage(int stage) {
+    final perfect = _perfectScrollsByStage[stage];
+    final interactions = _stageInteractionCount(stage);
+    if (interactions <= perfect) return 1;
+    return (perfect / interactions).clamp(0.0, 1.0).toDouble();
+  }
+
+  LevelOutcome _buildOutcome() {
+    final score =
+        _stageScores.fold<double>(0, (sum, score) => sum + score) /
+        _perfectScrollsByStage.length;
+    final totalScrolls = _stageScrolls.fold<int>(
+      0,
+      (sum, value) => sum + value,
+    );
+
+    return LevelOutcome(
+      score: score,
+      metrics: {
+        'stages_cleared': _stageScores.length,
+        'total_scrolls': totalScrolls,
+        'wrong_taps': _wrongTaps,
+        'efficiency_pct': (score * 100).round(),
+      },
     );
   }
 
-  double _scoreForElapsed(Duration elapsed) {
-    final elapsedMs = elapsed.inMilliseconds.toDouble();
-    final maxScoreMs = _maxScoreTime.inMilliseconds.toDouble();
-    final minScoreMs = _minScoreTime.inMilliseconds.toDouble();
-    if (elapsedMs <= maxScoreMs) return 1;
-    if (elapsedMs >= minScoreMs) return 0;
-    final score = 1 - ((elapsedMs - maxScoreMs) / (minScoreMs - maxScoreMs));
-    return score.clamp(0.0, 1.0).toDouble();
-  }
-
   void _nextStage() {
+    if (_stageScores.length <= _stage) {
+      _stageScores.add(_scoreForStage(_stage));
+    }
+
     if (_stage >= 4) {
       _sw.stop();
-      final elapsed = _sw.elapsed;
-      widget.onComplete(
-        LevelOutcome(
-          score: _scoreForElapsed(elapsed),
-          metrics: {
-            'time_ms': elapsed.inMilliseconds,
-            'stages_cleared': 5,
-            'seed': _levelSeed,
-          },
-        ),
-      );
+      widget.onComplete(_buildOutcome());
       return;
     }
     setState(() {
@@ -218,21 +229,24 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
       children: [
         _header('find Saul Goodman'),
         Expanded(
-          child: ListView.builder(
-            itemCount: _contacts.length,
-            itemBuilder: (context, i) {
-              final c = _contacts[i];
-              final isSaul = i == _saulIndex;
-              return ContactListItem(
-                name: c['name']!,
-                subtitle: c['phone'],
-                avatarText: isSaul ? '👔' : null,
-                avatarColor: isSaul ? Colors.blue.shade700 : null,
-                isSpecial: isSaul,
-                onTap: () => _onContactTap(i),
-                trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-              );
-            },
+          child: NotificationListener<ScrollStartNotification>(
+            onNotification: _countScrollStart,
+            child: ListView.builder(
+              itemCount: _contacts.length,
+              itemBuilder: (context, i) {
+                final c = _contacts[i];
+                final isSaul = i == _saulIndex;
+                return ContactListItem(
+                  name: c['name']!,
+                  subtitle: c['phone'],
+                  avatarText: isSaul ? '👔' : null,
+                  avatarColor: isSaul ? Colors.blue.shade700 : null,
+                  isSpecial: isSaul,
+                  onTap: () => _onContactTap(i),
+                  trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                );
+              },
+            ),
           ),
         ),
       ],
@@ -255,21 +269,24 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
                   child: Scrollbar(
                     controller: _tosCtrl,
                     thumbVisibility: true,
-                    child: SingleChildScrollView(
-                      controller: _tosCtrl,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: List.generate(
-                          36,
-                          (i) => Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: Text(
-                              'Section ${i + 1}. Lorem ipsum dolor sit amet, consectetur adipiscing elit. '
-                              'Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. '
-                              'Ut enim ad minim veniam, quis nostrud exercitation.',
-                              style: TextStyle(
-                                color: Colors.grey.shade900,
-                                fontSize: 13,
+                    child: NotificationListener<ScrollStartNotification>(
+                      onNotification: _countScrollStart,
+                      child: SingleChildScrollView(
+                        controller: _tosCtrl,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: List.generate(
+                            36,
+                            (i) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Text(
+                                'Section ${i + 1}. Lorem ipsum dolor sit amet, consectetur adipiscing elit. '
+                                'Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. '
+                                'Ut enim ad minim veniam, quis nostrud exercitation.',
+                                style: TextStyle(
+                                  color: Colors.grey.shade900,
+                                  fontSize: 13,
+                                ),
                               ),
                             ),
                           ),
@@ -332,32 +349,39 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
       children: [
         _header('scroll down to the row marked TARGET and tap it'),
         Expanded(
-          child: ListView.builder(
-            itemCount: _speedIndices.length,
-            itemBuilder: (context, i) {
-              final idx = _speedIndices[i];
-              final isTarget = i == _highlightPosition;
-              return ListTile(
-                tileColor: isTarget
-                    ? NunuColors.primaryMain.withValues(alpha: 0.25)
-                    : null,
-                title: Text(
-                  isTarget ? '★ TARGET ★' : 'row $idx',
-                  style: TextStyle(
-                    color: isTarget ? NunuColors.primaryLight : Colors.white70,
-                    fontWeight: isTarget ? FontWeight.bold : FontWeight.normal,
+          child: NotificationListener<ScrollStartNotification>(
+            onNotification: _countScrollStart,
+            child: ListView.builder(
+              itemCount: _speedIndices.length,
+              itemBuilder: (context, i) {
+                final idx = _speedIndices[i];
+                final isTarget = i == _highlightPosition;
+                return ListTile(
+                  tileColor: isTarget
+                      ? NunuColors.primaryMain.withValues(alpha: 0.25)
+                      : null,
+                  title: Text(
+                    isTarget ? '★ TARGET ★' : 'row $idx',
+                    style: TextStyle(
+                      color: isTarget
+                          ? NunuColors.primaryLight
+                          : Colors.white70,
+                      fontWeight: isTarget
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
                   ),
-                ),
-                onTap: () {
-                  if (isTarget) {
-                    _nextStage();
-                  } else {
-                    _bumpWrong();
-                    setState(() {});
-                  }
-                },
-              );
-            },
+                  onTap: () {
+                    if (isTarget) {
+                      _nextStage();
+                    } else {
+                      _bumpWrong();
+                      setState(() {});
+                    }
+                  },
+                );
+              },
+            ),
           ),
         ),
       ],
@@ -370,44 +394,47 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
         _header('scroll horizontally and tap: ${_carousel[_carouselTarget]}'),
         SizedBox(
           height: 120,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-            itemCount: _carousel.length,
-            itemBuilder: (context, i) {
-              final label = _carousel[i];
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Material(
-                  color: NunuColors.backgroundPaper,
-                  borderRadius: BorderRadius.circular(12),
-                  child: InkWell(
-                    onTap: () {
-                      if (i == _carouselTarget) {
-                        _nextStage();
-                      } else {
-                        _bumpWrong();
-                        setState(() {});
-                      }
-                    },
+          child: NotificationListener<ScrollStartNotification>(
+            onNotification: _countScrollStart,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+              itemCount: _carousel.length,
+              itemBuilder: (context, i) {
+                final label = _carousel[i];
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Material(
+                    color: NunuColors.backgroundPaper,
                     borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      width: 100,
-                      alignment: Alignment.center,
-                      padding: const EdgeInsets.all(12),
-                      child: Text(
-                        label,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: NunuColors.textPrimary,
-                          fontWeight: FontWeight.w600,
+                    child: InkWell(
+                      onTap: () {
+                        if (i == _carouselTarget) {
+                          _nextStage();
+                        } else {
+                          _bumpWrong();
+                          setState(() {});
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        width: 100,
+                        alignment: Alignment.center,
+                        padding: const EdgeInsets.all(12),
+                        child: Text(
+                          label,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: NunuColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
         const Spacer(),
@@ -420,66 +447,70 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
       children: [
         _header('scroll both axes; tap the cell that says HERE'),
         Expanded(
-          child: Scrollbar(
-            controller: _gridVCtrl,
-            thumbVisibility: true,
-            child: SingleChildScrollView(
+          child: NotificationListener<ScrollStartNotification>(
+            onNotification: _countScrollStart,
+            child: Scrollbar(
               controller: _gridVCtrl,
-              child: Scrollbar(
-                controller: _gridHCtrl,
-                thumbVisibility: true,
-                notificationPredicate: (n) => n.metrics.axis == Axis.horizontal,
-                child: SingleChildScrollView(
+              thumbVisibility: true,
+              child: SingleChildScrollView(
+                controller: _gridVCtrl,
+                child: Scrollbar(
                   controller: _gridHCtrl,
-                  scrollDirection: Axis.horizontal,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: List.generate(_gridH, (y) {
-                      return Row(
-                        children: List.generate(_gridW, (x) {
-                          final here = x == _gx && y == _gy;
-                          return GestureDetector(
-                            onTap: () {
-                              if (here) {
-                                _nextStage();
-                              } else {
-                                _bumpWrong();
-                                setState(() {});
-                              }
-                            },
-                            child: Container(
-                              width: 88,
-                              height: 64,
-                              margin: const EdgeInsets.all(5),
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: here
-                                    ? NunuColors.secondaryMain.withValues(
-                                        alpha: 0.35,
-                                      )
-                                    : NunuColors.backgroundPaper,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: NunuColors.primaryDark.withValues(
-                                    alpha: 0.4,
+                  thumbVisibility: true,
+                  notificationPredicate: (n) =>
+                      n.metrics.axis == Axis.horizontal,
+                  child: SingleChildScrollView(
+                    controller: _gridHCtrl,
+                    scrollDirection: Axis.horizontal,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: List.generate(_gridH, (y) {
+                        return Row(
+                          children: List.generate(_gridW, (x) {
+                            final here = x == _gx && y == _gy;
+                            return GestureDetector(
+                              onTap: () {
+                                if (here) {
+                                  _nextStage();
+                                } else {
+                                  _bumpWrong();
+                                  setState(() {});
+                                }
+                              },
+                              child: Container(
+                                width: 88,
+                                height: 64,
+                                margin: const EdgeInsets.all(5),
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: here
+                                      ? NunuColors.secondaryMain.withValues(
+                                          alpha: 0.35,
+                                        )
+                                      : NunuColors.backgroundPaper,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: NunuColors.primaryDark.withValues(
+                                      alpha: 0.4,
+                                    ),
+                                  ),
+                                ),
+                                child: Text(
+                                  here ? 'HERE' : '$x,$y',
+                                  style: TextStyle(
+                                    fontSize: here ? 13 : 11,
+                                    fontWeight: here
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    color: NunuColors.textPrimary,
                                   ),
                                 ),
                               ),
-                              child: Text(
-                                here ? 'HERE' : '$x,$y',
-                                style: TextStyle(
-                                  fontSize: here ? 13 : 11,
-                                  fontWeight: here
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                                  color: NunuColors.textPrimary,
-                                ),
-                              ),
-                            ),
-                          );
-                        }),
-                      );
-                    }),
+                            );
+                          }),
+                        );
+                      }),
+                    ),
                   ),
                 ),
               ),
@@ -493,10 +524,7 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
   Widget _header(String subtitle) {
     return Column(
       children: [
-        LevelHud(
-          stageText: '${_stage + 1}/5',
-          lives: LevelHud.emojiLives(maxWrongTaps - _wrongTaps, maxWrongTaps),
-        ),
+        LevelHud(stageText: '${_stage + 1}/5'),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(10),

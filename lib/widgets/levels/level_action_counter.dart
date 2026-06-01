@@ -200,10 +200,8 @@ class _LevelActionCounterState extends State<LevelActionCounter> {
             metrics: {
               'stages_passed': _stagesCorrect,
               's2_colors_correct': _s2CorrectAnswers,
-              's3_solved': _s3Solved ? 1 : 0,
               's4_rounds_correct': _s4CorrectRounds,
               's4_rounds_total': _s4RoundsTotal,
-              'total_stages': _totalStages,
             },
           ),
         );

@@ -281,7 +281,6 @@ class _LevelSnakeState extends State<LevelSnake> {
           'stage2Score': stageScores[1],
           'stage3Score': stageScores[2],
           'stage4Score': stageScores[3],
-          'stage4BestLength': _bestLengthsByStage[3],
         },
       ),
     );
