@@ -375,7 +375,7 @@ class _LevelTraceDrawingState extends State<LevelTraceDrawing> {
                     stageText: '${_patternIndex + 1}/${_patterns.length}',
                     lives: LevelHud.emojiLives(_lives, 3),
                     trailing: Text(
-                      'stroke ${_currentStroke + 1 > _totalStrokes ? _totalStrokes : _currentStroke + 1}/$_totalStrokes',
+                      '✏️ ${_strokesCompletedThisPattern}/$_totalStrokes',
                       style: const TextStyle(
                         color: NunuColors.textSecondary,
                         fontSize: 12,

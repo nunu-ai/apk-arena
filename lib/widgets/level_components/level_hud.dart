@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
 
+class LevelHudBullet {
+  const LevelHudBullet(this.emoji, this.text);
+  final String emoji;
+  final String text;
+}
+
 class LevelHud extends StatelessWidget {
   const LevelHud({
     super.key,
@@ -9,7 +15,7 @@ class LevelHud extends StatelessWidget {
     this.stageText,
     this.lives,
     this.infoTitle,
-    this.infoBody,
+    this.infoItems,
     this.infoOnPressed,
     this.trailing,
   });
@@ -18,7 +24,7 @@ class LevelHud extends StatelessWidget {
   final String? stageText;
   final String? lives;
   final String? infoTitle;
-  final String? infoBody;
+  final List<LevelHudBullet>? infoItems;
   final VoidCallback? infoOnPressed;
   final Widget? trailing;
 
@@ -28,7 +34,16 @@ class LevelHud extends StatelessWidget {
   }
 
   bool get _hasInfo =>
-      infoOnPressed != null || (infoTitle != null && infoBody != null);
+      infoOnPressed != null ||
+      (infoTitle != null && infoItems != null && infoItems!.isNotEmpty);
+
+  static const _statStyle = TextStyle(
+    color: NunuColors.textPrimary,
+    fontSize: 13,
+    fontWeight: FontWeight.w800,
+    height: 1,
+    fontFeatures: [FontFeature.tabularFigures()],
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +57,7 @@ class LevelHud extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
         color: NunuColors.backgroundPaper.withValues(alpha: 0.96),
         border: Border(
@@ -54,22 +69,24 @@ class LevelHud extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          if (stageText != null) _HudLabel(label: 'stage', value: stageText!),
-          if (timerText != null) _HudLabel(label: 'time', value: timerText!),
+          if (stageText != null)
+            Text(stageText!, style: _statStyle, overflow: TextOverflow.ellipsis),
+          if (timerText != null)
+            Text('⏱ $timerText', style: _statStyle),
           if (lives != null)
             Flexible(
               child: Text(
                 lives!,
                 overflow: TextOverflow.fade,
                 softWrap: false,
-                style: const TextStyle(fontSize: 14, height: 1),
+                style: _statStyle,
               ),
             ),
           if (trailing != null) Flexible(child: trailing!),
           if (_hasInfo)
             LevelInfoButton(
               title: infoTitle,
-              body: infoBody,
+              items: infoItems,
               onPressed: infoOnPressed,
             ),
         ],
@@ -78,52 +95,15 @@ class LevelHud extends StatelessWidget {
   }
 }
 
-class _HudLabel extends StatelessWidget {
-  const _HudLabel({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: NunuColors.textSecondary,
-            fontSize: 9,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.8,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: NunuColors.textPrimary,
-            fontSize: 13,
-            fontWeight: FontWeight.w800,
-            fontFeatures: [FontFeature.tabularFigures()],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class LevelInfoButton extends StatelessWidget {
-  const LevelInfoButton({super.key, this.title, this.body, this.onPressed})
+  const LevelInfoButton({super.key, this.title, this.items, this.onPressed})
     : assert(
-        onPressed != null || (title != null && body != null),
-        'provide either onPressed or title/body',
+        onPressed != null || (title != null && items != null),
+        'provide either onPressed or title+items',
       );
 
   final String? title;
-  final String? body;
+  final List<LevelHudBullet>? items;
   final VoidCallback? onPressed;
 
   @override
@@ -133,29 +113,7 @@ class LevelInfoButton extends StatelessWidget {
       borderRadius: BorderRadius.circular(999),
       child: InkWell(
         borderRadius: BorderRadius.circular(999),
-        onTap:
-            onPressed ??
-            () {
-              showDialog<void>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: Text(title!),
-                  content: Text(
-                    body!,
-                    style: const TextStyle(
-                      color: NunuColors.textSecondary,
-                      height: 1.35,
-                    ),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('got it'),
-                    ),
-                  ],
-                ),
-              );
-            },
+        onTap: onPressed ?? () => _showSheet(context),
         child: const Padding(
           padding: EdgeInsets.all(5),
           child: Icon(
@@ -165,6 +123,85 @@ class LevelInfoButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  void _showSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: NunuColors.backgroundPaper,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (ctx) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.4,
+        maxChildSize: 0.85,
+        minChildSize: 0.25,
+        builder: (ctx, scrollCtrl) => SingleChildScrollView(
+          controller: scrollCtrl,
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 18),
+                  decoration: BoxDecoration(
+                    color: NunuColors.textSecondary.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Text(
+                title!,
+                style: const TextStyle(
+                  color: NunuColors.textPrimary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.2,
+                ),
+              ),
+              const SizedBox(height: 18),
+              for (final item in items!) ...[
+                _Bullet(item),
+                const SizedBox(height: 12),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Bullet extends StatelessWidget {
+  const _Bullet(this.item);
+  final LevelHudBullet item;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 28,
+          child: Text(item.emoji, style: const TextStyle(fontSize: 16)),
+        ),
+        Expanded(
+          child: Text(
+            item.text,
+            style: const TextStyle(
+              color: NunuColors.textSecondary,
+              fontSize: 14,
+              height: 1.4,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

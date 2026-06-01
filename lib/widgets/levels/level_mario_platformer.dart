@@ -517,8 +517,12 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
           stageText: 'altitude $_altitude/$_winAltitude',
           lives: LevelHud.emojiLives(_lives, _startingLives),
           infoTitle: 'jump man',
-          infoBody:
-              'hold jump to charge, release to leap, and use left/right in the air. reach altitude $_winAltitude for a perfect score; otherwise your best altitude becomes partial credit. falling costs a life.',
+          infoItems: [
+            const LevelHudBullet('🕹', 'hold jump to charge power, release to leap'),
+            const LevelHudBullet('↔️', 'steer left and right while in the air'),
+            LevelHudBullet('🏔', 'reach altitude $_winAltitude for a perfect score — your best height counts as partial credit'),
+            const LevelHudBullet('❤️', 'falling off the platform costs a life'),
+          ],
         ),
       ),
     );

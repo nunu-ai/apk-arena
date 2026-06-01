@@ -582,8 +582,14 @@ class _LevelScrabbleState extends State<LevelScrabble> {
             ),
           ),
           infoTitle: 'scrabble',
-          infoBody:
-              'drag rack tiles onto the board and submit valid dictionary words. the first word must cross the center star and later words must connect to locked tiles. board multipliers apply, using all 7 rack tiles adds a bingo bonus, and reshuffling costs 1 point.',
+          infoItems: const [
+            LevelHudBullet('🔤', 'drag rack tiles onto the board and submit valid words'),
+            LevelHudBullet('⭐', 'your first word must cross the center star'),
+            LevelHudBullet('🔗', 'every later word must connect to a locked tile'),
+            LevelHudBullet('✖️', 'board multipliers (2× / 3× letter and word) apply on submission'),
+            LevelHudBullet('🎯', 'use all 7 rack tiles to earn a bingo bonus'),
+            LevelHudBullet('🔄', 'reshuffling your rack costs 1 point'),
+          ],
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),

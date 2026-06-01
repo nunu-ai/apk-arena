@@ -4,6 +4,7 @@ import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../level_components/level_hud.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 
@@ -927,49 +928,18 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
   }
 
   Widget _buildQuizHeader() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
-      decoration: BoxDecoration(
-        color: NunuColors.backgroundPaper,
-        border: Border(
-          bottom: BorderSide(color: NunuColors.primaryDark.withValues(alpha: 0.4)),
-        ),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.quiz_outlined, color: NunuColors.primaryLight, size: 20),
-          const SizedBox(width: 10),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'rabbit hole',
-                  style: TextStyle(
-                    color: NunuColors.textPrimary,
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: NunuColors.secondaryDark.withValues(alpha: 0.35),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              'revisits $_quizRevisits',
+    return LevelHud(
+      stageText: '${_questions.length} questions',
+      trailing: _quizRevisits > 0
+          ? Text(
+              '↩ $_quizRevisits revisits',
               style: const TextStyle(
                 color: NunuColors.textSecondary,
                 fontSize: 12,
+                fontWeight: FontWeight.w700,
               ),
-            ),
-          ),
-        ],
-      ),
+            )
+          : null,
     );
   }
 

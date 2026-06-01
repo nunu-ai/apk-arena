@@ -359,10 +359,7 @@ class _LevelEmojiBallHuntState extends State<LevelEmojiBallHunt> {
                   top: 0,
                   child: LevelHud(
                     stageText: '${_stageIndex + 1}/${_stages.length}',
-                    lives: LevelHud.emojiLives(
-                      _maxMisses - _misses,
-                      _maxMisses,
-                    ),
+                    lives: LevelHud.emojiLives(_maxMisses - _misses, _maxMisses),
                     trailing: Text(
                       'tap on: ${_stages[_stageIndex].targets.join()}',
                       overflow: TextOverflow.ellipsis,

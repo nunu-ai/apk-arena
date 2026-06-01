@@ -623,8 +623,12 @@ class _LevelBingoState extends State<LevelBingo> with TickerProviderStateMixin {
         ),
       ),
       infoTitle: 'bingo',
-      infoBody:
-          'mark called numbers on every card. stages get faster and later calls move through the tray, so missed calls and wrong taps reduce the stage score. finish a bingo line for the stage bonus.',
+      infoItems: const [
+        LevelHudBullet('🔢', 'mark called numbers on your cards — all cards are shared'),
+        LevelHudBullet('⚡', 'each stage gets faster; later calls scroll through the tray'),
+        LevelHudBullet('❌', 'missed calls and wrong taps reduce your stage score'),
+        LevelHudBullet('🎯', 'complete a bingo line for a stage bonus'),
+      ],
     );
   }
 

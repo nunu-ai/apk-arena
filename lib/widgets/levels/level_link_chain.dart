@@ -730,8 +730,12 @@ class _LevelLinkChainState extends State<LevelLinkChain>
                   ),
                 ),
                 infoTitle: 'chain reaction',
-                infoBody:
-                    'drag through adjacent matching gems to score one point per cleared cell. longer chains can trigger power gems: row clears, column clears, and bombs. stages advance every 100 points; score reaches 100% at $_targetScore points before the 30-minute timer ends.',
+                infoItems: [
+                  const LevelHudBullet('💎', 'drag through adjacent matching gems — 1 point per cleared cell'),
+                  const LevelHudBullet('⚡', 'longer chains trigger power gems: row clears, column clears, and bombs'),
+                  const LevelHudBullet('📈', 'reach 100 points to advance to the next stage'),
+                  LevelHudBullet('🎯', 'hit $_targetScore total points before the 30-minute timer runs out'),
+                ],
               ),
             ),
 
