@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
+import '../level_components/level_hud.dart';
 
 class LevelRushHour extends LevelWidget {
   const LevelRushHour({super.key, required super.onComplete});
@@ -482,8 +483,20 @@ class _LevelRushHourState extends State<LevelRushHour> {
       child: SafeArea(
         child: Column(
           children: [
-            _buildHeader(progress),
-            const SizedBox(height: 12),
+            LevelHud(stageText: _stage.label, trailing: Text('par ${_stage.optimalMoves}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: NunuColors.textSecondary))),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 6,
+                  backgroundColor: NunuColors.backgroundPaper,
+                  valueColor: const AlwaysStoppedAnimation(NunuColors.primaryMain),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
             _buildStageStrip(),
             const SizedBox(height: 16),
             Expanded(
@@ -497,45 +510,6 @@ class _LevelRushHourState extends State<LevelRushHour> {
             const SizedBox(height: 16),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(double progress) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${_stage.label} / par ${_stage.optimalMoves}',
-                      style: const TextStyle(
-                        fontSize: 21,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 8,
-              backgroundColor: NunuColors.backgroundPaper,
-              valueColor: const AlwaysStoppedAnimation(NunuColors.primaryMain),
-            ),
-          ),
-        ],
       ),
     );
   }
