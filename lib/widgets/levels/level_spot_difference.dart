@@ -324,13 +324,15 @@ class _LevelSpotDifferenceState extends State<LevelSpotDifference> {
       child: Column(
         children: [
           LevelHud(
-            stageText: '${_superStage + 1}/$_superStageCount',
+            stageText: _isBinarySuperStage
+                ? '${_superStage + 1}/$_superStageCount  ·  r${(_binaryIndex % _binaryRoundsPerStage) + 1}/$_binaryRoundsPerStage'
+                : '${_superStage + 1}/$_superStageCount',
             trailing: Text(
-              _isBinarySuperStage
-                  ? 'round ${(_binaryIndex % _binaryRoundsPerStage) + 1}/$_binaryRoundsPerStage'
-                  : _isLegacySuperStage
+              _isLegacySuperStage
                   ? 'found ${_legacyFound.length}/${_legacyDiffs.length}'
-                  : 'found ${_missionFound.length}/${_missionDiffs.length}',
+                  : _isMissionSuperStage
+                  ? 'found ${_missionFound.length}/${_missionDiffs.length}'
+                  : '',
               style: const TextStyle(
                 color: NunuColors.textSecondary,
                 fontSize: 12,

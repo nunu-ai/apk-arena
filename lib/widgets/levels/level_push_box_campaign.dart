@@ -390,8 +390,12 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
               timerText: _formatTime(_secondsRemaining),
               stageText: '${_stageIndex + 1}/$_stageCount',
               infoTitle: 'push-box gauntlet',
-              infoBody:
-                  'push every crate onto a glowing goal. use undo for one move back or reset for the current board. the run starts with 15:00 and earns +3:00 after each cleared stage.',
+              infoItems: const [
+                LevelHudBullet('📦', 'push every crate onto a glowing goal tile to clear the stage'),
+                LevelHudBullet('↩️', 'undo reverts your last move'),
+                LevelHudBullet('🔄', 'reset restarts the current board from scratch'),
+                LevelHudBullet('⏱', 'you start with 15:00 and earn +3:00 for each stage cleared'),
+              ],
             ),
             Expanded(child: Center(child: _buildGrid())),
             const SizedBox(height: 4),

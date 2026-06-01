@@ -204,8 +204,11 @@ class _LevelLightsOutState extends State<LevelLightsOut> {
                 ),
               ),
               infoTitle: 'blackout',
-              infoBody:
-                  'tap a light to toggle it and its orthogonal neighbors. turn off every light; fewer moves score better.',
+              infoItems: const [
+                LevelHudBullet('💡', 'tap a light to toggle it and its four orthogonal neighbors'),
+                LevelHudBullet('🎯', 'turn off every light to clear the board'),
+                LevelHudBullet('⭐', 'fewer moves = better score'),
+              ],
             ),
             Padding(
               padding: const EdgeInsets.only(top: 16),

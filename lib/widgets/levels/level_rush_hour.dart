@@ -483,7 +483,7 @@ class _LevelRushHourState extends State<LevelRushHour> {
       child: SafeArea(
         child: Column(
           children: [
-            LevelHud(stageText: _stage.label, trailing: Text('par ${_stage.optimalMoves}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: NunuColors.textSecondary))),
+            LevelHud(stageText: _stage.label, trailing: Text('par ${_stage.optimalMoves}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: NunuColors.textPrimary, height: 1, fontFeatures: [FontFeature.tabularFigures()]))),
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
               child: ClipRRect(

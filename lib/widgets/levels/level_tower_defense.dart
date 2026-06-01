@@ -1225,7 +1225,7 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
               timerText: _remainingLabel,
               lives: '❤️ $_lives/25',
               trailing: Text(
-                'wave $_wave/$_totalWaves · \$$_cash',
+                '🌊 $_wave/$_totalWaves  💰 \$$_cash',
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: NunuColors.textSecondary,
