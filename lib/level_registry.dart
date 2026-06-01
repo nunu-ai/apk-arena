@@ -30,6 +30,7 @@ import 'package:apk_arena/widgets/levels/level_multi_tap_sync.dart';
 import 'package:apk_arena/widgets/levels/level_odd_one_out.dart';
 import 'package:apk_arena/widgets/levels/level_pattern_match.dart';
 import 'package:apk_arena/widgets/levels/level_push_box_campaign.dart';
+import 'package:apk_arena/widgets/levels/level_rush_hour.dart';
 import 'package:apk_arena/widgets/levels/level_scrabble.dart';
 import 'package:apk_arena/widgets/levels/level_scroll_mastery.dart';
 import 'package:apk_arena/widgets/levels/level_sequence_memory.dart';
@@ -328,6 +329,14 @@ final List<LevelEntry> gamesLevels = [
       instructions: "link matching gems to score points.",
     ),
     widgetBuilder: (onComplete) => LevelLinkChain(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "traffic jam",
+      instructions: "clear all rush hour jams.",
+      timeLimit: Duration(hours: 1),
+    ),
+    widgetBuilder: (onComplete) => LevelRushHour(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
