@@ -743,7 +743,6 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
       metrics: {
         'score_points': _sessionScore,
         'orders_completed': _ordersCompleted,
-        'target_order_tier': _targetOrderTierForProgress(),
         'highest_tier': _highestTier,
         'merges': _totalMerges,
       },
@@ -993,10 +992,22 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
                 stageText: 'orders $_ordersCompleted',
                 infoTitle: 'mega merge',
                 infoItems: const [
-                  LevelHudBullet('⚡', 'tap the generator to spend energy and spawn parts'),
-                  LevelHudBullet('🔀', 'drag two matching-tier parts together to merge them upward'),
-                  LevelHudBullet('📦', 'deliver requested parts to active orders for score, coins, and energy'),
-                  LevelHudBullet('📈', 'every four completed orders raises the required tier'),
+                  LevelHudBullet(
+                    '⚡',
+                    'tap the generator to spend energy and spawn parts',
+                  ),
+                  LevelHudBullet(
+                    '🔀',
+                    'drag two matching-tier parts together to merge them upward',
+                  ),
+                  LevelHudBullet(
+                    '📦',
+                    'deliver requested parts to active orders for score, coins, and energy',
+                  ),
+                  LevelHudBullet(
+                    '📈',
+                    'every four completed orders raises the required tier',
+                  ),
                 ],
               ),
               MegaMergeHeaderBar(

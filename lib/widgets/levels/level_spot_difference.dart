@@ -252,8 +252,6 @@ class _LevelSpotDifferenceState extends State<LevelSpotDifference> {
           'stage_2_pct': (s2 * 100).round(),
           'stage_3_pct': (s3 * 100).round(),
           'stage_4_pct': (s4 * 100).round(),
-          'legacy_misclicks': _legacyMisclicks,
-          'mission_misclicks': _missionMisclicks,
         },
         visibleMetricKeys: const [
           'stage_1_pct',

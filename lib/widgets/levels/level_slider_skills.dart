@@ -122,8 +122,6 @@ class _LevelSliderSkillsState extends State<LevelSliderSkills> {
           'submit_attempts': _submitAttempts,
           'stages_cleared': _stage,
           'lives_remaining': _lives,
-          'score_from_stages': stageScore,
-          'score_from_lives': lifeScore,
         },
       ),
     );
@@ -141,8 +139,6 @@ class _LevelSliderSkillsState extends State<LevelSliderSkills> {
             'submit_attempts': _submitAttempts,
             'stages_cleared': _totalStages,
             'lives_remaining': _lives,
-            'score_from_stages': stageScore,
-            'score_from_lives': lifeScore,
           },
         ),
       );

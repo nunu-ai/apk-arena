@@ -841,7 +841,6 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
       score: score,
       metrics: {
         'wealth': _wealth,
-        'parts': _parts,
         'orders_completed': _ordersCompleted,
         'highest_tier_unlocked': _highestTierUnlocked,
         'belts_placed': _beltsPlaced,

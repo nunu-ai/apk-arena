@@ -231,11 +231,7 @@ class _LevelMemoryMatchState extends State<LevelMemoryMatch> {
       'stage_1_score': _round(_stats[0].score),
       'stage_2_score': _round(_stats[1].score),
       'stage_3_score': _round(_stats[2].score),
-      'stage_1_penalties': _stats[0].repeatRevealPenalties,
-      'stage_2_penalties': _stats[1].repeatRevealPenalties,
-      'stage_3_penalties': _stats[2].repeatRevealPenalties,
       'stage_3_misses': _stats[2].mismatchTurns,
-      'stage_3_one_shot': _stats[2].oneShotSets,
     };
   }
 

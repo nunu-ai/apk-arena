@@ -159,14 +159,10 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
 
   void _recordStageMetrics({required bool skipped}) {
     final i = _stageIndex + 1;
-    final optimal = _optimalMoves[_stageIndex];
     _metrics['stage_${i}_moves'] = _moveCount;
-    _metrics['stage_${i}_optimal'] = optimal;
-    _metrics['stage_${i}_par'] = optimal + _explorePerButton * _numButtons;
     _metrics['stage_${i}_score'] = double.parse(
       _stageScores.last.toStringAsFixed(2),
     );
-    if (skipped) _metrics['stage_${i}_skipped'] = true;
   }
 
   void _advanceOrFinish() {
@@ -191,15 +187,17 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
     }
 
     final avgScore = _stageScores.fold(0.0, (a, b) => a + b) / _stages.length;
-    int totalMoves = 0;
-    for (int i = 1; i <= _stages.length; i++) {
-      totalMoves += (_metrics['stage_${i}_moves'] as int?) ?? 0;
-    }
-    _metrics['total_moves'] = totalMoves;
     widget.onComplete(
       LevelOutcome(
         score: avgScore,
-        metrics: _metrics,
+        metrics: {
+          for (int i = 1; i <= _stages.length; i++)
+            'stage_${i}_score': _metrics['stage_${i}_score'] ?? 0,
+          'total_moves': [
+            for (int i = 1; i <= _stages.length; i++)
+              (_metrics['stage_${i}_moves'] as int?) ?? 0,
+          ].fold<int>(0, (sum, moves) => sum + moves),
+        },
         visibleMetricKeys: [
           for (int i = 1; i <= _stages.length; i++) 'stage_${i}_score',
         ],

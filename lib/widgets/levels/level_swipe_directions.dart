@@ -104,8 +104,6 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
           'accuracy_pct': _accuracyPct,
           'wrong_swipes': _wrongSwipes,
           'lives_remaining': _lives,
-          'steps_completed': _stepsCompleted,
-          'phase': _phase.name,
         },
       ),
     );
@@ -156,7 +154,6 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
                   'accuracy_pct': _accuracyPct,
                   'wrong_swipes': _wrongSwipes,
                   'lives_remaining': _lives,
-                  'steps_completed': _stepsCompleted,
                 },
               ),
             );
