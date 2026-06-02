@@ -29,7 +29,6 @@ class _LevelPatternMatchState extends State<LevelPatternMatch> {
   double _score = 0;
   bool _referenceSpent = false;
   final List<int> _stageMistakes = [];
-  final List<int> _stagePercentages = [];
   late List<List<bool>> _targetPattern;
   late List<List<bool>> _draftPattern;
   late List<List<bool>> _playerPattern;
@@ -37,10 +36,12 @@ class _LevelPatternMatchState extends State<LevelPatternMatch> {
   @override
   void initState() {
     super.initState();
-    widget.registerPartialScoreGetter(() => LevelOutcome(
-          score: _score.clamp(0.0, 1.0),
-          metrics: {'stage_reached': _stageIndex + 1},
-        ));
+    widget.registerPartialScoreGetter(
+      () => LevelOutcome(
+        score: _score.clamp(0.0, 1.0),
+        metrics: {'stage_reached': _stageIndex + 1},
+      ),
+    );
     _startStage();
   }
 
@@ -110,16 +111,17 @@ class _LevelPatternMatchState extends State<LevelPatternMatch> {
     final stageScore = _scoreForMistakes(mistakes);
     _score += stageScore;
     _stageMistakes.add(mistakes);
-    _stagePercentages.add((stageScore * 100).round());
 
     if (_stageIndex == _stageGridSizes.length - 1) {
+      final totalMistakes = _stageMistakes.fold<int>(0, (sum, m) => sum + m);
+      final perfectStages = _stageMistakes.where((m) => m == 0).length;
       widget.onComplete(
         LevelOutcome(
           score: _score,
           metrics: {
-            'stage_mistakes': _stageMistakes,
-            'stage_percentages': _stagePercentages,
             'stages': _stageGridSizes.length,
+            'perfect_stages': perfectStages,
+            'total_mistakes': totalMistakes,
           },
         ),
       );

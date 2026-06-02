@@ -148,6 +148,7 @@ class LevelCompletionScreen extends StatelessWidget {
               const SizedBox(height: 16),
               Text(
                 'LVL ${levelNumber}: ${levelName.toUpperCase()}',
+                textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 20,
                   color: NunuColors.textPrimary,
