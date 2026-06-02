@@ -30,7 +30,10 @@ class _Stage {
 }
 
 class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
-  static const int _explorePerButton = 4;
+  // One press per button is enough to learn what each operation does
+  // (and `reset value` is free), so a skilled run only needs the optimal
+  // path plus this small discovery budget. Anything beyond that is waste.
+  static const int _discoveryPressesPerButton = 1;
   static const int _numButtons = 3;
   static const int _maxVal = 9999;
   static const _buttonLabels = ['a', 'b', 'c'];
@@ -54,10 +57,12 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
   @override
   void initState() {
     super.initState();
-    widget.registerPartialScoreGetter(() => LevelOutcome(
-          score: _stageScores.fold(0.0, (s, v) => s + v) / _stages.length,
-          metrics: {'stage_reached': _stageIndex + 1},
-        ));
+    widget.registerPartialScoreGetter(
+      () => LevelOutcome(
+        score: _stageScores.fold(0.0, (s, v) => s + v) / _stages.length,
+        metrics: {'stage_reached': _stageIndex + 1},
+      ),
+    );
     _stages = [
       _Stage(
         name: 'easy',
@@ -141,8 +146,8 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
   void _onStageCleared() {
     HapticFeedback.mediumImpact();
     final optimal = _optimalMoves[_stageIndex];
-    final par = optimal + _explorePerButton * _numButtons;
-    final score = _moveCount <= par ? 1.0 : par / _moveCount;
+    final par = optimal + _discoveryPressesPerButton * _numButtons;
+    final score = _scoreForMoves(moves: _moveCount, par: par);
     _stageScores.add(score);
     _recordStageMetrics(skipped: false);
 
@@ -152,6 +157,14 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
       if (!mounted) return;
       _advanceOrFinish();
     });
+  }
+
+  double _scoreForMoves({required int moves, required int par}) {
+    if (moves <= par) return 1.0;
+    // Steep quadratic falloff past par: taking twice the allowed moves
+    // drops the stage to a quarter score, so wasted presses hurt fast.
+    final ratio = par / moves;
+    return (ratio * ratio).clamp(0.0, 1.0);
   }
 
   void _skipStage() {

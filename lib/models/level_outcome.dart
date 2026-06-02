@@ -47,6 +47,7 @@ class LevelOutcome {
     void addIfAllowed(String key, dynamic value) {
       if (sanitized.length >= maxAdditionalMetrics) return;
       if (_redundantTimeMetricKeys.contains(key)) return;
+      if (_isNumericArrayMetric(value)) return;
       sanitized[key] = value;
     }
 
@@ -62,5 +63,9 @@ class LevelOutcome {
     }
 
     return sanitized;
+  }
+
+  static bool _isNumericArrayMetric(dynamic value) {
+    return value is List && value.every((item) => item is num);
   }
 }

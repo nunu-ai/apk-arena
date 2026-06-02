@@ -155,10 +155,12 @@ class _LevelBingoState extends State<LevelBingo> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    widget.registerPartialScoreGetter(() => LevelOutcome(
-          score: _currentScore / _stageCount,
-          metrics: {'stages_completed': _completedStageScores.length},
-        ));
+    widget.registerPartialScoreGetter(
+      () => LevelOutcome(
+        score: _currentScore / _stageCount,
+        metrics: {'stages_completed': _completedStageScores.length},
+      ),
+    );
     _initAnimations();
     _configureStage(0);
     Future.delayed(const Duration(milliseconds: 1200), _callNextNumber);
@@ -547,14 +549,22 @@ class _LevelBingoState extends State<LevelBingo> with TickerProviderStateMixin {
     });
 
     final score = _currentScore;
+    final completedStages = _completedStageScores.length;
+    final bestStageScore = _completedStageScores.isEmpty
+        ? 0.0
+        : _completedStageScores.reduce((a, b) => a > b ? a : b);
+    final averageStageScore = completedStages == 0
+        ? 0.0
+        : _completedStageScores.fold<double>(0, (sum, score) => sum + score) /
+              completedStages;
     Future.delayed(const Duration(milliseconds: 800), () {
       widget.onComplete(
         LevelOutcome(
           score: score,
           metrics: {
-            'stage_scores': _completedStageScores
-                .map((score) => (score * 1000).round() / 10)
-                .toList(),
+            'stages_completed': completedStages,
+            'best_stage_score': (bestStageScore * 1000).round() / 10,
+            'avg_stage_score': (averageStageScore * 1000).round() / 10,
           },
         ),
       );
@@ -628,9 +638,18 @@ class _LevelBingoState extends State<LevelBingo> with TickerProviderStateMixin {
       ),
       infoTitle: 'bingo',
       infoItems: const [
-        LevelHudBullet('🔢', 'mark called numbers on your cards — all cards are shared'),
-        LevelHudBullet('⚡', 'each stage gets faster; later calls scroll through the tray'),
-        LevelHudBullet('❌', 'missed calls and wrong taps reduce your stage score'),
+        LevelHudBullet(
+          '🔢',
+          'mark called numbers on your cards — all cards are shared',
+        ),
+        LevelHudBullet(
+          '⚡',
+          'each stage gets faster; later calls scroll through the tray',
+        ),
+        LevelHudBullet(
+          '❌',
+          'missed calls and wrong taps reduce your stage score',
+        ),
         LevelHudBullet('🎯', 'complete a bingo line for a stage bonus'),
       ],
     );

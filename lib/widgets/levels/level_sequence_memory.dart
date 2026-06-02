@@ -27,6 +27,7 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
   List<int> _sequence = [];
   int _currentInputIndex = 0;
   int _completedSequences = 0;
+  int _replaysUsed = 0;
   bool _isShowingSequence = true;
   bool _isComplete = false;
   bool _showingError = false;
@@ -42,10 +43,15 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
   @override
   void initState() {
     super.initState();
-    widget.registerPartialScoreGetter(() => LevelOutcome(
-          score: (0.10 * _completedSequences).clamp(0.0, 1.0),
-          metrics: {'stages_completed': _completedSequences},
-        ));
+    widget.registerPartialScoreGetter(
+      () => LevelOutcome(
+        score: (0.10 * _completedSequences).clamp(0.0, 1.0),
+        metrics: {
+          'stages_completed': _completedSequences,
+          'replays_used': _replaysUsed,
+        },
+      ),
+    );
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 400),
       vsync: this,
@@ -101,6 +107,7 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
     final metrics = <String, dynamic>{
       'stages_completed': _completedSequences,
       'reached_length': _completedSequences + 1,
+      'replays_used': _replaysUsed,
     };
     if (timedOut) {
       metrics['timed_out'] = true;
@@ -111,7 +118,11 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
       LevelOutcome(
         score: score,
         metrics: metrics,
-        visibleMetricKeys: const ['stages_completed', 'reached_length'],
+        visibleMetricKeys: const [
+          'stages_completed',
+          'reached_length',
+          'replays_used',
+        ],
       ),
     );
   }
@@ -191,6 +202,17 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
         _highlightedButton = -1;
       });
     }
+  }
+
+  void _replaySequence() {
+    if (_isShowingSequence || _isComplete || _showingError) return;
+    setState(() {
+      _replaysUsed++;
+      _currentInputIndex = 0;
+      _isShowingSequence = true;
+      _highlightedButton = -1;
+    });
+    _showSequence();
   }
 
   void _onButtonPressed(int index) {
@@ -275,9 +297,44 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
             _buildStatusText(),
             Expanded(child: _buildButtonGrid()),
             const SizedBox(height: 16),
+            _buildWatchAgainButton(),
+            const SizedBox(height: 12),
             _buildGiveUpButton(),
             const SizedBox(height: 16),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWatchAgainButton() {
+    final canReplay = !_isShowingSequence && !_isComplete && !_showingError;
+    final foreground = canReplay
+        ? NunuColors.secondaryLight
+        : NunuColors.textSecondary.withValues(alpha: 0.3);
+    return TextButton.icon(
+      onPressed: canReplay ? _replaySequence : null,
+      icon: Icon(Icons.replay, size: 16, color: foreground),
+      label: Text(
+        'WATCH AGAIN',
+        style: TextStyle(
+          color: foreground,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.5,
+          fontSize: 12,
+        ),
+      ),
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        disabledForegroundColor: NunuColors.textSecondary.withValues(
+          alpha: 0.3,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(
+            color: NunuColors.secondaryMain.withValues(alpha: 0.4),
+            width: 1,
+          ),
         ),
       ),
     );
