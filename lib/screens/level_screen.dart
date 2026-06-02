@@ -127,7 +127,7 @@ class _LevelScreenState extends State<LevelScreen> {
                 AttemptRecord(
                   levelNumber: widget.levelNumber,
                   levelTitle: entry.data.title,
-                  difficulty: getDifficultyName(widget.levelNumber),
+                  category: getCategoryName(widget.levelNumber),
                   timestamp: DateTime.now().toUtc().toIso8601String(),
                   success: false,
                   score: 0,
@@ -180,7 +180,7 @@ class _LevelScreenState extends State<LevelScreen> {
       AttemptRecord(
         levelNumber: widget.levelNumber,
         levelTitle: _levelEntry!.data.title,
-        difficulty: getDifficultyName(widget.levelNumber),
+        category: getCategoryName(widget.levelNumber),
         timestamp: DateTime.now().toUtc().toIso8601String(),
         success: outcome.score >= 1.0,
         score: outcome.score,

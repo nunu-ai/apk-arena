@@ -1,7 +1,7 @@
 class AttemptRecord {
   final int levelNumber;
   final String levelTitle;
-  final String difficulty;
+  final String category;
   final String timestamp;
   /// Derived: [score] >= 1.0. Kept for older analytics files.
   final bool success;
@@ -12,7 +12,7 @@ class AttemptRecord {
   AttemptRecord({
     required this.levelNumber,
     required this.levelTitle,
-    required this.difficulty,
+    required this.category,
     required this.timestamp,
     required this.success,
     required this.score,
@@ -44,7 +44,7 @@ class AttemptRecord {
     return AttemptRecord(
       levelNumber: json['levelNumber'] as int,
       levelTitle: json['levelTitle'] as String,
-      difficulty: json['difficulty'] as String,
+      category: json["category"] as String,
       timestamp: json['timestamp'] as String,
       success: success,
       score: score,

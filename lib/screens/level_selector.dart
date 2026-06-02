@@ -7,7 +7,6 @@ import '../theme/app_theme.dart';
 import '../level_registry.dart';
 import 'level_screen.dart';
 import 'category_levels_screen.dart';
-import 'analytics_viewer_screen.dart';
 
 class _CategoryInfo {
   final int index;
@@ -143,13 +142,6 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> with RouteAwa
       appBar: AppBar(
         title: const Text('APK ARENA', style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.bar_chart_rounded, size: 22),
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const AnalyticsViewerScreen()));
-            },
-            tooltip: 'analytics',
-          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: resetProgress,

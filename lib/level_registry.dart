@@ -446,7 +446,7 @@ int? getNextSequentialLevel(int levelNumber) {
   return all[i + 1];
 }
 
-List<int> getLevelsForDifficulty(int difficulty) {
+List<int> getLevelsForCategory(int difficulty) {
   return levelsRegistry.entries
       .where(
         (entry) =>
@@ -468,7 +468,7 @@ LevelEntry? getLevel(int levelNumber) {
   return levelsRegistry[levelNumber];
 }
 
-String getDifficultyName(int levelNumber) {
+String getCategoryName(int levelNumber) {
   if (levelNumber < 100) return 'primitives';
   if (levelNumber < 200) return 'vision';
   if (levelNumber < 300) return 'memory';
