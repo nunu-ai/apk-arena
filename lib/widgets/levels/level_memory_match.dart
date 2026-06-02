@@ -86,6 +86,12 @@ class _LevelMemoryMatchState extends State<LevelMemoryMatch> {
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(() => LevelOutcome(
+          score: 0.3 * _stats[0].score +
+              0.3 * _stats[1].score +
+              0.4 * _stats[2].score,
+          metrics: {'stage_reached': _stageIndex + 1},
+        ));
     _stageOneDeck = _buildDeck(_stages[0]);
     _stats = List<_StageStats>.generate(_stages.length, (_) => _StageStats());
     _deck = List<String>.from(_stageOneDeck);

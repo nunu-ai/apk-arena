@@ -44,12 +44,12 @@ class _LevelSignupGauntletState extends State<LevelSignupGauntlet> {
   @override
   void initState() {
     super.initState();
-    widget.registerTimeoutBuilder(_buildTimeoutOutcome);
+    widget.registerPartialScoreGetter(_buildTimeoutOutcome);
   }
 
   @override
   void dispose() {
-    widget.clearTimeoutBuilder();
+    widget.clearPartialScoreGetter();
     super.dispose();
   }
 

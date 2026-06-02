@@ -567,6 +567,10 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(() => LevelOutcome(
+          score: (0.7 * _quizScore + 0.3 * (_finalChallenges.isEmpty ? 0.0 : _challengeIndex / _finalChallenges.length)).clamp(0.0, 1.0),
+          metrics: {'quiz_correct': _quizCorrect},
+        ));
     _questions = _buildQuestions();
     _numberControllers = {
       for (final question in _questions.where(

@@ -244,7 +244,7 @@ class _LevelLinkChainState extends State<LevelLinkChain>
   @override
   void initState() {
     super.initState();
-    widget.registerTimeoutBuilder(_buildOutcome);
+    widget.registerPartialScoreGetter(_buildOutcome);
     _board = _buildBoard(_cfg);
     _drops = _emptyDrops(_cfg);
 
@@ -297,7 +297,7 @@ class _LevelLinkChainState extends State<LevelLinkChain>
     _ticker?.cancel();
     _bannerTimer?.cancel();
     _megaChainTimer?.cancel();
-    widget.clearTimeoutBuilder();
+    widget.clearPartialScoreGetter();
     _animTicker.dispose();
     super.dispose();
   }

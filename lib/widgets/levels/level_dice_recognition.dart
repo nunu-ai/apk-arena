@@ -94,6 +94,10 @@ class _LevelDiceRecognitionState extends State<LevelDiceRecognition> {
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(() => LevelOutcome(
+          score: _scoreAccum.clamp(0.0, 1.0),
+          metrics: {'stages_scored': _stageIndex},
+        ));
     _generateStage();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       FocusManager.instance.primaryFocus?.unfocus();

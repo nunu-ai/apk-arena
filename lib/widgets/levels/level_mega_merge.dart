@@ -119,7 +119,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
   @override
   void initState() {
     super.initState();
-    widget.registerTimeoutBuilder(_buildOutcome);
+    widget.registerPartialScoreGetter(_buildOutcome);
     _initializeLevel();
     _lastEnergyRegen = DateTime.now();
     _runEndsAt = DateTime.now().add(_runDuration);
@@ -136,7 +136,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
   void dispose() {
     _energyTimer?.cancel();
     _runTimer?.cancel();
-    widget.clearTimeoutBuilder();
+    widget.clearPartialScoreGetter();
     super.dispose();
   }
 

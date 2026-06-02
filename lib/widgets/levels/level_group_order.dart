@@ -79,6 +79,10 @@ class _LevelGroupOrderState extends State<LevelGroupOrder>
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(() => LevelOutcome(
+          score: (_results.fold(0.0, (s, r) => s + r.score) / _stages.length).clamp(0.0, 1.0),
+          metrics: {'stages_completed': _results.length},
+        ));
     _tabController = TabController(length: 2, vsync: this);
     _shops = _mockShops();
     _stages = _buildStages();

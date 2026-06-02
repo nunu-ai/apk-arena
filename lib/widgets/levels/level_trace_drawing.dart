@@ -351,6 +351,13 @@ class _LevelTraceDrawingState extends State<LevelTraceDrawing> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    widget.registerPartialScoreGetter(
+        () => LevelOutcome(score: _totalScore.clamp(0.0, 1.0)));
+  }
+
+  @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {

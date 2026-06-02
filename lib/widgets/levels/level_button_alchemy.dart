@@ -54,6 +54,10 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(() => LevelOutcome(
+          score: _stageScores.fold(0.0, (s, v) => s + v) / _stages.length,
+          metrics: {'stage_reached': _stageIndex + 1},
+        ));
     _stages = [
       _Stage(
         name: 'easy',

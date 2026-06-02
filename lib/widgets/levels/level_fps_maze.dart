@@ -69,7 +69,7 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
   @override
   void initState() {
     super.initState();
-    widget.registerTimeoutBuilder(_buildTimeoutOutcome);
+    widget.registerPartialScoreGetter(_buildTimeoutOutcome);
 
     // Find exit position
     for (int y = 0; y < _maze.length; y++) {
@@ -98,7 +98,7 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
   @override
   void dispose() {
     _runTimer?.cancel();
-    widget.clearTimeoutBuilder();
+    widget.clearPartialScoreGetter();
     _controller.dispose();
     super.dispose();
   }

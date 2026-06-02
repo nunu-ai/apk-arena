@@ -64,7 +64,7 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
   @override
   void initState() {
     super.initState();
-    widget.registerTimeoutBuilder(_buildOutcome);
+    widget.registerPartialScoreGetter(_buildOutcome);
     _sw.start();
     _initContacts();
     _initSpeed();
@@ -132,7 +132,7 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
     _tosCtrl.dispose();
     _gridHCtrl.dispose();
     _gridVCtrl.dispose();
-    widget.clearTimeoutBuilder();
+    widget.clearPartialScoreGetter();
     super.dispose();
   }
 
@@ -229,8 +229,10 @@ class _LevelScrollMasteryState extends State<LevelScrollMastery> {
   }
 
   LevelOutcome _buildOutcome() {
-    final score =
-        _stageScores.fold<double>(0, (sum, score) => sum + score) / 5;
+    final completedSum = _stageScores.fold<double>(0, (sum, s) => sum + s);
+    final inProgressScore =
+        _stageScores.length < 5 ? _scoreForStage(_stage) : 0.0;
+    final score = (completedSum + inProgressScore) / 5;
 
     return LevelOutcome(
       score: score,

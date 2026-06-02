@@ -105,6 +105,8 @@ class _LevelCarSteeringState extends State<LevelCarSteering>
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(
+        () => LevelOutcome(score: _bestScore.clamp(0.0, 1.0)));
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(days: 1),

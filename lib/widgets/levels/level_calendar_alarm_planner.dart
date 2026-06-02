@@ -39,6 +39,8 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(
+        () => LevelOutcome(score: _evaluate().score));
     _scenario = _buildScenario();
     _days = _collectDays(_scenario.visibleWeek);
     _alarms = _scenario.initialAlarms.map((alarm) => alarm.copy()).toList();

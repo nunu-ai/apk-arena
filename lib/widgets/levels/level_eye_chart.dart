@@ -258,6 +258,10 @@ class _LevelEyeChartState extends State<LevelEyeChart> {
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(() => LevelOutcome(
+          score: _scoreAccum.clamp(0.0, 1.0),
+          metrics: {'stages_scored': _stageIndex},
+        ));
     _wordPool = List.of(_words)..shuffle(_rand);
     _generateStage();
     WidgetsBinding.instance.addPostFrameCallback((_) async {

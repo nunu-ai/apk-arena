@@ -63,6 +63,8 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(
+        () => LevelOutcome(score: (_correctDismissals * 0.1).clamp(0.0, 0.6)));
     _shop = _buildShop();
     _startCountdown();
   }

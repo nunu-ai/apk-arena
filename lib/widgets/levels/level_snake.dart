@@ -103,6 +103,11 @@ class _LevelSnakeState extends State<LevelSnake> {
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(() => LevelOutcome(
+          score: List.generate(_stageConfigs.length, _stageScore)
+              .fold(0.0, (s, v) => s + v),
+          metrics: {'stage_reached': _stageIndex + 1},
+        ));
     _attemptsByStage = List.filled(_stageConfigs.length, 0);
     _bestLengthsByStage = _stageConfigs
         .map((config) => config.initialLength)

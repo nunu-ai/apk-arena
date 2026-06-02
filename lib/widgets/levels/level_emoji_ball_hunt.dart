@@ -306,6 +306,15 @@ class _LevelEmojiBallHuntState extends State<LevelEmojiBallHunt> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    widget.registerPartialScoreGetter(() => LevelOutcome(
+          score: _scoreAccum.clamp(0.0, 1.0),
+          metrics: {'stages_scored': _stageIndex},
+        ));
+  }
+
+  @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {

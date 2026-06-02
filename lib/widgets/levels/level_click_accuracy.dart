@@ -55,6 +55,8 @@ class _LevelClickAccuracyState extends State<LevelClickAccuracy> {
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(
+        () => LevelOutcome(score: scoreForRun(roundsCleared: _roundIndex, livesRemaining: _lives, roundCount: roundCount, clearedAllRounds: false)));
     _targetAlign = _randomAlign();
   }
 

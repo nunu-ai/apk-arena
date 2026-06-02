@@ -187,6 +187,8 @@ class _PokemonMazeStageState extends State<_PokemonMazeStage>
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(
+        () => LevelOutcome(score: _stage1Optimal > 0 ? _stageScore(_stage1Moves, _stage1Optimal, budgetFactor: 1.0).clamp(0.0, 1.0) : 0.0));
     _moveController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 80),

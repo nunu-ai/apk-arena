@@ -1748,6 +1748,10 @@ class _MissionControlScreenState extends State<_MissionControlScreen>
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(() => LevelOutcome(
+          score: () { final s1 = _binaryRoundsPerStage == 0 ? 0.0 : _binaryS1Correct / _binaryRoundsPerStage; final s2 = _binaryRoundsPerStage == 0 ? 0.0 : _binaryS2Correct / _binaryRoundsPerStage; final s3 = _legacyDiffs.isEmpty ? 0.0 : _legacyFound.length / _legacyDiffs.length; final s4 = _missionDiffs.isEmpty ? 0.0 : _missionFound.length / _missionDiffs.length; return ((s1 + s2 + s3 + s4) / _superStageCount).clamp(0.0, 1.0); }(),
+          metrics: {'super_stage_reached': _superStage + 1},
+        ));
     _spin = AnimationController(
       duration: const Duration(seconds: 4),
       vsync: this,

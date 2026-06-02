@@ -133,7 +133,7 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
   @override
   void initState() {
     super.initState();
-    widget.registerTimeoutBuilder(_buildTimeoutOutcome);
+    widget.registerPartialScoreGetter(_buildTimeoutOutcome);
     _loadStage(_stageIndex);
     _startBudgetTimer();
   }
@@ -141,7 +141,7 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
   @override
   void dispose() {
     _budgetTimer?.cancel();
-    widget.clearTimeoutBuilder();
+    widget.clearPartialScoreGetter();
     super.dispose();
   }
 

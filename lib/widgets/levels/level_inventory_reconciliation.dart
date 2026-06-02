@@ -69,6 +69,8 @@ class _LevelInventoryReconciliationState extends State<LevelInventoryReconciliat
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(
+        () => LevelOutcome(score: _evaluateInventory().score));
     _tabController = TabController(length: 2, vsync: this);
     // Initialize with all items from inventory data (public getter)
     _items = List.from(inventory_data.items);

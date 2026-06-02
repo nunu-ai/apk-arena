@@ -61,6 +61,10 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(() => LevelOutcome(
+          score: (_stageScores.fold(0.0, (s, v) => s + v) / _totalStages).clamp(0.0, 1.0),
+          metrics: {'stages_scored': _stageScores.length},
+        ));
     _rollFacingChallenge();
   }
 

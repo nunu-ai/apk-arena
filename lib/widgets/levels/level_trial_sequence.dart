@@ -79,6 +79,10 @@ class _LevelTrialSequenceState extends State<LevelTrialSequence>
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(() => LevelOutcome(
+          score: (_maxLengthAchieved / _targetMaxLength).clamp(0.0, 1.0),
+          metrics: {'max_sequence_length': _maxLengthAchieved},
+        ));
     _endsAt = DateTime.now().add(_sessionDuration);
     _sequenceLength = _startingSequenceLength;
     _startSequence(resetAttempts: true);

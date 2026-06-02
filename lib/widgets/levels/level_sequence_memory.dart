@@ -42,6 +42,10 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(() => LevelOutcome(
+          score: (0.10 * _completedSequences).clamp(0.0, 1.0),
+          metrics: {'stages_completed': _completedSequences},
+        ));
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 400),
       vsync: this,
