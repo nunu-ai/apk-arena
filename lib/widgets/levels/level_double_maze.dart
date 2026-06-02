@@ -24,6 +24,13 @@ class _LevelDoubleMazeState extends State<LevelDoubleMaze> {
   int _stage1Moves = 0;
   int _stage1Optimal = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    widget.registerPartialScoreGetter(
+        () => LevelOutcome(score: _stage1Optimal > 0 ? _stageScore(_stage1Moves, _stage1Optimal, budgetFactor: 1.0).clamp(0.0, 1.0) : 0.0));
+  }
+
   void _onStage1Complete(int moves, int optimal) {
     if (!mounted) return;
     setState(() {
@@ -187,8 +194,6 @@ class _PokemonMazeStageState extends State<_PokemonMazeStage>
   @override
   void initState() {
     super.initState();
-    widget.registerPartialScoreGetter(
-        () => LevelOutcome(score: _stage1Optimal > 0 ? _stageScore(_stage1Moves, _stage1Optimal, budgetFactor: 1.0).clamp(0.0, 1.0) : 0.0));
     _moveController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 80),

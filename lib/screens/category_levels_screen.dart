@@ -27,7 +27,7 @@ class CategoryLevelsScreen extends StatefulWidget {
 class _CategoryLevelsScreenState extends State<CategoryLevelsScreen> with RouteAware {
   final _progressService = ProgressService.instance;
 
-  List<int> get levels => getLevelsForDifficulty(widget.categoryIndex);
+  List<int> get levels => getLevelsForCategory(widget.categoryIndex);
 
   void openLevel(int levelNumber) async {
     await Navigator.push(

@@ -24,7 +24,7 @@ class AttemptRecord {
     return {
       'levelNumber': levelNumber,
       'levelTitle': levelTitle,
-      'difficulty': difficulty,
+      'category': category,
       'timestamp': timestamp,
       'success': success,
       'score': score,

@@ -28,7 +28,6 @@ import 'package:apk_arena/widgets/levels/level_mega_merge.dart';
 import 'package:apk_arena/widgets/levels/level_memory_match.dart';
 import 'package:apk_arena/widgets/levels/level_multi_tap_sync.dart';
 import 'package:apk_arena/widgets/levels/level_odd_one_out.dart';
-import 'package:apk_arena/widgets/levels/level_overlapping_popups.dart';
 import 'package:apk_arena/widgets/levels/level_pattern_match.dart';
 import 'package:apk_arena/widgets/levels/level_push_box_campaign.dart';
 import 'package:apk_arena/widgets/levels/level_rush_hour.dart';
@@ -219,13 +218,6 @@ final List<LevelEntry> iqLevels = [
       instructions: "find the odd one out in each round.",
     ),
     widgetBuilder: (onComplete) => LevelOddOneOut(onComplete: onComplete),
-  ),
-  LevelEntry(
-    data: LevelData(
-      title: "popup storm",
-      instructions: "close every popup to reach the button underneath.",
-    ),
-    widgetBuilder: (onComplete) => LevelOverlappingPopups(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(

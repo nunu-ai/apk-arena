@@ -120,13 +120,13 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> with RouteAwa
   }
 
   String _levelRange(int catIndex) {
-    final levels = getLevelsForDifficulty(catIndex);
+    final levels = getLevelsForCategory(catIndex);
     if (levels.isEmpty) return 'empty';
     return '${levels.first}–${levels.last}';
   }
 
   double _categoryProgress(int catIndex) {
-    final levels = getLevelsForDifficulty(catIndex);
+    final levels = getLevelsForCategory(catIndex);
     if (levels.isEmpty) return 0;
     int completed = 0;
     for (final l in levels) {
@@ -163,7 +163,7 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> with RouteAwa
               itemCount: _categories.length,
               itemBuilder: (context, index) {
                 final cat = _categories[index];
-                final levels = getLevelsForDifficulty(cat.index);
+                final levels = getLevelsForCategory(cat.index);
                 final progress = _categoryProgress(cat.index);
 
                 return InkWell(
