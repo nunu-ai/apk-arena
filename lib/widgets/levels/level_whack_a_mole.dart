@@ -178,6 +178,15 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    widget.registerPartialScoreGetter(() => LevelOutcome(
+          score: _totalSpawned > 0 ? (_hits / _totalSpawned).clamp(0.0, 1.0) : 0.0,
+          metrics: {'hits': _hits},
+        ));
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Container(
       color: NunuColors.backgroundDefault,

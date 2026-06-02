@@ -87,6 +87,8 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(
+        () => LevelOutcome(score: _stageScores.fold(0.0, (s, v) => s + v).clamp(0.0, 1.0)));
     _pulse = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1300),

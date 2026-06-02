@@ -84,6 +84,10 @@ class _LevelGemSocketState extends State<LevelGemSocket>
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(() => LevelOutcome(
+          score: _calculateScore().clamp(0.0, 1.0),
+          metrics: {'stages_cleared': _stagesCleared},
+        ));
 
     _snapBackController = AnimationController(
       vsync: this,

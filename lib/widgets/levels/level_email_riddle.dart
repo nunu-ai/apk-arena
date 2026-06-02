@@ -87,6 +87,10 @@ class _LevelEmailRiddleState extends State<LevelEmailRiddle> {
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(() => LevelOutcome(
+          score: _computeScore().clamp(0.0, 1.0),
+          metrics: {'wave': _wave},
+        ));
     _allEmails = _buildEmails();
   }
 

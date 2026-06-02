@@ -100,7 +100,7 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
   @override
   void initState() {
     super.initState();
-    widget.registerTimeoutBuilder(_buildTimeoutOutcome);
+    widget.registerPartialScoreGetter(_buildTimeoutOutcome);
     _startSession();
     _ticker = AnimationController(
       vsync: this,
@@ -114,7 +114,7 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
   @override
   void dispose() {
     _sessionTimer?.cancel();
-    widget.clearTimeoutBuilder();
+    widget.clearPartialScoreGetter();
     _ticker.dispose();
     super.dispose();
   }

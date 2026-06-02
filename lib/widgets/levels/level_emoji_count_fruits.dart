@@ -65,6 +65,10 @@ class _LevelEmojiCountFruitsState extends State<LevelEmojiCountFruits> {
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(() => LevelOutcome(
+          score: _scoreAccum.clamp(0.0, 1.0),
+          metrics: {'stages_scored': _stageIndex},
+        ));
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       FocusManager.instance.primaryFocus?.unfocus();
       try {

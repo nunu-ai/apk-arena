@@ -246,6 +246,15 @@ class _LevelConnectTheDotsState extends State<LevelConnectTheDots> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    widget.registerPartialScoreGetter(() => LevelOutcome(
+          score: _calculateScore().clamp(0.0, 1.0),
+          metrics: {'stages_cleared': _stagesCleared},
+        ));
+  }
+
+  @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {

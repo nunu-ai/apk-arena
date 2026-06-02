@@ -82,6 +82,10 @@ class _LevelActionCounterState extends State<LevelActionCounter> {
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(() => LevelOutcome(
+          score: (_scoreUnits / _totalStages).clamp(0.0, 1.0),
+          metrics: {'stages_completed': _stagesCorrect},
+        ));
     _initStage0();
     _initStage1();
     _initStage2();

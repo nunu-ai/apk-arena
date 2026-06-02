@@ -47,14 +47,14 @@ class _LevelScrabbleState extends State<LevelScrabble> {
   @override
   void initState() {
     super.initState();
-    widget.registerTimeoutBuilder(_buildOutcome);
+    widget.registerPartialScoreGetter(_buildOutcome);
     _start();
   }
 
   @override
   void dispose() {
     _ticker?.cancel();
-    widget.clearTimeoutBuilder();
+    widget.clearPartialScoreGetter();
     _boardController.dispose();
     super.dispose();
   }

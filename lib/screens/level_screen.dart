@@ -56,13 +56,13 @@ class _LevelScreenState extends State<LevelScreen> {
       entry.data.timeLimit ?? const Duration(minutes: 30),
       () {
         if (!mounted || _finishLevelCalled) return;
-        final timeoutOutcome = _levelWidget?.onTimeout?.call();
+        final partialOutcome = _levelWidget?.partialScoreGetter?.call();
         unawaited(
           _finishLevel(
             LevelOutcome(
-              score: timeoutOutcome?.score ?? 0,
-              metrics: {...?timeoutOutcome?.metrics, 'timed_out': true},
-              visibleMetricKeys: timeoutOutcome?.visibleMetricKeys ?? const [],
+              score: partialOutcome?.score ?? 0,
+              metrics: {...?partialOutcome?.metrics, 'timed_out': true},
+              visibleMetricKeys: partialOutcome?.visibleMetricKeys ?? const [],
             ),
           ),
         );
@@ -127,7 +127,7 @@ class _LevelScreenState extends State<LevelScreen> {
                 AttemptRecord(
                   levelNumber: widget.levelNumber,
                   levelTitle: entry.data.title,
-                  difficulty: getDifficultyName(widget.levelNumber),
+                  category: getCategoryName(widget.levelNumber),
                   timestamp: DateTime.now().toUtc().toIso8601String(),
                   success: false,
                   score: 0,
@@ -180,7 +180,7 @@ class _LevelScreenState extends State<LevelScreen> {
       AttemptRecord(
         levelNumber: widget.levelNumber,
         levelTitle: _levelEntry!.data.title,
-        difficulty: getDifficultyName(widget.levelNumber),
+        category: getCategoryName(widget.levelNumber),
         timestamp: DateTime.now().toUtc().toIso8601String(),
         success: outcome.score >= 1.0,
         score: outcome.score,

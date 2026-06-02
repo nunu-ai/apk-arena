@@ -460,7 +460,7 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
   @override
   void initState() {
     super.initState();
-    widget.registerTimeoutBuilder(_buildOutcome);
+    widget.registerPartialScoreGetter(_buildOutcome);
     _startedAt = DateTime.now();
     _ticker = createTicker(_onTick)..start();
   }
@@ -468,7 +468,7 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
   @override
   void dispose() {
     _ticker?.dispose();
-    widget.clearTimeoutBuilder();
+    widget.clearPartialScoreGetter();
     super.dispose();
   }
 

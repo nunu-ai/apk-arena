@@ -246,14 +246,14 @@ class _LevelRushHourState extends State<LevelRushHour> {
   @override
   void initState() {
     super.initState();
-    widget.registerTimeoutBuilder(_buildOutcome);
+    widget.registerPartialScoreGetter(_buildOutcome);
     _validateStages();
     _loadStage(0);
   }
 
   @override
   void dispose() {
-    widget.clearTimeoutBuilder();
+    widget.clearPartialScoreGetter();
     super.dispose();
   }
 

@@ -67,6 +67,8 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(
+        () => LevelOutcome(score: _scoreForOutcome()));
     _buildSequences();
     _pacOpeningRad = _rng.nextDouble() * 2 * pi;
     _rerollBannerGap();

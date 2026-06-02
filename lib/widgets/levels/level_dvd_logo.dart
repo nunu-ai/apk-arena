@@ -68,6 +68,10 @@ class _LevelDvdLogoState extends State<LevelDvdLogo>
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(() => LevelOutcome(
+          score: _score.clamp(0.0, 1.0),
+          metrics: {'stage': _stage + 1},
+        ));
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(days: 1),

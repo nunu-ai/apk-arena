@@ -291,7 +291,7 @@ class _LevelCascadeProtocolState extends State<LevelCascadeProtocol> {
   @override
   void initState() {
     super.initState();
-    widget.registerTimeoutBuilder(_buildOutcome);
+    widget.registerPartialScoreGetter(_buildOutcome);
     _startedAt = DateTime.now();
     _board = _generateBoardForStage(_stage);
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -302,7 +302,7 @@ class _LevelCascadeProtocolState extends State<LevelCascadeProtocol> {
   @override
   void dispose() {
     _clockTimer?.cancel();
-    widget.clearTimeoutBuilder();
+    widget.clearPartialScoreGetter();
     super.dispose();
   }
 

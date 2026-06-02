@@ -155,6 +155,10 @@ class _LevelBingoState extends State<LevelBingo> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(() => LevelOutcome(
+          score: _currentScore / _stageCount,
+          metrics: {'stages_completed': _completedStageScores.length},
+        ));
     _initAnimations();
     _configureStage(0);
     Future.delayed(const Duration(milliseconds: 1200), _callNextNumber);

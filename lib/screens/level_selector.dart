@@ -7,7 +7,6 @@ import '../theme/app_theme.dart';
 import '../level_registry.dart';
 import 'level_screen.dart';
 import 'category_levels_screen.dart';
-import 'analytics_viewer_screen.dart';
 
 class _CategoryInfo {
   final int index;
@@ -121,13 +120,13 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> with RouteAwa
   }
 
   String _levelRange(int catIndex) {
-    final levels = getLevelsForDifficulty(catIndex);
+    final levels = getLevelsForCategory(catIndex);
     if (levels.isEmpty) return 'empty';
     return '${levels.first}–${levels.last}';
   }
 
   double _categoryProgress(int catIndex) {
-    final levels = getLevelsForDifficulty(catIndex);
+    final levels = getLevelsForCategory(catIndex);
     if (levels.isEmpty) return 0;
     int completed = 0;
     for (final l in levels) {
@@ -143,13 +142,6 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> with RouteAwa
       appBar: AppBar(
         title: const Text('APK ARENA', style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.bar_chart_rounded, size: 22),
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const AnalyticsViewerScreen()));
-            },
-            tooltip: 'analytics',
-          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: resetProgress,
@@ -171,7 +163,7 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> with RouteAwa
               itemCount: _categories.length,
               itemBuilder: (context, index) {
                 final cat = _categories[index];
-                final levels = getLevelsForDifficulty(cat.index);
+                final levels = getLevelsForCategory(cat.index);
                 final progress = _categoryProgress(cat.index);
 
                 return InkWell(

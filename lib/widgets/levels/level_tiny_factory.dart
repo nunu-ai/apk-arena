@@ -736,7 +736,7 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
   @override
   void initState() {
     super.initState();
-    widget.registerTimeoutBuilder(_buildOutcome);
+    widget.registerPartialScoreGetter(_buildOutcome);
     _generateMap();
     _ticker = createTicker(_onTick)..start();
   }
@@ -745,7 +745,7 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
   void dispose() {
     _ticker?.dispose();
     _mapController.dispose();
-    widget.clearTimeoutBuilder();
+    widget.clearPartialScoreGetter();
     super.dispose();
   }
 

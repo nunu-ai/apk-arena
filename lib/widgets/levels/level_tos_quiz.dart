@@ -52,6 +52,16 @@ class _LevelTosQuizState extends State<LevelTosQuiz> {
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(() => LevelOutcome(
+          score: _questions.isEmpty
+              ? 0
+              : ((_correctCount - _wrongCount) / _questions.length)
+                  .clamp(0.0, 1.0),
+          metrics: {
+            'correct': _correctCount,
+            'wrong': _wrongCount,
+          },
+        ));
 
     _scrollController.addListener(() {
       if (!_hasScrolledToBottom &&

@@ -26,6 +26,8 @@ class _LevelCoinCollectorState extends State<LevelCoinCollector> {
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(
+        () => LevelOutcome(score: _targetCoinCount == 0 ? 0.0 : (1.0 - sqrt((_targetCoinCount - _collectedCount).clamp(0, _targetCoinCount) / _targetCoinCount.toDouble())).clamp(0.0, 1.0)));
     _generateLevel();
   }
 

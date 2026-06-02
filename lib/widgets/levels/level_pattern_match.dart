@@ -37,6 +37,10 @@ class _LevelPatternMatchState extends State<LevelPatternMatch> {
   @override
   void initState() {
     super.initState();
+    widget.registerPartialScoreGetter(() => LevelOutcome(
+          score: _score.clamp(0.0, 1.0),
+          metrics: {'stage_reached': _stageIndex + 1},
+        ));
     _startStage();
   }
 
