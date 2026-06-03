@@ -188,7 +188,10 @@ final List<LevelEntry> memoryLevels = [
       title: "rabbit hole",
       instructions: "find answers in the filesystem.",
     ),
-    widgetBuilder: (onComplete) => LevelFileExplorer(onComplete: onComplete),
+    widgetBuilder: (onComplete) => LevelFileExplorer(
+      onComplete: onComplete,
+      timeLimit: const Duration(minutes: 30),
+    ),
   ),
   LevelEntry(
     data: LevelData(
@@ -334,7 +337,7 @@ final List<LevelEntry> gamesLevels = [
     data: LevelData(
       title: "traffic jam",
       instructions: "clear all rush hour jams.",
-      timeLimit: Duration(hours: 1),
+      timeLimit: Duration(minutes: 30),
     ),
     widgetBuilder: (onComplete) => LevelRushHour(onComplete: onComplete),
   ),
@@ -372,6 +375,7 @@ final List<LevelEntry> tasksLevels = [
     data: LevelData(
       title: "sleep logistics",
       instructions: "set the alarms for next week.",
+      timeLimit: Duration(hours: 1),
     ),
     widgetBuilder: (onComplete) =>
         LevelCalendarAlarmPlanner(onComplete: onComplete),
@@ -380,7 +384,7 @@ final List<LevelEntry> tasksLevels = [
     data: LevelData(
       title: "signup gauntlet",
       instructions: "complete each signup and login flow.",
-      timeLimit: Duration(minutes: 30),
+      timeLimit: Duration(hours: 1),
     ),
     widgetBuilder: (onComplete) => LevelSignupGauntlet(onComplete: onComplete),
   ),
@@ -388,6 +392,7 @@ final List<LevelEntry> tasksLevels = [
     data: LevelData(
       title: "breakfast checkout",
       instructions: "order exactly one plain bagel.",
+      timeLimit: Duration(hours: 1),
     ),
     widgetBuilder: (onComplete) => LevelUpsellCheckout(onComplete: onComplete),
   ),
@@ -395,6 +400,7 @@ final List<LevelEntry> tasksLevels = [
     data: LevelData(
       title: "Email Riddle",
       instructions: "handle every email correctly.",
+      timeLimit: Duration(hours: 1),
     ),
     widgetBuilder: (onComplete) => LevelEmailRiddle(onComplete: onComplete),
   ),
@@ -402,6 +408,7 @@ final List<LevelEntry> tasksLevels = [
     data: LevelData(
       title: "pizza night",
       instructions: "order everyone's final picks.",
+      timeLimit: Duration(hours: 1),
     ),
     widgetBuilder: (onComplete) => LevelGroupOrder(onComplete: onComplete),
   ),
@@ -409,6 +416,7 @@ final List<LevelEntry> tasksLevels = [
     data: LevelData(
       title: "operation warehouse",
       instructions: "use the receipt to update inventory.",
+      timeLimit: Duration(hours: 1),
     ),
     widgetBuilder: (onComplete) =>
         LevelInventoryReconciliation(onComplete: onComplete),
@@ -466,6 +474,7 @@ String getCategoryName(int levelNumber) {
   if (levelNumber < 300) return 'memory';
   if (levelNumber < 400) return 'iq';
   if (levelNumber < 500) return 'tempospatial';
+  if (levelNumber < 600) return 'games';
   if (levelNumber < 700) return 'tasks';
   return 'unknown';
 }

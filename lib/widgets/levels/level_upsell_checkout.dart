@@ -56,7 +56,6 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
 
   // --- scoring ---
   double _adPenalty = 0.0;
-  int _correctDismissals = 0;
 
   Timer? _countdown;
 
@@ -64,7 +63,7 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
   void initState() {
     super.initState();
     widget.registerPartialScoreGetter(
-        () => LevelOutcome(score: (_correctDismissals * 0.1).clamp(0.0, 0.6)));
+        () => LevelOutcome(score: (1.0 - _adPenalty).clamp(0.0, 1.0)));
     _shop = _buildShop();
     _startCountdown();
   }
@@ -174,8 +173,6 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
   void _onAdPenalty() =>
       setState(() => _adPenalty = (_adPenalty + 0.15).clamp(0.0, 0.9));
 
-  void _onCorrectDismissal() => setState(() => _correctDismissals++);
-
   void _addToCart(CartItem item) {
     setState(() {
       _cart.add(item);
@@ -207,10 +204,7 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
       widget.onComplete(LevelOutcome(score: 0));
       return;
     }
-    // dismissal bonus (max +0.6) and penalty are calculated separately so
-    // penalty clicks can't be offset by lucky dismissals
-    final bonus = (_correctDismissals * 0.1).clamp(0.0, 0.6);
-    final score = ((0.4 + bonus) * (1.0 - _adPenalty)).clamp(0.0, 1.0);
+    final score = (1.0 - _adPenalty).clamp(0.0, 1.0);
     widget.onComplete(LevelOutcome(score: score));
   }
 
@@ -775,7 +769,6 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            _onCorrectDismissal();
                             setState(() {
                               _showAdInfoPopover = false;
                               _showMiniGame = false;
@@ -970,7 +963,6 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
               child: canSkip
                   ? GestureDetector(
                       onTap: () {
-                        _onCorrectDismissal();
                         setState(() => _showVideoAd = false);
                       },
                       child: Container(
@@ -1192,7 +1184,6 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
               child: canClose
                   ? GestureDetector(
                       onTap: () {
-                        _onCorrectDismissal();
                         setState(() => _showInterstitial = false);
                       },
                       child: Container(
@@ -1315,7 +1306,6 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
                           // Real close — tiny, blends into bg
                           InkWell(
                             onTap: () {
-                              _onCorrectDismissal();
                               setState(() {
                                 _showPromoPopup = false;
                                 _popupCountdown = 30;
@@ -1446,7 +1436,6 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
     final emoji = suggestCoffee ? '☕' : '🫖';
 
     void dismiss() {
-      _onCorrectDismissal();
       setState(() {
         _showAddUpsell = false;
         if (!_playableAdUsed) {
@@ -1716,7 +1705,6 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
                   const SizedBox(height: 8),
                   GestureDetector(
                     onTap: () {
-                      _onCorrectDismissal();
                       setState(() {
                         _showPlayableAd = false;
                         if (!_cupGameUsed) {
@@ -1955,7 +1943,6 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
                       // Dismiss — only visible as tiny grey text at bottom
                       GestureDetector(
                         onTap: () {
-                          _onCorrectDismissal();
                           setState(() => _showCupGame = false);
                         },
                         child: const Text(
@@ -2041,7 +2028,6 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
                     canClose
                         ? InkWell(
                             onTap: () => setState(() {
-                              _onCorrectDismissal();
                               _showCheckoutUpsell = false;
                               _checkoutUpsellStage++;
                             }),
@@ -2096,7 +2082,6 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
                     TextButton(
                       onPressed: canClose
                           ? () => setState(() {
-                                _onCorrectDismissal();
                                 _showCheckoutUpsell = false;
                                 _checkoutUpsellStage++;
                               })
@@ -2254,7 +2239,6 @@ class _LevelUpsellCheckoutState extends State<LevelUpsellCheckout> {
                             if (_vipPreChecked) {
                               _cart.add(CartItem(item: vip));
                             } else {
-                              _onCorrectDismissal();
                             }
                             setState(() {
                               _showCheckoutUpsell = false;

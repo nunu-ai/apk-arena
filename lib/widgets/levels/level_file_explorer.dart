@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:apk_arena/models/level_outcome.dart';
@@ -536,7 +537,13 @@ class _FinalChallenge {
 }
 
 class LevelFileExplorer extends LevelWidget {
-  const LevelFileExplorer({super.key, required super.onComplete});
+  const LevelFileExplorer({
+    super.key,
+    required super.onComplete,
+    this.timeLimit = const Duration(minutes: 30),
+  });
+
+  final Duration timeLimit;
 
   @override
   State<LevelFileExplorer> createState() => _LevelFileExplorerState();
@@ -558,6 +565,8 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
   late final Map<String, TextEditingController> _numberControllers;
   late final List<_FinalChallenge> _finalChallenges;
   late final List<int> _challengeMistakes;
+  late Duration _timeLeft;
+  Timer? _ticker;
 
   _FileNode get _currentFolder => _navStack.last;
   bool get _isAtRoot => _navStack.length == 1;
@@ -567,6 +576,15 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
   @override
   void initState() {
     super.initState();
+    _timeLeft = widget.timeLimit;
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() {
+        if (_timeLeft > Duration.zero) {
+          _timeLeft -= const Duration(seconds: 1);
+        }
+      });
+    });
     widget.registerPartialScoreGetter(() => LevelOutcome(
           score: (0.7 * _quizScore + 0.3 * (_finalChallenges.isEmpty ? 0.0 : _challengeIndex / _finalChallenges.length)).clamp(0.0, 1.0),
           metrics: {'quiz_correct': _quizCorrect},
@@ -602,6 +620,7 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
 
   @override
   void dispose() {
+    _ticker?.cancel();
     for (final controller in _numberControllers.values) {
       controller.dispose();
     }
@@ -954,9 +973,16 @@ class _LevelFileExplorerState extends State<LevelFileExplorer> {
     );
   }
 
+  String _formatTime(Duration d) {
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
   Widget _buildQuizHeader() {
     return LevelHud(
       stageText: '${_questions.length} questions',
+      timerText: _formatTime(_timeLeft),
       trailing: _quizRevisits > 0
           ? Text(
               '↩ $_quizRevisits revisits',
