@@ -166,7 +166,8 @@ class _LevelDiceRecognitionState extends State<LevelDiceRecognition> {
     for (int i = 0; i < min(answer.length, correct.length); i++) {
       if (answer[i] == correct[i]) matched++;
     }
-    final stageScore = correct.isEmpty ? 0.0 : matched / correct.length;
+    final accuracy = correct.isEmpty ? 0.0 : matched / correct.length;
+    final stageScore = accuracy * accuracy;
     _scoreAccum += stageScore / _stages.length;
 
     late final String feedback;
