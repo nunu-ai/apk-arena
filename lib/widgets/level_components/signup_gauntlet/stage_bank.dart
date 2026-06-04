@@ -37,9 +37,9 @@ class _StageBankState extends State<StageBank> {
     'phone:': _phone,
     'address:': '$_street, $_apt, $_city, $_state $_zip',
     'password:': _password,
-    'q1 answer:': 'Henderson',
-    'q2 answer:': 'Portland',
-    'q3 answer:': 'MaximilianTheThird',
+    'q1 answer:': 'Linda Rose Henderson',
+    'q2 answer:': 'Portland, OR 97201',
+    'q3 answer:': 'Maximilian the Third',
   };
 
   // ── phase ──
@@ -691,7 +691,7 @@ class _StageBankState extends State<StageBank> {
               validator: (v) => v!.isEmpty ? 'required' : null,
             ),
             const SizedBox(height: 16),
-            const Text('security questions',
+            const Text('suggested security questions',
                 style: TextStyle(fontSize: 13, color: Colors.black54)),
             const SizedBox(height: 8),
             _securityQ('question 1', questions, _sq1,

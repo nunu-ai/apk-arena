@@ -189,8 +189,8 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
           title: 'laundry pickup',
           location: 'residence hall basement',
           note:
-              'washers finish at 5:25. if you forget again, your clothes are gone.',
-          start: DateTime(2026, 3, 6, 17, 25),
+              'washers finish at 4:30. grab them before soccer or someone else walks off with them.',
+          start: DateTime(2026, 3, 6, 16, 30),
           duration: const Duration(minutes: 20),
           color: const Color(0xFF06B6D4),
         ),
@@ -374,6 +374,16 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
           duration: const Duration(hours: 1, minutes: 30),
           color: const Color(0xFF0D9488),
         ),
+        _PlannerEvent(
+          id: 'haircut',
+          title: 'haircut appointment',
+          location: 'main street barber',
+          note: 'cancelled — owner had a family thing. rebooked for next monday.',
+          start: DateTime(2026, 3, 3, 16, 0),
+          duration: const Duration(minutes: 30),
+          color: const Color(0xFF64748B),
+          cancelled: true,
+        ),
       ],
       initialAlarms: [
         _PlannerAlarm(
@@ -412,11 +422,12 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
         ),
         _PlannerAlarm(
           id: 'stale-alarm',
-          label: 'wake up',
-          time: const TimeOfDay(hour: 6, minute: 45),
-          repeatDays: {0, 1, 2, 3, 4},
+          label: 'dentist',
+          time: const TimeOfDay(hour: 14, minute: 30),
+          repeatDays: const <int>{},
+          oneTimeDate: DateTime(2026, 2, 27),
           enabled: true,
-          snoozeMinutes: 10,
+          snoozeMinutes: 0,
         ),
         _PlannerAlarm(
           id: 'family-lunch-old',
@@ -442,6 +453,15 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
           repeatDays: {1, 3},
           enabled: true,
           snoozeMinutes: 5,
+        ),
+        _PlannerAlarm(
+          id: 'haircut-alarm',
+          label: 'haircut',
+          time: const TimeOfDay(hour: 15, minute: 50),
+          repeatDays: const <int>{},
+          oneTimeDate: march3,
+          enabled: true,
+          snoozeMinutes: 0,
         ),
       ],
       expectedAlarms: [
@@ -518,7 +538,7 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
         _PlannerAlarm(
           id: 'expected-laundry',
           label: 'laundry',
-          time: const TimeOfDay(hour: 17, minute: 25),
+          time: const TimeOfDay(hour: 16, minute: 30),
           repeatDays: const <int>{},
           oneTimeDate: march6,
           enabled: true,
@@ -662,12 +682,38 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                         children: [
                           Text(
                             event.title,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.w700,
-                              color: Colors.black87,
+                              color: event.cancelled
+                                  ? Colors.grey.shade600
+                                  : Colors.black87,
+                              decoration: event.cancelled
+                                  ? TextDecoration.lineThrough
+                                  : TextDecoration.none,
+                              decorationThickness: 2,
                             ),
                           ),
+                          if (event.cancelled) ...[
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade700,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                'CANCELLED',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 6),
                           Text(
                             _formatEventDay(event.start),
@@ -1164,7 +1210,7 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
       remaining.removeAt(bestIndex);
     }
 
-    final extra = remaining.length;
+    final extra = remaining.where((a) => a.enabled).length;
     final totalExpected = _scenario.expectedAlarms.length.toDouble();
     final baseScore = totalExpected == 0 ? 0.0 : totalEarned / totalExpected;
     final extraPenalty =
@@ -1437,18 +1483,31 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                     padding: const EdgeInsets.fromLTRB(10, 0, 10, 18),
                     child: SizedBox(
                       height: 24 * _hourRowHeight,
-                      child: Stack(
-                        children: [
-                          for (int hour = 0; hour < 24; hour++)
-                            Positioned(
-                              left: 0,
-                              right: 0,
-                              top: hour * _hourRowHeight,
-                              height: _hourRowHeight,
-                              child: _buildHourRow(hour),
-                            ),
-                          for (final event in events) _buildTimelineEventCard(event),
-                        ],
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          const gutter = 58.0;
+                          final eventAreaWidth =
+                              (constraints.maxWidth - gutter).clamp(0.0, double.infinity);
+                          final layouts = _computeEventLayouts(events);
+                          return Stack(
+                            children: [
+                              for (int hour = 0; hour < 24; hour++)
+                                Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  top: hour * _hourRowHeight,
+                                  height: _hourRowHeight,
+                                  child: _buildHourRow(hour),
+                                ),
+                              for (final layout in layouts)
+                                _positionedEvent(
+                                  layout: layout,
+                                  gutter: gutter,
+                                  eventAreaWidth: eventAreaWidth,
+                                ),
+                            ],
+                          );
+                        },
                       ),
                     ),
                   ),
@@ -1493,62 +1552,182 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
     );
   }
 
-  Widget _buildTimelineEventCard(_PlannerEvent event) {
+  List<_EventLayout> _computeEventLayouts(List<_PlannerEvent> dayEvents) {
+    if (dayEvents.isEmpty) return const [];
+    final sorted = [...dayEvents]..sort((a, b) => a.start.compareTo(b.start));
+    final layouts = <_EventLayout>[];
+    final columnEnds = <DateTime>[];
+    var clusterStart = 0;
+    DateTime? clusterEnd;
+
+    void finalizeCluster(int endIndex) {
+      var maxColumn = 0;
+      for (var i = clusterStart; i < endIndex; i++) {
+        if (layouts[i].column > maxColumn) maxColumn = layouts[i].column;
+      }
+      final total = maxColumn + 1;
+      for (var i = clusterStart; i < endIndex; i++) {
+        layouts[i].totalColumns = total;
+      }
+    }
+
+    for (var i = 0; i < sorted.length; i++) {
+      final event = sorted[i];
+      final endTime = event.start.add(event.duration);
+
+      if (clusterEnd != null && !event.start.isBefore(clusterEnd)) {
+        finalizeCluster(i);
+        clusterStart = i;
+        columnEnds.clear();
+        clusterEnd = null;
+      }
+
+      var assigned = -1;
+      for (var c = 0; c < columnEnds.length; c++) {
+        if (!event.start.isBefore(columnEnds[c])) {
+          assigned = c;
+          columnEnds[c] = endTime;
+          break;
+        }
+      }
+      if (assigned == -1) {
+        columnEnds.add(endTime);
+        assigned = columnEnds.length - 1;
+      }
+
+      layouts.add(_EventLayout(event: event, column: assigned));
+      if (clusterEnd == null || endTime.isAfter(clusterEnd)) {
+        clusterEnd = endTime;
+      }
+    }
+    finalizeCluster(layouts.length);
+    return layouts;
+  }
+
+  Widget _positionedEvent({
+    required _EventLayout layout,
+    required double gutter,
+    required double eventAreaWidth,
+  }) {
+    final event = layout.event;
     final startMinutes = event.start.hour * 60 + event.start.minute;
     final top = (startMinutes / 60) * _hourRowHeight;
-    final height = (event.duration.inMinutes / 60.0) * _hourRowHeight;
-    final cardHeight = height < 24 ? 24.0 : height;
+    final rawHeight = (event.duration.inMinutes / 60.0) * _hourRowHeight;
+    final cardHeight = rawHeight < 24 ? 24.0 : rawHeight;
+    final columnWidth = eventAreaWidth / layout.totalColumns;
+    final left = gutter + layout.column * columnWidth;
+    final width = columnWidth - (layout.totalColumns > 1 ? 3.0 : 0.0);
+
+    return Positioned(
+      left: left,
+      width: width.clamp(0.0, double.infinity),
+      top: top,
+      height: cardHeight,
+      child: _buildTimelineEventCard(event, cardHeight: cardHeight),
+    );
+  }
+
+  Widget _buildTimelineEventCard(_PlannerEvent event, {required double cardHeight}) {
     final compact = cardHeight < 64;
     final contentPadding = compact ? 5.0 : 10.0;
     final titleFontSize = compact ? 12.0 : 14.0;
     final showTime = cardHeight >= 64;
     final showLocation = cardHeight >= 92;
     final endTime = TimeOfDay.fromDateTime(event.start.add(event.duration));
+    final cancelled = event.cancelled;
+    final baseColor = cancelled ? Colors.grey.shade500 : event.color;
+    final titleStyle = TextStyle(
+      color: baseColor,
+      fontSize: titleFontSize,
+      fontWeight: FontWeight.w700,
+      height: 1.0,
+      decoration: cancelled ? TextDecoration.lineThrough : TextDecoration.none,
+      decorationColor: cancelled ? Colors.grey.shade600 : null,
+      decorationThickness: 2,
+    );
 
-    return Positioned(
-      left: 58,
-      right: 0,
-      top: top,
-      height: cardHeight,
-      child: GestureDetector(
-        onTap: () => _showEventSheet(event),
+    return GestureDetector(
+      onTap: () => _showEventSheet(event),
+      child: Opacity(
+        opacity: cancelled ? 0.65 : 1.0,
         child: Container(
           padding: EdgeInsets.all(contentPadding),
           clipBehavior: Clip.hardEdge,
           decoration: BoxDecoration(
-            color: event.color.withValues(alpha: 0.14),
+            color: cancelled
+                ? Colors.grey.shade300.withValues(alpha: 0.5)
+                : event.color.withValues(alpha: 0.14),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: event.color.withValues(alpha: 0.75)),
+            border: Border.all(
+              color: cancelled
+                  ? Colors.grey.shade500
+                  : event.color.withValues(alpha: 0.75),
+            ),
           ),
           child: compact
               ? Align(
                   alignment: Alignment.centerLeft,
-                  child: Text(
-                    event.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: event.color,
-                      fontSize: titleFontSize,
-                      fontWeight: FontWeight.w700,
-                      height: 1.0,
-                    ),
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          event.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: titleStyle,
+                        ),
+                      ),
+                      if (cancelled) ...[
+                        const SizedBox(width: 4),
+                        Text(
+                          'cancelled',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 )
               : Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      event.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: event.color,
-                        fontSize: titleFontSize,
-                        fontWeight: FontWeight.w700,
-                        height: 1.0,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            event.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: titleStyle,
+                          ),
+                        ),
+                        if (cancelled) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 5, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade700,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'cancelled',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                letterSpacing: 0.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     if (showTime) ...[
                       const SizedBox(height: 1),
@@ -1556,8 +1735,8 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                         '${_formatTime(TimeOfDay.fromDateTime(event.start))} - ${_formatTime(endTime)}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.black87,
+                        style: TextStyle(
+                          color: cancelled ? Colors.grey.shade700 : Colors.black87,
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                           height: 1.0,
@@ -1571,7 +1750,7 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: event.color,
+                          color: baseColor,
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
                         ),
@@ -1583,8 +1762,8 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
                         event.location,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.black54,
+                        style: TextStyle(
+                          color: cancelled ? Colors.grey.shade600 : Colors.black54,
                           fontSize: 10,
                         ),
                       ),
@@ -1905,6 +2084,7 @@ class _PlannerEvent {
   final DateTime start;
   final Duration duration;
   final Color color;
+  final bool cancelled;
 
   const _PlannerEvent({
     required this.id,
@@ -1915,6 +2095,7 @@ class _PlannerEvent {
     required this.start,
     required this.duration,
     required this.color,
+    this.cancelled = false,
   });
 }
 
@@ -1956,6 +2137,18 @@ class _PlannerAlarm {
       snoozeMinutes: snoozeMinutes ?? this.snoozeMinutes,
     );
   }
+}
+
+class _EventLayout {
+  final _PlannerEvent event;
+  final int column;
+  int totalColumns;
+
+  _EventLayout({
+    required this.event,
+    required this.column,
+    this.totalColumns = 1,
+  });
 }
 
 class _Evaluation {

@@ -23,7 +23,7 @@ class StageSocial extends StatefulWidget {
 }
 
 enum _SocialPhase {
-  chatSignup,
+  formSignup,
   interests,
   verification,
   login,
@@ -31,8 +31,6 @@ enum _SocialPhase {
   interstitial2, // who to follow
   interstitial3, // profile picture
 }
-
-enum _ChatStep { email, username, password, done }
 
 class _StageSocialState extends State<StageSocial> {
   // ── target ──
@@ -47,18 +45,20 @@ class _StageSocialState extends State<StageSocial> {
   };
 
   // ── phase ──
-  _SocialPhase _phase = _SocialPhase.chatSignup;
-  _ChatStep _chatStep = _ChatStep.email;
+  _SocialPhase _phase = _SocialPhase.formSignup;
 
-  // ── chat signup ──
-  final _chatCtl = TextEditingController();
-  final List<_ChatMessage> _messages = [];
-  String _enteredEmail = '';
-  String _enteredUsername = '';
-  String _enteredPassword = '';
+  // ── form signup ──
+  final _emailCtl = TextEditingController();
+  final _usernameCtl = TextEditingController();
+  final _passCtl = TextEditingController();
+  final _emailFocus = FocusNode();
+  final _usernameFocus = FocusNode();
+  final _passwordFocus = FocusNode();
   bool _showSuggestion = false;
   bool _suggestionTapped = false;
   bool _usernameFlashRed = false;
+  bool _usernameFocusStolen = false; // trap: only steals once
+  int _submitAttempts = 0;
 
   // ── interests ──
   final Set<int> _selectedInterests = {};
@@ -95,7 +95,8 @@ class _StageSocialState extends State<StageSocial> {
     super.initState();
     _verifyCode = List.generate(4, (_) => Random().nextInt(10)).join();
     _requestPermissions();
-    _addBotMessage("hey! what's your email? 💌");
+    _usernameFocus.addListener(_onUsernameFocusChange);
+    _passwordFocus.addListener(_onPasswordFocusChange);
     _interestScrollCtl.addListener(() {
       if (_interestScrollCtl.position.pixels >=
           _interestScrollCtl.position.maxScrollExtent - 20) {
@@ -111,7 +112,12 @@ class _StageSocialState extends State<StageSocial> {
 
   @override
   void dispose() {
-    _chatCtl.dispose();
+    _emailCtl.dispose();
+    _usernameCtl.dispose();
+    _passCtl.dispose();
+    _emailFocus.dispose();
+    _usernameFocus.dispose();
+    _passwordFocus.dispose();
     _verifyCtl.dispose();
     _loginEmailCtl.dispose();
     _loginPassCtl.dispose();
@@ -119,83 +125,76 @@ class _StageSocialState extends State<StageSocial> {
     super.dispose();
   }
 
-  void _addBotMessage(String text) {
-    _messages.add(_ChatMessage(text: text, isUser: false));
+  void _onUsernameFocusChange() {
+    if (!_usernameFocus.hasFocus && _usernameCtl.text.isNotEmpty) {
+      // TRAP: flash red on blur
+      setState(() => _usernameFlashRed = true);
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (!mounted) return;
+        setState(() => _usernameFlashRed = false);
+        // TRAP: steal focus back to username once, forcing re-navigation to password
+        if (!_usernameFocusStolen) {
+          _usernameFocusStolen = true;
+          _usernameFocus.requestFocus();
+        }
+      });
+    }
   }
 
-  void _sendChat() {
-    final text = _chatCtl.text.trim();
-    if (text.isEmpty) return;
-
-    setState(() {
-      _messages.add(_ChatMessage(text: text, isUser: true));
-      // TRAP: input does NOT clear
-    });
-
-    switch (_chatStep) {
-      case _ChatStep.email:
-        _enteredEmail = text;
-        _chatStep = _ChatStep.username;
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (!mounted) return;
-          setState(() => _addBotMessage("cool! now pick a username 🎯"));
-        });
-        break;
-      case _ChatStep.username:
-        _enteredUsername = text;
-        // Flash red for taken username check (visual only — it's always "available")
-        setState(() => _usernameFlashRed = true);
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (!mounted) return;
-          setState(() => _usernameFlashRed = false);
-        });
-        _chatStep = _ChatStep.password;
-        Future.delayed(const Duration(milliseconds: 800), () {
-          if (!mounted) return;
-          setState(() {
-            _addBotMessage("nice! last thing — set a password 🔒");
-            _showSuggestion = true;
-          });
-        });
-        break;
-      case _ChatStep.password:
-        _enteredPassword = text;
-        if (_enteredEmail != _email ||
-            _enteredUsername != _username ||
-            _enteredPassword != _password) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('signup details do not match'),
-              backgroundColor: Colors.red,
-            ),
-          );
-          return;
-        }
-        _chatStep = _ChatStep.done;
-        _signupDone = true;
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (!mounted) return;
-          setState(() {
-            _addBotMessage("you're all set! 🎉");
-            _phase = _SocialPhase.interests;
-          });
-        });
-        break;
-      case _ChatStep.done:
-        break;
+  void _onPasswordFocusChange() {
+    if (_passwordFocus.hasFocus) {
+      setState(() => _showSuggestion = true);
     }
   }
 
   void _tapSuggestion() {
     // TRAP: replaces whatever is in the field, suggestion disappears
     setState(() {
-      _chatCtl.text = _suggestedPassword;
-      _chatCtl.selection =
+      _passCtl.text = _suggestedPassword;
+      _passCtl.selection =
           TextSelection.collapsed(offset: _suggestedPassword.length);
       _showSuggestion = false;
       _suggestionTapped = true;
       _trapsFallen++;
     });
+  }
+
+  void _handleSignupSubmit() {
+    _submitAttempts++;
+    // TRAP: first submit nukes the whole form with a fake crash error
+    if (_submitAttempts == 1) {
+      setState(() {
+        _emailCtl.clear();
+        _usernameCtl.clear();
+        _passCtl.clear();
+        _showSuggestion = false;
+        _usernameFocusStolen = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Error: Failed to initialize session. Unexpected state. Please try again.',
+          ),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 4),
+        ),
+      );
+      _emailFocus.requestFocus();
+      return;
+    }
+    if (_emailCtl.text.trim() != _email ||
+        _usernameCtl.text.trim() != _username ||
+        _passCtl.text != _password) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('signup details do not match'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    _signupDone = true;
+    setState(() => _phase = _SocialPhase.interests);
   }
 
   void _handleInterestsDone() {
@@ -216,7 +215,7 @@ class _StageSocialState extends State<StageSocial> {
         id: 40,
         title: '🎉 Welcome to Vibes!',
         body:
-            'Welcome to Vibes! Your code is $_verifyCode. Start discovering content now!',
+            '{"ok":true,"event":"email_verify","payload":{"code":"$_verifyCode","ttl":600,"user_id":"v_${_verifyCode.hashCode.abs() % 90000 + 10000}"},"msg":"Welcome to Vibes! Start discovering content now!"}',
         channelId: 'social_verify',
         channelName: 'Vibes',
       );
@@ -282,7 +281,7 @@ class _StageSocialState extends State<StageSocial> {
       children: [
         Expanded(
           child: switch (_phase) {
-            _SocialPhase.chatSignup => _buildChat(),
+            _SocialPhase.formSignup => _buildSignupForm(),
             _SocialPhase.interests => _buildInterests(),
             _SocialPhase.verification => _buildVerification(),
             _SocialPhase.login => _buildLogin(),
@@ -319,9 +318,9 @@ class _StageSocialState extends State<StageSocial> {
     );
   }
 
-  // ── chat signup ──
+  // ── form signup ──
 
-  Widget _buildChat() {
+  Widget _buildSignupForm() {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -331,113 +330,151 @@ class _StageSocialState extends State<StageSocial> {
         ),
       ),
       child: SafeArea(
-        child: Column(
-          children: [
-            _vibesHeader(),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: _messages.length,
-                itemBuilder: (_, i) => _buildBubble(_messages[i]),
-              ),
-            ),
-            // Password suggestion chip
-            if (_showSuggestion && _chatStep == _ChatStep.password)
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: GestureDetector(
-                    onTap: _tapSuggestion,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.purple.shade100,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text('suggested: $_suggestedPassword',
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.purple.shade800)),
-                    ),
-                  ),
-                ),
-              ),
-            // Chat input
-            Container(
-              color: const Color(0xFF1A1A2E),
-              padding: const EdgeInsets.all(12),
-              child: Row(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _vibesHeader(),
+              const SizedBox(height: 8),
+              // TRAP: title and subtitle poorly spaced / overlapping feel
+              Stack(
                 children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _chatCtl,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
-                        hintText: _chatStep == _ChatStep.email
-                            ? 'type your email...'
-                            : _chatStep == _ChatStep.username
-                                ? 'type a username...'
-                                : 'type a password...',
-                        hintStyle: TextStyle(color: Colors.grey.shade600),
-                        filled: true,
-                        fillColor: Colors.white.withValues(alpha: 0.1),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: _usernameFlashRed
-                              ? const BorderSide(color: Colors.red, width: 2)
-                              : BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: _usernameFlashRed
-                              ? const BorderSide(color: Colors.red, width: 2)
-                              : BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 2),
+                    child: Text(
+                      'create account ✨',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  CircleAvatar(
-                    backgroundColor: _purple,
-                    child: IconButton(
-                      icon: const Icon(Icons.send, color: Colors.white, size: 18),
-                      onPressed: _chatStep != _ChatStep.done ? _sendChat : null,
+                  Positioned(
+                    bottom: -4,
+                    right: 0,
+                    child: Text(
+                      'join the vibe',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        fontSize: 13,
+                        fontStyle: FontStyle.italic,
+                      ),
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: 28),
+              // TRAP: floatingLabelBehavior.never — label stays inside, overlaps typed text
+              TextField(
+                controller: _emailCtl,
+                focusNode: _emailFocus,
+                style: const TextStyle(color: Colors.white),
+                keyboardType: TextInputType.emailAddress,
+                decoration: _vibeDeco('email address'),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: _usernameCtl,
+                focusNode: _usernameFocus,
+                style: const TextStyle(color: Colors.white),
+                decoration: _vibeDeco('username').copyWith(
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: _usernameFlashRed
+                          ? Colors.red
+                          : Colors.white.withValues(alpha: 0.2),
+                      width: _usernameFlashRed ? 2 : 1,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: _usernameFlashRed ? Colors.red : _purple,
+                      width: 2,
+                    ),
+                  ),
+                  suffixIcon: _usernameFlashRed
+                      ? const Icon(Icons.error_outline,
+                          color: Colors.red, size: 18)
+                      : null,
+                ),
+              ),
+              const SizedBox(height: 14),
+              // TRAP: suggestion chip appears when password focused
+              if (_showSuggestion)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: GestureDetector(
+                      onTap: _tapSuggestion,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.purple.shade900,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                              color: Colors.purple.shade300, width: 1),
+                        ),
+                        child: Text('suggested: $_suggestedPassword',
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.purple.shade200)),
+                      ),
+                    ),
+                  ),
+                ),
+              TextField(
+                controller: _passCtl,
+                focusNode: _passwordFocus,
+                obscureText: true,
+                style: const TextStyle(color: Colors.white),
+                decoration: _vibeDeco('password'),
+              ),
+              const SizedBox(height: 28),
+              FilledButton(
+                onPressed: _handleSignupSubmit,
+                style: FilledButton.styleFrom(
+                  backgroundColor: _purple,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'CREATE ACCOUNT',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildBubble(_ChatMessage msg) {
-    return Align(
-      alignment: msg.isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: msg.isUser
-              ? _purple
-              : Colors.white.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Text(
-          msg.text,
-          style: TextStyle(
-            color: msg.isUser ? Colors.white : Colors.white70,
-            fontSize: 14,
-          ),
-        ),
+  InputDecoration _vibeDeco(String label) {
+    // TRAP: floatingLabelBehavior.never — label stays inside field and overlaps typed text
+    return InputDecoration(
+      labelText: label,
+      floatingLabelBehavior: FloatingLabelBehavior.never,
+      labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+      filled: true,
+      fillColor: Colors.white.withValues(alpha: 0.07),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
       ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: _purple, width: 2),
+      ),
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );
   }
 
@@ -655,10 +692,9 @@ class _StageSocialState extends State<StageSocial> {
                     onTap: () => setState(() => _showEmailLogin = true),
                     child: Text(
                       'more options',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 12,
-                        color: const Color(0xFF16213E)
-                            .withValues(alpha: 0.3), // nearly invisible
+                        color: Colors.white24,
                       ),
                     ),
                   ),
@@ -845,10 +881,4 @@ class _StageSocialState extends State<StageSocial> {
           const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );
   }
-}
-
-class _ChatMessage {
-  final String text;
-  final bool isUser;
-  const _ChatMessage({required this.text, required this.isUser});
 }

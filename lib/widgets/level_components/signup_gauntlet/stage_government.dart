@@ -105,18 +105,18 @@ class _StageGovernmentState extends State<StageGovernment> {
 
   void _startProgressiveRendering() {
     // Fields appear one by one
-    Future.delayed(const Duration(milliseconds: 500), () {
+    Future.delayed(const Duration(milliseconds: 1500), () {
       if (!mounted) return;
       setState(() => _emailVisible = true);
       _emailFocus.requestFocus();
     });
-    Future.delayed(const Duration(milliseconds: 2000), () {
+    Future.delayed(const Duration(milliseconds: 5000), () {
       if (!mounted) return;
       setState(() => _usernameVisible = true);
       // TRAP: steal focus to the new field
       _userFocus.requestFocus();
     });
-    Future.delayed(const Duration(milliseconds: 4000), () {
+    Future.delayed(const Duration(milliseconds: 10000), () {
       if (!mounted) return;
       setState(() {
         _passwordVisible = true;
@@ -124,7 +124,7 @@ class _StageGovernmentState extends State<StageGovernment> {
       });
       _passFocus.requestFocus();
     });
-    Future.delayed(const Duration(milliseconds: 5500), () {
+    Future.delayed(const Duration(milliseconds: 13000), () {
       if (!mounted) return;
       setState(() => _submitVisible = true);
     });
@@ -530,7 +530,7 @@ class _StageGovernmentState extends State<StageGovernment> {
           const Icon(Icons.mark_email_read, size: 48, color: _gray),
           const SizedBox(height: 16),
           const Text('a confirmation email has been sent',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black87)),
           const SizedBox(height: 8),
           const Text(
               'check your notifications for the verification code',
@@ -554,7 +554,7 @@ class _StageGovernmentState extends State<StageGovernment> {
               maxLength: 6,
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 24, letterSpacing: 6),
+              style: const TextStyle(fontSize: 24, letterSpacing: 6, color: Colors.black87),
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               decoration: InputDecoration(
                 counterText: '',
