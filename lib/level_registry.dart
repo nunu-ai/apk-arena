@@ -374,7 +374,8 @@ final List<LevelEntry> tasksLevels = [
   LevelEntry(
     data: LevelData(
       title: "sleep logistics",
-      instructions: "set the alarms for next week.",
+      instructions:
+          "set up alarms for next week's schedule. the current ones are from last week, fix them too.",
       timeLimit: Duration(hours: 1),
     ),
     widgetBuilder: (onComplete) =>

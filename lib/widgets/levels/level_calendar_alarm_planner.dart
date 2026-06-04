@@ -102,7 +102,7 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
           id: 'lunch-supervisor',
           title: 'lunch with supervisor',
           location: 'student union cafe',
-          note: 'take the 11:40 shuttle from north campus or you are late',
+          note: 'be at the north campus stop by 11:40 for the shuttle, otherwise you are late',
           start: DateTime(2026, 3, 3, 12, 15),
           duration: const Duration(hours: 1),
           color: const Color(0xFFEC4899),
@@ -208,7 +208,7 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
           title: 'sleep study check-in',
           location: 'north clinic',
           note:
-              'cab arrives at 7:50. if you miss intake they give your slot away.',
+              'be out the door by 7:50 for the cab. miss intake and they give your slot away.',
           start: DateTime(2026, 3, 7, 9, 0),
           duration: const Duration(minutes: 30),
           color: const Color(0xFFF59E0B),
@@ -327,7 +327,7 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
           repeatDays: const <int>{},
           oneTimeDate: march4,
           enabled: true,
-          snoozeMinutes: 5,
+          snoozeMinutes: 10,
         ),
         _PlannerAlarm(
           id: 'expected-midterm-1',
@@ -970,94 +970,84 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
   }
 
   _Evaluation _evaluate() {
-    const attributesPerAlarm = 6.0;
-    final remainingForScore = _alarms.map((alarm) => alarm.copy()).toList();
-    var earnedAttributes = 0.0;
-    var partialMatches = 0;
-    var unmatchedExpected = 0;
+    final remaining = _alarms.map((alarm) => alarm.copy()).toList();
+    var totalEarned = 0.0;
+    var correct = 0;
+    var missing = 0;
 
     for (final expected in _scenario.expectedAlarms) {
       var bestIndex = -1;
-      var bestAttributeScore = -1;
+      var bestScore = -1.0;
 
-      for (var i = 0; i < remainingForScore.length; i++) {
-        final candidate = remainingForScore[i];
-        final labelMatch =
-            _normalize(candidate.label) == _normalize(expected.label);
-        final timeMatch = _sameTime(candidate.time, expected.time);
-        final repeatMatch =
-            _sameDays(candidate.repeatDays, expected.repeatDays);
-        final dateMatch = _sameDate(candidate.oneTimeDate, expected.oneTimeDate);
-        final snoozeMatch =
-            candidate.snoozeMinutes == expected.snoozeMinutes;
-        final enabledMatch = candidate.enabled == expected.enabled;
-
-        final attributeScore = (labelMatch ? 1 : 0) +
-            (timeMatch ? 1 : 0) +
-            (repeatMatch ? 1 : 0) +
-            (dateMatch ? 1 : 0) +
-            (snoozeMatch ? 1 : 0) +
-            (enabledMatch ? 1 : 0);
-
-        if (attributeScore > bestAttributeScore) {
-          bestAttributeScore = attributeScore;
+      for (var i = 0; i < remaining.length; i++) {
+        final candidate = remaining[i];
+        if (!_labelMatches(candidate.label, expected.label)) continue;
+        final score = _matchScore(candidate, expected);
+        if (score > bestScore) {
+          bestScore = score;
           bestIndex = i;
         }
       }
 
-      if (bestIndex == -1 || bestAttributeScore <= 0) {
-        unmatchedExpected++;
+      if (bestIndex == -1) {
+        missing++;
         continue;
       }
-
-      earnedAttributes += bestAttributeScore;
-      if (bestAttributeScore < attributesPerAlarm) partialMatches++;
-      remainingForScore.removeAt(bestIndex);
+      totalEarned += bestScore;
+      if (bestScore >= 0.9) correct++;
+      remaining.removeAt(bestIndex);
     }
 
-    final exactRemaining = _alarms.map((alarm) => alarm.copy()).toList();
-    var exactCorrect = 0;
-    for (final expected in _scenario.expectedAlarms) {
-      final index = exactRemaining.indexWhere(
-        (candidate) => _isExactAlarmMatch(candidate, expected),
-      );
-      if (index == -1) continue;
-      exactRemaining.removeAt(index);
-      exactCorrect++;
-    }
-
-    final missing = _scenario.expectedAlarms.length - exactCorrect;
-    final extra = exactRemaining.length;
+    final extra = remaining.length;
     final totalExpected = _scenario.expectedAlarms.length.toDouble();
-    final totalAttributes = totalExpected * attributesPerAlarm;
-    final baseScore = totalAttributes == 0 ? 0.0 : earnedAttributes / totalAttributes;
-    final missingPenalty =
-        totalExpected == 0 ? 0.0 : (missing / totalExpected) * 0.45;
-    final partialPenalty =
-        totalExpected == 0 ? 0.0 : (partialMatches / totalExpected) * 0.20;
+    final baseScore = totalExpected == 0 ? 0.0 : totalEarned / totalExpected;
     final extraPenalty =
-        totalExpected == 0 ? 0.0 : (extra / totalExpected) * 0.20;
-    final score =
-        (baseScore - missingPenalty - partialPenalty - extraPenalty)
-            .clamp(0.0, 1.0);
+        totalExpected == 0 ? 0.0 : (extra / totalExpected) * 0.08;
+    final score = (baseScore - extraPenalty).clamp(0.0, 1.0);
 
     return _Evaluation(
       score: score,
       metrics: {
-        'correct': exactCorrect,
+        'correct': correct,
         'missing': missing,
         'extra': extra,
       },
     );
   }
 
-  bool _isExactAlarmMatch(_PlannerAlarm actual, _PlannerAlarm expected) {
-    return _normalize(actual.label) == _normalize(expected.label) &&
-        _sameTime(actual.time, expected.time) &&
-        _sameDays(actual.repeatDays, expected.repeatDays) &&
-        _sameDate(actual.oneTimeDate, expected.oneTimeDate) &&
-        actual.snoozeMinutes == expected.snoozeMinutes &&
-        actual.enabled == expected.enabled;
+  double _matchScore(_PlannerAlarm actual, _PlannerAlarm expected) {
+    if (expected.enabled && !actual.enabled) return 0.0;
+    final time = _timeScore(actual.time, expected.time);
+    final scheduleMatch = expected.oneTimeDate != null
+        ? (_sameDate(actual.oneTimeDate, expected.oneTimeDate) ? 1.0 : 0.0)
+        : (_sameDays(actual.repeatDays, expected.repeatDays) ? 1.0 : 0.0);
+    return time * 0.6 + scheduleMatch * 0.4;
+  }
+
+  double _timeScore(TimeOfDay actual, TimeOfDay expected) {
+    final actualMinutes = actual.hour * 60 + actual.minute;
+    final expectedMinutes = expected.hour * 60 + expected.minute;
+    final diff = actualMinutes - expectedMinutes;
+    if (diff > 5) return 0.0;
+    if (diff >= -15) return 1.0;
+    if (diff >= -30) return 0.5;
+    return 0.0;
+  }
+
+  bool _labelMatches(String a, String b) {
+    final na = _normalize(a);
+    final nb = _normalize(b);
+    if (na.isEmpty || nb.isEmpty) return false;
+    if (na == nb) return true;
+    if (na.contains(nb) || nb.contains(na)) return true;
+    final tokensA =
+        na.split(RegExp(r'\s+')).where((t) => t.length > 2).toSet();
+    final tokensB =
+        nb.split(RegExp(r'\s+')).where((t) => t.length > 2).toSet();
+    if (tokensA.isEmpty || tokensB.isEmpty) return false;
+    final overlap = tokensA.intersection(tokensB).length;
+    final minSize = tokensA.length < tokensB.length ? tokensA.length : tokensB.length;
+    return overlap >= (minSize / 2).ceil();
   }
 
   @override
@@ -1626,9 +1616,6 @@ class _LevelCalendarAlarmPlannerState extends State<LevelCalendarAlarmPlanner> {
     final ordered = days.toList()..sort();
     return ordered.map((day) => _dayShort[day]).join(', ');
   }
-
-  bool _sameTime(TimeOfDay a, TimeOfDay b) =>
-      a.hour == b.hour && a.minute == b.minute;
 
   bool _sameDate(DateTime? a, DateTime? b) {
     if (a == null && b == null) return true;
