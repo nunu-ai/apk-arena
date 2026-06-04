@@ -150,21 +150,6 @@ class CredentialsFab extends StatelessWidget {
                   }).toList(),
                 ),
               ),
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  style: TextButton.styleFrom(
-                    foregroundColor: _detailsAccentDark,
-                  ),
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.keyboard_arrow_down, size: 18),
-                  label: const Text(
-                    'close',
-                    style: TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ),
             ],
           ),
         ),

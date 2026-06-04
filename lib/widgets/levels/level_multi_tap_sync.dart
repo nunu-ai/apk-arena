@@ -21,7 +21,8 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
   static const Duration _holdWindow = Duration(milliseconds: 340);
   static const Duration _tapWindow = Duration(milliseconds: 500);
   static const Duration _buttonHoldDuration = Duration(seconds: 3);
-  static const Duration _buttonHoldMaxDuration = Duration(milliseconds: 3600);
+  static const Duration _buttonHoldGrace = Duration(milliseconds: 100);
+  static const Duration _buttonHoldMaxDuration = Duration(milliseconds: 5000);
   static const Duration _hiddenWaitDuration = Duration(seconds: 60);
 
   static const int _livesPerStage = 3;
@@ -499,7 +500,7 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
     _buttonHoldProgressTimer = null;
     _buttonHeld = false;
     _buttonHoldStartedAt = null;
-    if (elapsed < _buttonHoldDuration) {
+    if (elapsed < _buttonHoldDuration - _buttonHoldGrace) {
       _loseLife('released too soon. hold it longer.');
       return;
     }

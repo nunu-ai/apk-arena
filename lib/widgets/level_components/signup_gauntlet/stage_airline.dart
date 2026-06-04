@@ -575,8 +575,8 @@ class _StageAirlineState extends State<StageAirline> {
                   child: FilledButton(
                     onPressed: () {
                       setState(() {
-                        _fellCookie = true;
-                        _showMarketingPrefs = true;
+                        _showCookie = false;
+                        _cookieDismissed = true;
                       });
                     },
                     style: FilledButton.styleFrom(

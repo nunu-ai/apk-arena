@@ -35,11 +35,13 @@ class _StageInfo {
 
 enum _Phase { intro, playing, results }
 
+
 class _LevelSignupGauntletState extends State<LevelSignupGauntlet> {
   int _currentStage = 0;
   _Phase _phase = _Phase.intro;
   final List<double> _stageScores = [];
   int _totalTraps = 0;
+  int _stageRestartKey = 0;
 
   @override
   void initState() {
@@ -97,6 +99,43 @@ class _LevelSignupGauntletState extends State<LevelSignupGauntlet> {
     setState(() => _phase = _Phase.results);
   }
 
+  Widget _buildHudTrailing() {
+    return TextButton(
+      onPressed: _confirmSkip,
+      style: TextButton.styleFrom(
+        foregroundColor: NunuColors.textSecondary,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      child: const Text('skip', style: TextStyle(fontSize: 12)),
+    );
+  }
+
+  void _confirmSkip() {
+    showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Skip stage?'),
+        content: const Text('This stage will score 0.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Skip'),
+          ),
+        ],
+      ),
+    ).then((confirmed) {
+      if (confirmed == true && mounted) {
+        _onStageComplete(0.0, {'traps_fallen': 0});
+      }
+    });
+  }
+
   void _advance() {
     if (_currentStage < 4) {
       setState(() {
@@ -136,8 +175,16 @@ class _LevelSignupGauntletState extends State<LevelSignupGauntlet> {
       case _Phase.playing:
         return Column(
           children: [
-            LevelHud(stageText: '${_currentStage + 1}/${_stages.length}'),
-            Expanded(child: _stages[_currentStage].builder(_onStageComplete)),
+            LevelHud(
+              stageText: '${_currentStage + 1}/${_stages.length}',
+              trailing: _buildHudTrailing(),
+            ),
+            Expanded(
+              child: KeyedSubtree(
+                key: ValueKey('$_currentStage-$_stageRestartKey'),
+                child: _stages[_currentStage].builder(_onStageComplete),
+              ),
+            ),
           ],
         );
       case _Phase.results:
@@ -204,7 +251,37 @@ class _LevelSignupGauntletState extends State<LevelSignupGauntlet> {
                           );
                         }),
                       ),
-                      const SizedBox(height: 48),
+                      const SizedBox(height: 24),
+                      if (_currentStage >= 2)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black26,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.info_outline,
+                                  size: 14, color: Colors.white60),
+                              SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  'accept any permission prompts — notifications are needed to complete this stage',
+                                  style: TextStyle(
+                                    color: Colors.white60,
+                                    fontSize: 12,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      const SizedBox(height: 24),
                       FilledButton(
                         onPressed: () =>
                             setState(() => _phase = _Phase.playing),

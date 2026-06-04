@@ -563,7 +563,7 @@ class _StageEnterpriseState extends State<StageEnterprise> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text('create your account',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black87)),
             const SizedBox(height: 16),
 
             // Company — with autocomplete trap
@@ -719,7 +719,7 @@ class _StageEnterpriseState extends State<StageEnterprise> {
                 ? 'waiting for email verification...'
                 : 'email verified!',
             style: const TextStyle(
-                fontWeight: FontWeight.bold, fontSize: 18),
+                fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black87),
           ),
           if (_staleState) ...[
             const SizedBox(height: 8),
@@ -733,7 +733,7 @@ class _StageEnterpriseState extends State<StageEnterprise> {
                 maxLength: 6,
                 keyboardType: TextInputType.number,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 24, letterSpacing: 6),
+                style: const TextStyle(fontSize: 24, letterSpacing: 6, color: Colors.black87),
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: InputDecoration(
                   counterText: '',
@@ -774,7 +774,7 @@ class _StageEnterpriseState extends State<StageEnterprise> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Text('set up your workspace',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black87)),
           const SizedBox(height: 16),
           TextFormField(
             controller: _wsNameCtl,
@@ -834,7 +834,7 @@ class _StageEnterpriseState extends State<StageEnterprise> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Text('log in to SynergyOS',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black87)),
           const SizedBox(height: 16),
           TextField(
             controller: _loginEmailCtl,
@@ -915,7 +915,7 @@ class _StageEnterpriseState extends State<StageEnterprise> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Text('select a workspace',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black87)),
           const SizedBox(height: 16),
           _workspaceTile(0, _company, 'active', _teal),
           const SizedBox(height: 8),
@@ -961,7 +961,7 @@ class _StageEnterpriseState extends State<StageEnterprise> {
                 children: [
                   Text(name,
                       style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 14)),
+                          fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87)),
                   Text(status,
                       style: TextStyle(
                           fontSize: 12,
@@ -990,7 +990,7 @@ class _StageEnterpriseState extends State<StageEnterprise> {
           const Icon(Icons.security, size: 48, color: _teal),
           const SizedBox(height: 16),
           const Text('two-factor authentication',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black87)),
           const SizedBox(height: 8),
           const Text('enter the 6-digit code from your notification',
               style: TextStyle(color: Colors.black54)),
@@ -1003,7 +1003,7 @@ class _StageEnterpriseState extends State<StageEnterprise> {
               maxLength: 7, // 6 digits + 1 dash
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 24, letterSpacing: 4),
+              style: const TextStyle(fontSize: 24, letterSpacing: 4, color: Colors.black87),
               inputFormatters: [
                 _DashFormatter(), // auto-inserts dash after 3 digits
               ],
