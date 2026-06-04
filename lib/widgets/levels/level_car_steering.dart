@@ -174,6 +174,7 @@ class _LevelCarSteeringState extends State<LevelCarSteering>
 
   void _finishAttempt() {
     _survivalTimer.stop();
+    _controller.stop();
 
     final score = _difficulty;
     final survivalSeconds = _survivalSeconds.round();
@@ -206,13 +207,14 @@ class _LevelCarSteeringState extends State<LevelCarSteering>
     _wavesSpawned = 0;
     _carX = 0.5;
     _distance = 0;
+    _hasStarted = false;
     _framesSinceLastSpawn = double.infinity;
     _obstacles.clear();
     _isPressingLeft = false;
     _isPressingRight = false;
     _survivalTimer
       ..reset()
-      ..start();
+      ..stop();
   }
 
   void _spawnObstacle() {
