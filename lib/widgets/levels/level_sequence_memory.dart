@@ -28,9 +28,12 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
   int _currentInputIndex = 0;
   int _completedSequences = 0;
   int _replaysUsed = 0;
-  bool _isShowingSequence = true;
+  bool _isShowingSequence = false;
   bool _isComplete = false;
+  bool _hasStarted = false;
+  bool _isReadyForSequence = true;
   bool _showingError = false;
+  bool _showingCorrect = false;
   bool _bonusFlash = false;
   int _highlightedButton = -1;
 
@@ -40,12 +43,14 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
+  static const double _replayPenalty = 0.02;
+
   @override
   void initState() {
     super.initState();
     widget.registerPartialScoreGetter(
       () => LevelOutcome(
-        score: (0.10 * _completedSequences).clamp(0.0, 1.0),
+        score: _currentScore,
         metrics: {
           'stages_completed': _completedSequences,
           'replays_used': _replaysUsed,
@@ -62,17 +67,39 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
     ).animate(CurvedAnimation(parent: _pulseController, curve: Curves.easeOut));
 
     _deadline = DateTime.now().add(_initialTime);
-    _countdownTimer = Timer.periodic(const Duration(milliseconds: 200), (_) {
-      if (!mounted || _isComplete) return;
-      if (DateTime.now().isAfter(_deadline) ||
-          DateTime.now().isAtSameMomentAs(_deadline)) {
-        _onTimeUp();
-      } else {
-        setState(() {});
+  }
+
+  void _startRun() {
+    if (_isComplete ||
+        _isShowingSequence ||
+        _showingCorrect ||
+        !_isReadyForSequence) {
+      return;
+    }
+    final firstStart = !_hasStarted;
+    setState(() {
+      if (_sequence.isEmpty) {
+        _generateSequence();
+      }
+      _hasStarted = true;
+      _isShowingSequence = true;
+      _isReadyForSequence = false;
+      if (firstStart) {
+        _deadline = DateTime.now().add(_initialTime);
       }
     });
-
-    _startNewSequence();
+    if (firstStart) {
+      _countdownTimer = Timer.periodic(const Duration(milliseconds: 200), (_) {
+        if (!mounted || _isComplete) return;
+        if (DateTime.now().isAfter(_deadline) ||
+            DateTime.now().isAtSameMomentAs(_deadline)) {
+          _onTimeUp();
+        } else {
+          setState(() {});
+        }
+      });
+    }
+    _showSequence();
   }
 
   @override
@@ -83,8 +110,15 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
   }
 
   Duration get _remaining {
+    if (!_hasStarted) return _initialTime;
     final r = _deadline.difference(DateTime.now());
     return r.isNegative ? Duration.zero : r;
+  }
+
+  double get _currentScore {
+    final baseScore = 0.10 * _completedSequences;
+    final penalty = _replayPenalty * _replaysUsed;
+    return (baseScore - penalty).clamp(0.0, 1.0);
   }
 
   String _formatRemaining() {
@@ -100,10 +134,11 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
     setState(() {
       _isComplete = true;
       _isShowingSequence = false;
+      _isReadyForSequence = false;
       _showingError = false;
+      _showingCorrect = false;
       _highlightedButton = -1;
     });
-    final score = 0.10 * _completedSequences;
     final metrics = <String, dynamic>{
       'stages_completed': _completedSequences,
       'reached_length': _completedSequences + 1,
@@ -116,7 +151,7 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
     }
     widget.onComplete(
       LevelOutcome(
-        score: score,
+        score: _currentScore,
         metrics: metrics,
         visibleMetricKeys: const [
           'stages_completed',
@@ -139,7 +174,7 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'lock in ${(_completedSequences * 10)}% (${_completedSequences} stage${_completedSequences == 1 ? '' : 's'}) and end the run?',
+          'lock in ${(_currentScore * 100).round()}% (${_completedSequences} stage${_completedSequences == 1 ? '' : 's'}, $_replaysUsed replay${_replaysUsed == 1 ? '' : 's'}) and end the run?',
           style: const TextStyle(color: NunuColors.textSecondary),
         ),
         actions: [
@@ -175,12 +210,33 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
     }
   }
 
-  void _startNewSequence() {
+  void _generateSequence() {
     final length = _startingLength + _completedSequences;
     _sequence = List.generate(length, (_) => _random.nextInt(_gridSize));
     _currentInputIndex = 0;
-    _isShowingSequence = true;
-    _showSequence();
+  }
+
+  void _startNewSequence() {
+    setState(() {
+      _generateSequence();
+      _isShowingSequence = false;
+      _isReadyForSequence = true;
+      _showingCorrect = false;
+      _highlightedButton = -1;
+    });
+  }
+
+  void _queueNextSequence() {
+    setState(() {
+      _isShowingSequence = false;
+      _isReadyForSequence = false;
+      _showingCorrect = true;
+      _highlightedButton = -1;
+    });
+    Future.delayed(const Duration(milliseconds: 650), () {
+      if (!mounted || _isComplete) return;
+      _startNewSequence();
+    });
   }
 
   Future<void> _showSequence() async {
@@ -205,18 +261,32 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
   }
 
   void _replaySequence() {
-    if (_isShowingSequence || _isComplete || _showingError) return;
-    setState(() {
-      _replaysUsed++;
-      _currentInputIndex = 0;
-      _isShowingSequence = true;
-      _highlightedButton = -1;
-    });
+    if (!_hasStarted ||
+        _isReadyForSequence ||
+        _isShowingSequence ||
+        _isComplete ||
+        _showingError ||
+        _showingCorrect) {
+      return;
+    }
+      setState(() {
+        _replaysUsed++;
+        _currentInputIndex = 0;
+        _isShowingSequence = true;
+        _showingCorrect = false;
+        _highlightedButton = -1;
+      });
     _showSequence();
   }
 
   void _onButtonPressed(int index) {
-    if (_isShowingSequence || _isComplete || _showingError) return;
+    if (!_hasStarted ||
+        _isReadyForSequence ||
+        _isShowingSequence ||
+        _isComplete ||
+        _showingError) {
+      return;
+    }
 
     setState(() => _highlightedButton = index);
     _pulseController.forward(from: 0);
@@ -240,7 +310,7 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
           });
         }
 
-        _startNewSequence();
+        _queueNextSequence();
       }
     } else {
       setState(() => _showingError = true);
@@ -249,6 +319,7 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
         if (mounted && !_isComplete) {
           setState(() {
             _showingError = false;
+            _showingCorrect = false;
             _currentInputIndex = 0;
             _isShowingSequence = true;
           });
@@ -295,7 +366,14 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
             ),
             const SizedBox(height: 12),
             _buildStatusText(),
-            Expanded(child: _buildButtonGrid()),
+            Expanded(
+              child: Stack(
+                children: [
+                  _buildButtonGrid(),
+                  if (!_hasStarted || _isReadyForSequence) _buildStartOverlay(),
+                ],
+              ),
+            ),
             const SizedBox(height: 16),
             _buildWatchAgainButton(),
             const SizedBox(height: 12),
@@ -308,7 +386,13 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
   }
 
   Widget _buildWatchAgainButton() {
-    final canReplay = !_isShowingSequence && !_isComplete && !_showingError;
+    final canReplay =
+        _hasStarted &&
+        !_isReadyForSequence &&
+        !_isShowingSequence &&
+        !_isComplete &&
+        !_showingError &&
+        !_showingCorrect;
     final foreground = canReplay
         ? NunuColors.secondaryLight
         : NunuColors.textSecondary.withValues(alpha: 0.3);
@@ -316,7 +400,7 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
       onPressed: canReplay ? _replaySequence : null,
       icon: Icon(Icons.replay, size: 16, color: foreground),
       label: Text(
-        'WATCH AGAIN',
+        'REPLAY',
         style: TextStyle(
           color: foreground,
           fontWeight: FontWeight.bold,
@@ -342,7 +426,9 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
 
   Widget _buildGiveUpButton() {
     return TextButton.icon(
-      onPressed: _isComplete ? null : _showGiveUpDialog,
+      onPressed: _hasStarted && !_isComplete && !_showingCorrect
+          ? _showGiveUpDialog
+          : null,
       icon: const Icon(
         Icons.flag_outlined,
         size: 16,
@@ -377,6 +463,12 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
     if (_showingError) {
       statusText = "WRONG! WATCH AGAIN";
       statusColor = NunuColors.errorMain;
+    } else if (_showingCorrect) {
+      statusText = "CORRECT";
+      statusColor = NunuColors.successMain;
+    } else if (!_hasStarted || _isReadyForSequence) {
+      statusText = "READY";
+      statusColor = NunuColors.textSecondary;
     } else if (_isShowingSequence) {
       statusText = "WATCH THE SEQUENCE";
       statusColor = NunuColors.infoMain;
@@ -437,6 +529,68 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
             itemCount: _gridSize,
             itemBuilder: (context, index) => _buildButton(index),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStartOverlay() {
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+        decoration: BoxDecoration(
+          color: NunuColors.backgroundPaper.withValues(alpha: 0.96),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: NunuColors.primaryMain, width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: NunuColors.primaryMain.withValues(alpha: 0.4),
+              blurRadius: 24,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'ready?',
+              style: TextStyle(
+                color: NunuColors.textSecondary,
+                fontSize: 14,
+                letterSpacing: 2,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: _isShowingSequence ? null : _startRun,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: NunuColors.primaryMain,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 56,
+                  vertical: 18,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 8,
+              ),
+              child: const Text(
+                'GO',
+                style: TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 6,
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'replays reduce score',
+              style: TextStyle(color: NunuColors.textSecondary, fontSize: 12),
+            ),
+          ],
         ),
       ),
     );

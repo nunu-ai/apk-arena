@@ -38,6 +38,7 @@ class _LevelCarSteeringState extends State<LevelCarSteering>
   final List<Obstacle> _obstacles = [];
   bool _isPressingLeft = false;
   bool _isPressingRight = false;
+  bool _hasStarted = false;
   bool _gameOver = false;
   int _currentAttempt = 1;
   int _wavesSpawned = 0;
@@ -52,13 +53,14 @@ class _LevelCarSteeringState extends State<LevelCarSteering>
   final double _carWidth = 0.10; // as fraction of screen width
   final double _carHeight = 50;
   final double _obstacleHeight = 60;
+  final double _initialObstaclePeekRatio = 0.32;
   static const int _maxAttempts = 3;
   static const Duration _fullScoreSurvivalTime = Duration(minutes: 10);
   static const double _framesPerSecond = 60;
-  static const double _startingReactionSeconds = 17.245;
+  static const double _startingReactionSeconds = 34;
   static const double _minimumReactionSeconds = 0.5;
   static final double _reactionCurveDecay =
-      log(_startingReactionSeconds / _minimumReactionSeconds) / 50;
+      log(_startingReactionSeconds / _minimumReactionSeconds) / 95;
 
   Size _screenSize = Size.zero;
 
@@ -111,8 +113,6 @@ class _LevelCarSteeringState extends State<LevelCarSteering>
       vsync: this,
       duration: const Duration(days: 1),
     )..addListener(_gameLoop);
-    _survivalTimer.start();
-    _controller.repeat();
   }
 
   @override
@@ -122,7 +122,9 @@ class _LevelCarSteeringState extends State<LevelCarSteering>
   }
 
   void _gameLoop() {
-    if (!mounted || _screenSize == Size.zero || _gameOver) return;
+    if (!mounted || !_hasStarted || _screenSize == Size.zero || _gameOver) {
+      return;
+    }
 
     setState(() {
       // Move car based on button presses
@@ -155,6 +157,18 @@ class _LevelCarSteeringState extends State<LevelCarSteering>
 
       // Increment distance
       _distance += _obstacleSpeed / 30;
+    });
+  }
+
+  void _startGame() {
+    if (_hasStarted || _gameOver) return;
+
+    setState(() {
+      _hasStarted = true;
+      _survivalTimer
+        ..reset()
+        ..start();
+      _controller.repeat();
     });
   }
 
@@ -219,7 +233,7 @@ class _LevelCarSteeringState extends State<LevelCarSteering>
       _obstacles.add(
         Obstacle(
           x: clampedX,
-          y: -_obstacleHeight,
+          y: -_obstacleHeight * (1 - _initialObstaclePeekRatio),
           width: width,
           speed: waveSpeed,
         ),
@@ -306,6 +320,7 @@ class _LevelCarSteeringState extends State<LevelCarSteering>
                     ..._obstacles.map((o) => _buildObstacle(o)),
                     _buildCar(),
                     _buildControls(),
+                    if (!_hasStarted) _buildStartOverlay(),
                   ],
                 );
               },
@@ -363,7 +378,7 @@ class _LevelCarSteeringState extends State<LevelCarSteering>
         ),
         child: const Center(
           child: Icon(
-            Icons.dangerous,
+            Icons.directions_car_filled,
             color: NunuColors.secondaryLight,
             size: 28,
           ),
@@ -448,6 +463,73 @@ class _LevelCarSteeringState extends State<LevelCarSteering>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStartOverlay() {
+    return Positioned.fill(
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+          decoration: BoxDecoration(
+            color: NunuColors.backgroundPaper.withValues(alpha: 0.96),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: NunuColors.primaryMain, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: NunuColors.primaryMain.withValues(alpha: 0.4),
+                blurRadius: 24,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'ready?',
+                style: TextStyle(
+                  color: NunuColors.textSecondary,
+                  fontSize: 14,
+                  letterSpacing: 2,
+                ),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: _startGame,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: NunuColors.primaryMain,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 56,
+                    vertical: 18,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 8,
+                ),
+                child: const Text(
+                  'GO',
+                  style: TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 6,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                'traffic ramps up',
+                style: TextStyle(
+                  color: NunuColors.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
