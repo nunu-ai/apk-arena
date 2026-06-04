@@ -27,10 +27,10 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
 
   static const int _livesPerStage = 3;
   static const double _laneSyncSlack = 52;
-  static const int _totalStages = 8;
-  static const double _scorePerStagePerfect = 0.125;
-  static const double _scorePerStageOneLifeLost = 0.08;
-  static const double _scorePerStageTwoLivesLost = 0.04;
+  static const int _totalStages = 10;
+  static const double _scorePerStagePerfect = 0.1;
+  static const double _scorePerStageOneLifeLost = 0.065;
+  static const double _scorePerStageTwoLivesLost = 0.03;
   static const int _doubleTapPhase = 0;
   static const int _tripleTapPhase = 1;
   static const int _holdButtonPhase = 2;
@@ -39,6 +39,18 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
   static const int _syncDoubleTapPhase = 5;
   static const int _tripleLiftPhase = 6;
   static const int _dualBindPhase = 7;
+  static const int _holdTapPhase = 8;
+  static const int _dualTracePhase = 9;
+  static const int _htTapsRequired = 3;
+  static const double _traceWaypointRadius = 48.0;
+  static const double _traceFailRadius = 80.0;
+  static const Duration _traceSyncWindow = Duration(milliseconds: 500);
+  static const List<List<List<double>>> _tracePaths = [
+    // Left path: tight zigzag, stays on left side
+    [[0.18, 0.88], [0.38, 0.73], [0.12, 0.57], [0.36, 0.41], [0.14, 0.25], [0.25, 0.10]],
+    // Right path: wide sweeping arc crossing toward center and back
+    [[0.82, 0.88], [0.58, 0.72], [0.80, 0.52], [0.52, 0.34], [0.76, 0.18], [0.65, 0.08]],
+  ];
 
   final Set<int> _pressedPads = <int>{};
   final Map<int, int> _pointerToPad = <int, int>{};
@@ -78,6 +90,17 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
   late final AnimationController _pulse;
   late final AnimationController _spin;
   late final AnimationController _energyFlow;
+  late final AnimationController _toastAnim;
+  String _toastText = '';
+  Timer? _toastTimer;
+  bool _htAnchorHeld = false;
+  int? _htAnchorPointerId;
+  int _htTapCount = 0;
+  final Map<int, int> _tracePointerToPath = {};
+  final List<int> _traceProgress = [0, 0];
+  final List<Offset?> _traceFingerPos = [null, null];
+  Size _traceBodySize = Size.zero;
+  Timer? _traceStartTimer;
   String _status = 'double tap the ignition key';
 
   // Neon colors for the reactor
@@ -102,6 +125,10 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
       vsync: this,
       duration: const Duration(milliseconds: 1800),
     )..repeat();
+    _toastAnim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 180),
+    );
   }
 
   @override
@@ -114,9 +141,12 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
     _syncTapWindowTimer?.cancel();
     _laneSyncWindowTimer?.cancel();
     _hiddenWaitTimer?.cancel();
+    _toastTimer?.cancel();
+    _traceStartTimer?.cancel();
     _pulse.dispose();
     _spin.dispose();
     _energyFlow.dispose();
+    _toastAnim.dispose();
     super.dispose();
   }
 
@@ -155,6 +185,14 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
     _anchorHeld = false;
     _anchorPointerId = null;
     _dualSwipeAccum = 0;
+    _htAnchorHeld = false;
+    _htAnchorPointerId = null;
+    _htTapCount = 0;
+    _tracePointerToPath.clear();
+    _traceProgress[0] = _traceProgress[1] = 0;
+    _traceFingerPos[0] = _traceFingerPos[1] = null;
+    _traceStartTimer?.cancel();
+    _traceStartTimer = null;
   }
 
   String _defaultStatusForPhase(int phase) {
@@ -175,6 +213,10 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
         return 'swipe up on all three lanes at the same time';
       case _dualBindPhase:
         return 'hold the anchor with one finger; swipe right on the conduit with another';
+      case _holdTapPhase:
+        return 'hold the anchor, then tap the pad $_htTapsRequired times';
+      case _dualTracePhase:
+        return 'trace both paths at the same time';
       default:
         return '';
     }
@@ -246,7 +288,17 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
     _enterPhase(stageIndex + 1);
   }
 
+  void _showToast(String message) {
+    _toastTimer?.cancel();
+    _toastText = message;
+    _toastAnim.forward(from: 0);
+    _toastTimer = Timer(const Duration(milliseconds: 1200), () {
+      if (mounted) _toastAnim.reverse();
+    });
+  }
+
   void _loseLife(String statusAfterReset) {
+    _showToast(statusAfterReset);
     _lives = (_lives - 1).clamp(0, _livesPerStage);
     if (_lives <= 0) {
       _completeCurrentPhase(passed: false);
@@ -298,7 +350,7 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
     if (_phase != _tripleLiftPhase) return;
     if (_lanePointerToLane[pointerId] != lane) return;
     if (_lanePointerToLane.values.toSet().length < 3) {
-      if (delta.dy < -6) {
+      if (delta.dy < -16) {
         _loseLife('all three lanes must lift together.');
       }
       return;
@@ -324,6 +376,7 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
 
   void _onLanePointerUp(int pointerId) {
     if (_phase != _tripleLiftPhase) return;
+    if (!_lanePointerToLane.containsKey(pointerId)) return;
     _lanePointerToLane.remove(pointerId);
     if (_lanePointerToLane.isEmpty) {
       _laneSyncWindowTimer?.cancel();
@@ -628,6 +681,51 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
           Positioned.fill(
             child: IgnorePointer(
               child: CustomPaint(painter: _ScanlinePainter()),
+            ),
+          ),
+          Positioned(
+            top: 80,
+            left: 24,
+            right: 24,
+            child: IgnorePointer(
+              child: AnimatedBuilder(
+                animation: _toastAnim,
+                builder: (ctx, _) => Opacity(
+                  opacity: _toastAnim.value,
+                  child: _toastText.isEmpty
+                      ? const SizedBox.shrink()
+                      : Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade900.withValues(alpha: 0.92),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.red.shade400,
+                              width: 1,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.red.withValues(alpha: 0.3),
+                                blurRadius: 16,
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            _toastText.toUpperCase(),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ),
+                ),
+              ),
             ),
           ),
           SafeArea(
@@ -938,6 +1036,12 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
     if (_phase == _dualBindPhase) {
       return _buildDualBindPhase();
     }
+    if (_phase == _holdTapPhase) {
+      return _buildHoldTapPhase();
+    }
+    if (_phase == _dualTracePhase) {
+      return _buildDualTracePhase();
+    }
 
     final bool allSynced = _pressedPads.length == 3;
 
@@ -1027,6 +1131,313 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
               },
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  // ── Hold+Tap ──────────────────────────────────────────────────────────────
+
+  void _onHtAnchorDown(PointerDownEvent e) {
+    if (_phase != _holdTapPhase || _htAnchorHeld) return;
+    setState(() {
+      _htAnchorHeld = true;
+      _htAnchorPointerId = e.pointer;
+      _status = 'anchor held — tap the pad (0/$_htTapsRequired)';
+    });
+  }
+
+  void _onHtAnchorUp(PointerEvent e) {
+    if (_phase != _holdTapPhase) return;
+    if (e.pointer != _htAnchorPointerId) return;
+    if (_htTapCount < _htTapsRequired) {
+      _loseLife('anchor released. hold and tap simultaneously.');
+      return;
+    }
+    setState(() {
+      _htAnchorHeld = false;
+      _htAnchorPointerId = null;
+    });
+  }
+
+  void _onHtTap() {
+    if (_phase != _holdTapPhase) return;
+    if (!_htAnchorHeld) {
+      _loseLife('hold the anchor first.');
+      return;
+    }
+    final next = _htTapCount + 1;
+    if (next >= _htTapsRequired) {
+      setState(() => _htTapCount = next);
+      _completeCurrentPhase(passed: true);
+      return;
+    }
+    setState(() {
+      _htTapCount = next;
+      _status = 'keep holding — tap again ($next/$_htTapsRequired)';
+    });
+  }
+
+  Widget _buildHoldTapPhase() {
+    return _buildStageScaffold(
+      stageIndex: 9,
+      title: 'ANCHOR TAP',
+      accentColor: _coreGlow,
+      body: _stagePanel(
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                flex: 2,
+                child: Listener(
+                  behavior: HitTestBehavior.opaque,
+                  onPointerDown: _onHtAnchorDown,
+                  onPointerUp: _onHtAnchorUp,
+                  onPointerCancel: _onHtAnchorUp,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _htAnchorHeld
+                            ? _coreGlow
+                            : _magentaNeon.withValues(alpha: 0.5),
+                        width: _htAnchorHeld ? 3 : 2,
+                      ),
+                      color: _htAnchorHeld
+                          ? _magentaNeon.withValues(alpha: 0.12)
+                          : Colors.white.withValues(alpha: 0.04),
+                      boxShadow: _htAnchorHeld
+                          ? [
+                              BoxShadow(
+                                color: _magentaNeon.withValues(alpha: 0.35),
+                                blurRadius: 24,
+                              ),
+                            ]
+                          : [],
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.lock_rounded,
+                          size: 48,
+                          color: _htAnchorHeld
+                              ? _coreGlow
+                              : _magentaNeon.withValues(alpha: 0.7),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'anchor',
+                          style: TextStyle(
+                            color: _cyanNeon.withValues(alpha: 0.9),
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 2,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'hold',
+                          style: TextStyle(
+                            color: _cyanNeon.withValues(alpha: 0.45),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                flex: 3,
+                child: GestureDetector(
+                  onTap: _onHtTap,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 100),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _htTapCount > 0
+                            ? _cyanNeon
+                            : _cyanNeon.withValues(alpha: 0.5),
+                        width: 2,
+                      ),
+                      color: Colors.white.withValues(alpha: 0.04),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.touch_app_rounded,
+                          size: 44,
+                          color: _cyanNeon.withValues(alpha: 0.9),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          '$_htTapCount / $_htTapsRequired',
+                          style: TextStyle(
+                            color: _cyanNeon,
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 3,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'tap (other finger)',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: _cyanNeon.withValues(alpha: 0.45),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Dual Trace ────────────────────────────────────────────────────────────
+
+  Offset _traceWpt(int path, int idx) => Offset(
+        _tracePaths[path][idx][0] * _traceBodySize.width,
+        _tracePaths[path][idx][1] * _traceBodySize.height,
+      );
+
+  double _distToTracePath(int path, Offset pos) {
+    double min = double.infinity;
+    for (int i = 0; i < _tracePaths[path].length - 1; i++) {
+      final a = _traceWpt(path, i);
+      final b = _traceWpt(path, i + 1);
+      final ab = b - a;
+      final lenSq = ab.dx * ab.dx + ab.dy * ab.dy;
+      final Offset closest;
+      if (lenSq == 0) {
+        closest = a;
+      } else {
+        final t = ((pos - a).dx * ab.dx + (pos - a).dy * ab.dy) / lenSq;
+        closest = a + Offset(ab.dx, ab.dy) * t.clamp(0.0, 1.0);
+      }
+      final d = (pos - closest).distance;
+      if (d < min) min = d;
+    }
+    return min;
+  }
+
+  void _onTracePointerDown(int pointerId, Offset localPos) {
+    if (_phase != _dualTracePhase) return;
+    if (_tracePointerToPath.containsKey(pointerId)) return;
+    if (_traceBodySize == Size.zero) return;
+
+    int? assigned;
+    for (int p = 0; p < 2; p++) {
+      if (_tracePointerToPath.containsValue(p)) continue;
+      if ((localPos - _traceWpt(p, 0)).distance <= _traceWaypointRadius * 1.5) {
+        assigned = p;
+        break;
+      }
+    }
+    if (assigned == null) {
+      _loseLife('start at the glowing circles.');
+      return;
+    }
+
+    setState(() {
+      _tracePointerToPath[pointerId] = assigned!;
+      _traceProgress[assigned] = 1;
+      _traceFingerPos[assigned] = localPos;
+    });
+
+    if (_tracePointerToPath.length == 1) {
+      _traceStartTimer?.cancel();
+      _traceStartTimer = Timer(_traceSyncWindow, () {
+        if (!mounted || _phase != _dualTracePhase) return;
+        if (_tracePointerToPath.length < 2) {
+          _loseLife('start both paths together.');
+        }
+      });
+    } else {
+      _traceStartTimer?.cancel();
+      _traceStartTimer = null;
+    }
+  }
+
+  void _onTracePointerMove(PointerMoveEvent e) {
+    if (_phase != _dualTracePhase) return;
+    final path = _tracePointerToPath[e.pointer];
+    if (path == null) return;
+    if (_traceBodySize == Size.zero) return;
+
+    final pos = e.localPosition;
+
+    if (_distToTracePath(path, pos) > _traceFailRadius) {
+      _loseLife('strayed off path. trace carefully.');
+      return;
+    }
+
+    setState(() => _traceFingerPos[path] = pos);
+
+    final nextIdx = _traceProgress[path];
+    if (nextIdx < _tracePaths[path].length) {
+      if ((pos - _traceWpt(path, nextIdx)).distance <= _traceWaypointRadius) {
+        setState(() => _traceProgress[path] = nextIdx + 1);
+        if (_traceProgress[0] >= _tracePaths[0].length &&
+            _traceProgress[1] >= _tracePaths[1].length) {
+          _completeCurrentPhase(passed: true);
+        }
+      }
+    }
+  }
+
+  void _onTracePointerUp(int pointerId) {
+    if (_phase != _dualTracePhase) return;
+    final path = _tracePointerToPath.remove(pointerId);
+    if (path == null) return;
+    setState(() => _traceFingerPos[path] = null);
+    if (_traceProgress[path] < _tracePaths[path].length) {
+      _loseLife('path incomplete. trace all the way.');
+    }
+  }
+
+  Widget _buildDualTracePhase() {
+    return _buildStageScaffold(
+      stageIndex: 10,
+      title: 'DUAL TRACE',
+      accentColor: _cyanNeon,
+      body: _stagePanel(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            _traceBodySize = Size(constraints.maxWidth, constraints.maxHeight);
+            return Listener(
+              behavior: HitTestBehavior.opaque,
+              onPointerDown: (e) =>
+                  _onTracePointerDown(e.pointer, e.localPosition),
+              onPointerMove: _onTracePointerMove,
+              onPointerUp: (e) => _onTracePointerUp(e.pointer),
+              onPointerCancel: (e) => _onTracePointerUp(e.pointer),
+              child: AnimatedBuilder(
+                animation: _pulse,
+                builder: (context, _) => CustomPaint(
+                  painter: _TracePathPainter(
+                    tracePaths: _tracePaths,
+                    progress: List.from(_traceProgress),
+                    fingerPositions: List.from(_traceFingerPos),
+                    pulseValue: _pulse.value,
+                  ),
+                  size: Size(constraints.maxWidth, constraints.maxHeight),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -1272,6 +1683,119 @@ class _LevelMultiTapSyncState extends State<LevelMultiTapSync>
       ),
     );
   }
+}
+
+class _TracePathPainter extends CustomPainter {
+  final List<List<List<double>>> tracePaths;
+  final List<int> progress;
+  final List<Offset?> fingerPositions;
+  final double pulseValue;
+
+  static const _cyanNeon = Color(0xFF00F5FF);
+  static const _magentaNeon = Color(0xFFFF00FF);
+
+  _TracePathPainter({
+    required this.tracePaths,
+    required this.progress,
+    required this.fingerPositions,
+    required this.pulseValue,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final colors = [_cyanNeon, _magentaNeon];
+
+    for (int p = 0; p < tracePaths.length; p++) {
+      final color = colors[p];
+      final pts = List.generate(
+        tracePaths[p].length,
+        (i) => Offset(
+          tracePaths[p][i][0] * size.width,
+          tracePaths[p][i][1] * size.height,
+        ),
+      );
+      final reached = progress[p];
+
+      // Path segments
+      for (int i = 0; i < pts.length - 1; i++) {
+        final passed = i < reached - 1;
+        canvas.drawLine(
+          pts[i],
+          pts[i + 1],
+          Paint()
+            ..color = color.withValues(alpha: passed ? 0.85 : 0.22)
+            ..strokeWidth = passed ? 3.5 : 2
+            ..style = PaintingStyle.stroke
+            ..strokeCap = StrokeCap.round,
+        );
+      }
+
+      // Waypoint dots
+      for (int i = 0; i < pts.length; i++) {
+        final passed = i < reached;
+        final isNext = i == reached;
+        final isEndpoint = i == 0 || i == pts.length - 1;
+        final double r =
+            isNext ? 8.0 + pulseValue * 4.0 : (isEndpoint ? 10.0 : 5.0);
+        canvas.drawCircle(
+          pts[i],
+          r,
+          Paint()
+            ..color = color.withValues(
+              alpha: passed ? 0.9 : (isNext ? 0.9 : 0.3),
+            )
+            ..style = PaintingStyle.fill,
+        );
+        if (isNext) {
+          canvas.drawCircle(
+            pts[i],
+            r + 6,
+            Paint()
+              ..color = color.withValues(alpha: 0.35 + pulseValue * 0.3)
+              ..strokeWidth = 2
+              ..style = PaintingStyle.stroke,
+          );
+        }
+      }
+
+      // Start label
+      final tp = TextPainter(
+        text: TextSpan(
+          text: p == 0 ? 'L' : 'R',
+          style: TextStyle(
+            color: color,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, pts[0] + const Offset(14, -6));
+
+      // Finger indicator
+      final fpos = fingerPositions[p];
+      if (fpos != null) {
+        canvas.drawCircle(
+          fpos,
+          16,
+          Paint()
+            ..color = color.withValues(alpha: 0.35)
+            ..style = PaintingStyle.fill,
+        );
+        canvas.drawCircle(
+          fpos,
+          16,
+          Paint()
+            ..color = color.withValues(alpha: 0.7)
+            ..strokeWidth = 2
+            ..style = PaintingStyle.stroke,
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _TracePathPainter old) => true;
 }
 
 // Grid background painter
