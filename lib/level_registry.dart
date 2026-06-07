@@ -1,4 +1,5 @@
 import 'package:apk_arena/widgets/levels/level_action_counter.dart';
+import 'package:apk_arena/widgets/levels/level_animation_land.dart';
 import 'package:apk_arena/widgets/levels/level_bingo.dart';
 import 'package:apk_arena/widgets/levels/level_button_alchemy.dart';
 import 'package:apk_arena/widgets/levels/level_calendar_alarm_planner.dart';
@@ -299,6 +300,13 @@ final List<LevelEntry> tempospatialLevels = [
       instructions: "find the exit.",
     ),
     widgetBuilder: (onComplete) => LevelFpsMaze(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "animation land",
+      instructions: "watch each animation closely — replays cost you points.",
+    ),
+    widgetBuilder: (onComplete) => LevelAnimationLand(onComplete: onComplete),
   ),
 ];
 
