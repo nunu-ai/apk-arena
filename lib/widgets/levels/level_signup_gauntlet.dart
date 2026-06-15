@@ -252,8 +252,7 @@ class _LevelSignupGauntletState extends State<LevelSignupGauntlet> {
                         }),
                       ),
                       const SizedBox(height: 24),
-                      if (_currentStage >= 2)
-                        Container(
+                      Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 10,
