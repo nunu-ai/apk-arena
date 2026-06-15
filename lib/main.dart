@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:apk_arena/screens/level_selector.dart';
 import 'package:apk_arena/services/notification_service.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'services/analytics_service.dart';
 import 'theme/app_theme.dart';
 import 'services/deeplink_service.dart';
 import 'services/navigation.dart';
+import 'level_registry.dart';
 
 void main() async {
 
@@ -16,7 +18,7 @@ void main() async {
 
   await NotificationService().initialize();
   await DeeplinkService.instance.initialize();
-  
+
   runApp(const MyApp());
 }
 
@@ -29,16 +31,15 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   String? _lastHandledUri;
+
   @override
   void initState() {
     super.initState();
-    // Handle initial deep link after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final uri = await DeeplinkService.instance.getInitialLink();
       if (uri != null) {
         _handleUri(uri);
       }
-      // Subscribe to runtime links
       DeeplinkService.instance.linkStream.listen((uri) {
         _handleUri(uri);
       });
@@ -47,26 +48,59 @@ class _MyAppState extends State<MyApp> {
 
   void _handleUri(Uri uri) {
     final s = uri.toString();
-    if (_lastHandledUri == s) return; // dedupe same link
+    if (_lastHandledUri == s) return;
     _lastHandledUri = s;
-    final id = _extractLevelId(uri);
-    if (id != null) navigateToLevel(id);
+    final link = _parseLevelLink(uri);
+    if (link != null) {
+      navigateToLevel(link.levelNumber, attemptsRemaining: link.attemptsRemaining);
+    }
   }
 
-  int? _extractLevelId(Uri uri) {
+  _LevelLink? _parseLevelLink(Uri uri) {
     if (uri.scheme != 'apkarena') return null;
-    // Preferred: apkarena://open/level/123
+
+    final attempts = int.tryParse(uri.queryParameters['attempts'] ?? '');
+
+    // Preferred: apkarena://open/level/123  or  apkarena://open/random  or  apkarena://open/level/random
     if (uri.host == 'open') {
+      if (uri.pathSegments.isNotEmpty && uri.pathSegments.first == 'random') {
+        final id = _randomLevelId();
+        return id != null ? _LevelLink(id, attempts) : null;
+      }
       if (uri.pathSegments.length >= 2 && uri.pathSegments.first == 'level') {
-        return int.tryParse(uri.pathSegments[1]);
+        final seg = uri.pathSegments[1];
+        if (seg == 'random') {
+          final id = _randomLevelId();
+          return id != null ? _LevelLink(id, attempts) : null;
+        }
+        final id = int.tryParse(seg);
+        return id != null ? _LevelLink(id, attempts) : null;
       }
       return null;
     }
-    // Path-only variant: apkarena:/open/level/123
-    if (uri.pathSegments.length >= 3 && uri.pathSegments[0] == 'open' && uri.pathSegments[1] == 'level') {
-      return int.tryParse(uri.pathSegments[2]);
+    // Path-only variant: apkarena:/open/level/123  or  apkarena:/open/random  or  apkarena:/open/level/random
+    if (uri.pathSegments.isNotEmpty && uri.pathSegments[0] == 'open') {
+      if (uri.pathSegments.length >= 2 && uri.pathSegments[1] == 'random') {
+        final id = _randomLevelId();
+        return id != null ? _LevelLink(id, attempts) : null;
+      }
+      if (uri.pathSegments.length >= 3 && uri.pathSegments[1] == 'level') {
+        final seg = uri.pathSegments[2];
+        if (seg == 'random') {
+          final id = _randomLevelId();
+          return id != null ? _LevelLink(id, attempts) : null;
+        }
+        final id = int.tryParse(seg);
+        return id != null ? _LevelLink(id, attempts) : null;
+      }
     }
     return null;
+  }
+
+  int? _randomLevelId() {
+    final all = getAvailableLevels();
+    if (all.isEmpty) return null;
+    return all[Random().nextInt(all.length)];
   }
 
   @override
@@ -79,4 +113,10 @@ class _MyAppState extends State<MyApp> {
       home: const LevelSelectorScreen(),
     );
   }
+}
+
+class _LevelLink {
+  final int levelNumber;
+  final int? attemptsRemaining;
+  const _LevelLink(this.levelNumber, this.attemptsRemaining);
 }

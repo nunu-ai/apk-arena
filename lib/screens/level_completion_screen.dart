@@ -12,6 +12,8 @@ class LevelCompletionScreen extends StatelessWidget {
   final Map<String, dynamic>? metrics;
   final Set<String>? visibleMetricKeys;
   final bool randomMode;
+  // null = normal mode; 0 = locked, no retries left; >0 = locked, retries available
+  final int? attemptsRemaining;
 
   const LevelCompletionScreen({
     Key? key,
@@ -22,6 +24,7 @@ class LevelCompletionScreen extends StatelessWidget {
     this.metrics,
     this.visibleMetricKeys,
     this.randomMode = false,
+    this.attemptsRemaining,
   }) : super(key: key);
 
   String get formattedTime {
@@ -192,67 +195,124 @@ class LevelCompletionScreen extends StatelessWidget {
                 _buildMetricsGrid(),
               ],
               const SizedBox(height: 36),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  FilledButton(
-                    onPressed: () {
-                      Navigator.popUntil(context, (route) => route.isFirst);
-                    },
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 16,
+              if (attemptsRemaining == null) ...[
+                // Normal mode: main menu + next/random
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    FilledButton(
+                      onPressed: () {
+                        Navigator.popUntil(context, (route) => route.isFirst);
+                      },
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 16,
+                        ),
+                        foregroundColor: NunuColors.secondaryLight,
+                        backgroundColor: NunuColors.secondaryMain.withValues(
+                          alpha: 0.4,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
-                      foregroundColor: NunuColors.secondaryLight,
-                      backgroundColor: NunuColors.secondaryMain.withValues(
-                        alpha: 0.4,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                      child: const Text(
+                        'MAIN MENU',
+                        style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
-                    child: const Text(
-                      'MAIN MENU',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  FilledButton(
-                    onPressed: nextLevelNumber != null
-                        ? () {
-                            Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => LevelScreen(
-                                  levelNumber: nextLevelNumber!,
-                                  randomMode: randomMode,
+                    const SizedBox(width: 16),
+                    FilledButton(
+                      onPressed: nextLevelNumber != null
+                          ? () {
+                              Navigator.pushAndRemoveUntil(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => LevelScreen(
+                                    levelNumber: nextLevelNumber!,
+                                    randomMode: randomMode,
+                                  ),
                                 ),
-                              ),
-                              (route) => route.isFirst,
-                            );
-                          }
-                        : null,
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 16,
+                                (route) => route.isFirst,
+                              );
+                            }
+                          : null,
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 16,
+                        ),
+                        foregroundColor: NunuColors.primaryLight,
+                        backgroundColor: NunuColors.primaryMain.withValues(
+                          alpha: 0.4,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
-                      foregroundColor: NunuColors.primaryLight,
-                      backgroundColor: NunuColors.primaryMain.withValues(
-                        alpha: 0.4,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                      child: Text(
+                        randomMode ? 'RANDOM' : 'NEXT',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
-                    child: Text(
-                      randomMode ? 'RANDOM' : 'NEXT',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                  ],
+                ),
+              ] else if (attemptsRemaining! > 0) ...[
+                // Locked mode with retries remaining
+                Text(
+                  '$attemptsRemaining ${attemptsRemaining == 1 ? 'ATTEMPT' : 'ATTEMPTS'} LEFT',
+                  style: const TextStyle(
+                    color: NunuColors.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: () {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => LevelScreen(
+                          levelNumber: levelNumber,
+                          attemptsRemaining: attemptsRemaining,
+                        ),
+                      ),
+                      (route) => route.isFirst,
+                    );
+                  },
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 16,
+                    ),
+                    foregroundColor: NunuColors.primaryLight,
+                    backgroundColor: NunuColors.primaryMain.withValues(
+                      alpha: 0.4,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                ],
-              ),
+                  child: const Text(
+                    'RETRY',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ] else ...[
+                // Locked mode, no attempts left
+                const Text(
+                  'NO MORE ATTEMPTS',
+                  style: TextStyle(
+                    color: NunuColors.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
