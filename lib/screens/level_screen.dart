@@ -12,11 +12,14 @@ import 'level_completion_screen.dart';
 class LevelScreen extends StatefulWidget {
   final int levelNumber;
   final bool randomMode;
+  // null = normal mode; non-null = locked/eval mode with this many attempts left (including current)
+  final int? attemptsRemaining;
 
   const LevelScreen({
     Key? key,
     required this.levelNumber,
     this.randomMode = false,
+    this.attemptsRemaining,
   }) : super(key: key);
 
   @override
@@ -191,6 +194,10 @@ class _LevelScreenState extends State<LevelScreen> {
 
     if (!mounted) return;
 
+    final attemptsAfter = widget.attemptsRemaining != null
+        ? widget.attemptsRemaining! - 1
+        : null;
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -202,6 +209,7 @@ class _LevelScreenState extends State<LevelScreen> {
           metrics: outcome.metrics.isEmpty ? null : outcome.metrics,
           visibleMetricKeys: outcome.visibleMetricKeys,
           randomMode: widget.randomMode,
+          attemptsRemaining: attemptsAfter,
         ),
       ),
     );
@@ -215,17 +223,22 @@ class _LevelScreenState extends State<LevelScreen> {
       return const Scaffold(body: SizedBox.shrink());
     }
 
+    final locked = widget.attemptsRemaining != null;
+
     return WillPopScope(
       onWillPop: () async => false,
       child: Scaffold(
         appBar: AppBar(
           toolbarHeight: 48,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            iconSize: 20,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            onPressed: _confirmExitLevel,
-          ),
+          automaticallyImplyLeading: false,
+          leading: locked
+              ? null
+              : IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  iconSize: 20,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  onPressed: _confirmExitLevel,
+                ),
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

@@ -19,9 +19,14 @@ enum _Phase { banner, cardinal, pacman }
 
 class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
   static const int maxLives = 7;
+  static const int _cardinalRoundsTotal = 4;
+  static const int _pacRoundsTotal = 5;
   static const int _bannerRoundsTotal = 5;
-  static const double _stepScore = 0.06;
   static const double _lifeScore = 0.02;
+  static const int _totalRequiredSwipes =
+      _cardinalRoundsTotal + _pacRoundsTotal + _bannerRoundsTotal;
+  static const double _stepScore =
+      (1.0 - (maxLives * _lifeScore)) / _totalRequiredSwipes;
 
   _Phase _phase = _Phase.cardinal;
   int _idxInStage = 0;
@@ -79,8 +84,8 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
     _cardinalSeq = List<String>.from(dirs)..shuffle(_rng);
   }
 
-  int get _cardinalLen => _cardinalSeq.length;
-  int get _pacLen => _pacMouthHalf.length;
+  int get _cardinalLen => _cardinalRoundsTotal;
+  int get _pacLen => _pacRoundsTotal;
 
   void _resetBannerGesture() {
     _bannerLastLocal = null;
