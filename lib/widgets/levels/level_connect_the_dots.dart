@@ -23,6 +23,8 @@ class _LevelConnectTheDotsState extends State<LevelConnectTheDots> {
     true,
   ];
   static const int _maxLives = 10;
+  static const double _scorePerStage = 0.8 / _stageDotCounts.length;
+  static const double _scorePerLife = 0.02;
   static const double _dotHitRadius = 40;
   static const double _minDotSpacing = _dotHitRadius * 2;
 
@@ -131,7 +133,8 @@ class _LevelConnectTheDotsState extends State<LevelConnectTheDots> {
   }
 
   double _calculateScore() {
-    return (_stagesCleared * 0.15) + (_lives * 0.02);
+    return ((_stagesCleared * _scorePerStage) + (_lives * _scorePerLife))
+        .clamp(0.0, 1.0);
   }
 
   void _finishLevel() {
