@@ -22,8 +22,9 @@ class _LevelConnectTheDotsState extends State<LevelConnectTheDots> {
     true,
     true,
   ];
+  static const int _stageCount = 6;
   static const int _maxLives = 10;
-  static const double _scorePerStage = 0.8 / _stageDotCounts.length;
+  static const double _scorePerStage = 0.8 / _stageCount;
   static const double _scorePerLife = 0.02;
   static const double _dotHitRadius = 40;
   static const double _minDotSpacing = _dotHitRadius * 2;
