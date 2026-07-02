@@ -38,19 +38,16 @@ class MainActivity : FlutterActivity() {
         val uriString = data?.toString()
         android.util.Log.d("APKARENA", "handleIntent data=$uriString")
         if (uriString == null) return
+        initialLink = uriString
         if (linkChannel != null) {
             try {
-                // Deliver immediately to Dart; do not retain as initial
+                // Deliver immediately to Dart when it is ready. The retained
+                // initial link is cleared by getInitialLink and de-duped in Dart.
                 linkChannel!!.invokeMethod("onLink", uriString)
                 return
             } catch (_: Exception) {
-                // Dart not ready; retain for initial fetch
-                initialLink = uriString
                 return
             }
-        } else {
-            // Channel not ready yet; retain for initial fetch
-            initialLink = uriString
         }
     }
 }
