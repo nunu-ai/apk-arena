@@ -12,8 +12,6 @@ While existing benchmarks like [Android World](https://github.com/google-researc
 
 ![different levels](assets/docs/phones.gif)
 
-### Categories
-
 Most levels came out of a real problem we hit building our harness and agents in production at nunu.ai, e.g. gestures that kept failing, a game our agents played badly, a task we could not complete reliably. 
 
 Each level is an isolated game, task or challenge that gets automatically scored between 0 and 100 based on the key metrics we are interested in. For games it can be score, for tasks it can be mistakes or time, for interactions etc it is swipes, for vision accuracy etc.
@@ -24,13 +22,13 @@ We feature 50+ levels across 7 categories:
 
 | Category | What it tests |
 |---|---|
-| **Primitives** | Basic touchscreen control and fine motor accuracy — tapping, swiping, complex gestures |
-| **Vision** | Reading the screen: counting, matching, visual search |
-| **Memory** | Detecting important information and recalling it across long tasks |
-| **IQ** | Reasoning and rule induction, mostly puzzles |
-| **Tempospatial** | Temporal and spatial reasoning |
-| **Games** | Multi-step games requiring strategy |
-| **Tasks** | Real workflows: using phone UI, following multi-step instructions |
+| 👆 **Primitives** | Basic touchscreen control and fine motor accuracy — tapping, swiping, complex gestures |
+| 👁️ **Vision** | Reading the screen: counting, matching, visual search |
+| 🧠 **Memory** | Detecting important information and recalling it across long tasks |
+| 🧩 **IQ** | Reasoning and rule induction, mostly puzzles |
+| ⏱️ **Tempospatial** | Temporal and spatial reasoning |
+| 🎮 **Games** | Multi-step games requiring strategy |
+| ✅ **Tasks** | Real workflows: using phone UI, following multi-step instructions |
 
 
 ---
@@ -129,7 +127,7 @@ import 'package:apk_arena/widgets/levels/level_your_challenge.dart';
 **Step 3: Test Your Level**
 Run the app, find your level and test it
 
-## Structure
+## 🗂️ Structure
 ```
 lib/
 ├── services/
