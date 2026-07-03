@@ -4,6 +4,16 @@ APK arena is an open benchmark for **vision-based phone use AI agents** — a na
 
 Check out the results we achieve with our harness or get the app and run the benchmark yourself! 
 
+<p align="center">
+  <a href="https://github.com/nunu-ai/apk-arena/releases/tag/latest-android">
+    <img src="assets/docs/apk-download.png" width="260" alt="Download APK">
+  </a>
+  &nbsp;&nbsp;
+  <a href="https://github.com/nunu-ai/apk-arena/releases/tag/latest-ios">
+    <img src="assets/docs/ipa-download.png" width="260" alt="Download IPA">
+  </a>
+</p>
+
 ---
 
 ## 📖 Overview
