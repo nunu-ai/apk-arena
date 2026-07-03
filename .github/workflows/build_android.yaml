@@ -33,10 +33,14 @@ jobs:
       - name: Build APK
         run: flutter build apk --release
 
-      - name: Rename APK
+      - name: Build AAB
+        run: flutter build appbundle --release
+
+      - name: Prepare upload artifacts
         run: |
           mkdir -p build/upload
           cp build/app/outputs/flutter-apk/app-release.apk build/upload/apk_arena.apk
+          cp build/app/outputs/bundle/release/app-release.aab build/upload/apk_arena.aab
 
       - name: Upload to nunu.ai
         uses: nunu-ai/upload-build-action@v1
@@ -51,3 +55,9 @@ jobs:
         with:
           name: apk-arena-${{ github.run_number }}
           path: build/upload/apk_arena.apk
+
+      - name: Upload AAB artifact to GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-arena-aab-${{ github.run_number }}
+          path: build/upload/apk_arena.aab
