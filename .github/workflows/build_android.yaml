@@ -10,6 +10,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     
     steps:
       - name: Checkout repository
@@ -51,3 +53,13 @@ jobs:
         with:
           name: apk-arena-${{ github.run_number }}
           path: build/upload/apk_arena.apk
+
+      - name: Publish latest-android release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete latest-android --yes --cleanup-tag 2>/dev/null || true
+          gh release create latest-android build/upload/apk_arena.apk \
+            --title "Latest Android" \
+            --prerelease
