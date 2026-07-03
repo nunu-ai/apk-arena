@@ -1,18 +1,6 @@
 # 🤖 Guide for AI Agents Working on APK Arena
 
-## 📋 Overview
-
-APK Arena is a Flutter-based mobile benchmark app designed to test AI agents across multiple dimensions:
-- **Device Interaction Skills** - Touch, swipe, gestures, and fine-grained control
-- **Task Solving** - UI navigation and complex multi-step flows
-- **Vision Capabilities** - Image recognition and spatial awareness
-- **Model IQ** - Logic, pattern recognition, problem-solving
-- **Memory** - Multi-step task retention
-
-## 🎯 Project Purpose 
-This app serves as a lightweight, easy-to-deploy alternative to complex benchmarks like Android World. It can be installed in 30 seconds and immediately used to test mobile AI agents.
-
-As the project matures into a proper benchmark, evaluation quality matters as much as the UI. A level is not finished just because it is playable: it should produce a defensible score and a small set of useful metrics.
+APK Arena is a Flutter-based mobile benchmark app designed to test AI agents across multiple dimensions.
 
 ## 📁 Project Structure
 ```
@@ -313,20 +301,3 @@ ContactListItem(
   onTap: () => handleTap(),
 )
 ```
-
-## 🚀 Quick Start Checklist
-
-For AI agents creating a new level:
-
-- [ ] Read this entire document
-- [ ] Look at 2-3 existing levels for patterns
-- [ ] Choose appropriate difficulty tier
-- [ ] Create level file in `lib/widgets/levels/`
-- [ ] Extend `LevelWidget` base class
-- [ ] Implement `widget.onComplete(bool)` calls
-- [ ] Add cultural references / humor (gaming, memes, sci-fi)
-- [ ] Register in `level_registry.dart`
-- [ ] Write clever title (don't spoil solution!)
-- [ ] Write clear instructions
-- [ ] Test thoroughly
-- [ ] Check theme consistency

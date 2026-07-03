@@ -1,33 +1,41 @@
-# 🏆 APK_ARENA 🤖
+![APK ARENA - A Benchmark App for Mobile AI Agents](assets/docs/thumbnail.png)
 
-**A Benchmark App for Mobile AI Agents**
+APK arena is an open benchmark for **vision-based phone use AI agents** — a native Android/iOS app you can set up in 30 seconds and run against any agent harness.
 
-While existing benchmarks like Android World provide comprehensive testing environments, they come with significant overhead: they are complex to setup and take forever before you can run a single task.
+Check out the results we achieve with our harness or get the app and run the benchmark yourself! 
 
-Inspired by  [webgames](https://webgames.convergence.ai/) from convergence, we wanted something simpler:
-
-APK Arena is a native Android/iOS app that you can install in 30 seconds. Just download, run, and start testing your mobile agent.
+---
 
 ## 📖 Overview
 
-APK Arena is a benchmark application designed to evaluate mobile AI agents across multiple critical dimensions:
-- **🎯 Device Interaction Skills** - Testing touch, swipe and complex gesture handling and fine-grained control
-- **📱 Task Solving and Understanding** - Evaluating UI navigation and task solving capabilities through complex mobile interfaces
-- **👁️ Vision Capabilities** - Assessing image recognition, spatial awareness, and visual problem-solving
-- **🧠 Model IQ** - Measuring logical reasoning, pattern recognition, and problem-solving abilities
-- **💾 Memory** - Testing retention over multi-step task completion
+While existing benchmarks like [Android World](https://github.com/google-research/android_world) provide comprehensive testing environments, they come with an annoying and complex setup and on top of that they are slowly saturated. So, inspired by the [WebGames](https://webgames.convergence.ai/) we developed our own, fast to setup and easy to use benchmark. 
 
-The app presents agents with increasingly complex challenges across three difficulty tiers, from simple button clicks to intricate multi-step flows.
+![different levels](assets/docs/phones.gif)
 
-## 🎯 Try It With Your Agent!
+Most levels came out of a real problem we hit building our harness and agents in production at nunu.ai, e.g. gestures that kept failing, a game our agents played badly, a task we could not complete reliably. 
 
-Got a mobile AI agent? Put it to the test!
-1. Install APK Arena on an emulator or real device
-2. Point your agent at the app
-3. Tell it to solve as many levels as possible
-4. Share your results or new level ideas!
+Each level is an isolated game, task or challenge that gets automatically scored between 0 and 100 based on the key metrics we are interested in. For games it can be score, for tasks it can be mistakes or time, for interactions etc it is swipes, for vision accuracy etc.
 
-## 🚀 Getting Started
+![different levels](assets/docs/categories.png)
+
+We feature 50+ levels across 7 categories:
+
+| Category | What it tests |
+|---|---|
+| 👆 **Primitives** | Basic touchscreen control and fine motor accuracy — tapping, swiping, complex gestures |
+| 👁️ **Vision** | Reading the screen: counting, matching, visual search |
+| 🧠 **Memory** | Detecting important information and recalling it across long tasks |
+| 🧩 **IQ** | Reasoning and rule induction, mostly puzzles |
+| ⏱️ **Tempospatial** | Temporal and spatial reasoning |
+| 🎮 **Games** | Multi-step games requiring strategy |
+| ✅ **Tasks** | Real workflows: using phone UI, following multi-step instructions |
+
+
+---
+
+## 🎨 Creating your own Levels
+
+### 🚀 Setup
 
 **Prerequisites**
 - Flutter SDK
@@ -52,8 +60,8 @@ flutter build apk --release
 flutter build ios --release
 ```
 
-## 🎨 Creating Levels
-**Step 1: Create Your Level Widget**
+
+### ⌨️ Coding a new Level
 
 Create a new level file `lib/widgets/levels/level_click.dart`. Make sure the level starts with `level_`. Now make a new Widget that extends `LevelWidget`.
 
@@ -61,6 +69,7 @@ In `Widget build(BuildContext context)` you can render anything you want and don
 
 ```dart
 import 'package:flutter/material.dart';
+import 'package:apk_arena/models/level_outcome.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 
@@ -72,15 +81,11 @@ class LevelYourChallenge extends LevelWidget {
 }
 
 class _LevelYourChallengeState extends State<LevelYourChallenge> {
-  // Your state variables
-  int _attempts = 0;
-  
   void _handleSuccess() {
-    // Validate completion criteria
     if (/* success condition */) {
-      widget.onComplete(true);  // Success!
+      widget.onComplete(LevelOutcome(score: 1));  // perfect run
     } else {
-      widget.onComplete(false); // Failure
+      widget.onComplete(LevelOutcome(score: 0));  // failure
     }
   }
 
@@ -106,8 +111,10 @@ Give your level a title and instructions, but make sure the title doesn't spoil 
 ```dart
 import 'package:apk_arena/widgets/levels/level_your_challenge.dart';
 
-final List<LevelEntry> easyLevels = [
-  // ... existing levels
+// Choose the correct category list in level_registry.dart:
+// primitivesLevels, visionLevels, memoryLevels, iqLevels,
+// tempospatialLevels, gamesLevels, or tasksLevels
+
   LevelEntry(
     data: LevelData(
       title: "Your Challenge Name",
@@ -115,13 +122,12 @@ final List<LevelEntry> easyLevels = [
     ),
     widgetBuilder: (onComplete) => LevelYourChallenge(onComplete: onComplete),
   ),
-];
 ```
 
 **Step 3: Test Your Level**
 Run the app, find your level and test it
 
-## Structure
+## 🗂️ Structure
 ```
 lib/
 ├── services/
@@ -148,10 +154,6 @@ lib/
 └── level_registry.dart            # Central level management
 ```
 
-## 📝 License
-This project is licensed under the MIT License - see the LICENSE file for details.
+---
 
 Made with ❤️ by the nunu.ai team - for better mobile agents
-
-
-
