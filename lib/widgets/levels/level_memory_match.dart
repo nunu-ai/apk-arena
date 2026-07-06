@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
@@ -69,7 +70,7 @@ class _LevelMemoryMatchState extends State<LevelMemoryMatch> {
     ),
   ];
 
-  final Random _rand = Random();
+  final Random _rand = SeedService.instance.createRandom();
   late final List<String> _stageOneDeck;
   late final List<_StageStats> _stats;
 

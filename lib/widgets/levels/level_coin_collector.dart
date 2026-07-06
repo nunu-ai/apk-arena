@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
@@ -13,7 +14,7 @@ class LevelCoinCollector extends LevelWidget {
 }
 
 class _LevelCoinCollectorState extends State<LevelCoinCollector> {
-  final Random _random = Random();
+  final Random _random = SeedService.instance.createRandom();
   late int _targetCoinCount;
   late List<Offset> _coinPositions;
   late List<bool> _coinCollected;

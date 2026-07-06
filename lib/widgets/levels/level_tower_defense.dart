@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
@@ -408,7 +409,7 @@ class _LevelTowerDefenseState extends State<LevelTowerDefense>
     const Point(3, 10),
   };
 
-  final Random _random = Random();
+  final Random _random = SeedService.instance.createRandom();
 
   late DateTime _startedAt;
   Ticker? _ticker;

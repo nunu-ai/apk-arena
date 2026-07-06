@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -15,7 +16,7 @@ class LevelEmojiCountFlags extends LevelWidget {
 }
 
 class _LevelEmojiCountFlagsState extends State<LevelEmojiCountFlags> {
-  final Random _rand = Random();
+  final Random _rand = SeedService.instance.createRandom();
 
   // stage definitions: (min, max) inclusive flag counts
   static const List<(int, int)> _stages = [

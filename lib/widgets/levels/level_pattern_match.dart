@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
@@ -23,7 +24,7 @@ class _LevelPatternMatchState extends State<LevelPatternMatch> {
     0.01,
   ];
 
-  final Random _random = Random();
+  final Random _random = SeedService.instance.createRandom();
 
   int _stageIndex = 0;
   double _score = 0;

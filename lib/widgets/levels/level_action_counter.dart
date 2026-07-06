@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +23,7 @@ class _ButtonSpec {
 }
 
 class _LevelActionCounterState extends State<LevelActionCounter> {
-  final Random _rng = Random();
+  final Random _rng = SeedService.instance.createRandom();
   static const _swapChance = 0.35;
   static const _totalStages = 5;
 

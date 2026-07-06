@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
@@ -112,7 +113,7 @@ class _LevelBingoState extends State<LevelBingo> with TickerProviderStateMixin {
     ),
   ];
 
-  final Random _random = Random();
+  final Random _random = SeedService.instance.createRandom();
   final Stopwatch _trayStopwatch = Stopwatch();
 
   late List<_BingoCardState> _cards;

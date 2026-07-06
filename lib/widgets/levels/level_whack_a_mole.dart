@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:apk_arena/models/level_outcome.dart';
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../level_widget.dart';
@@ -48,7 +49,7 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
   int? _lastWhackedIndex;
   Timer? _whackFeedbackTimer;
 
-  final _rng = Random();
+  final _rng = SeedService.instance.createRandom();
 
   @override
   void dispose() {

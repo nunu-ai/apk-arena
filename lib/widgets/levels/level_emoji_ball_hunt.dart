@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
@@ -32,7 +33,7 @@ class LevelEmojiBallHunt extends LevelWidget {
 }
 
 class _LevelEmojiBallHuntState extends State<LevelEmojiBallHunt> {
-  final Random _rand = Random();
+  final Random _rand = SeedService.instance.createRandom();
 
   // stage 1: balls among faces — high contrast
   // stage 2: balls among colorful round emojis — medium contrast

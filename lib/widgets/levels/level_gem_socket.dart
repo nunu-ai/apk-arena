@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import '../level_components/level_hud.dart';
@@ -29,7 +30,7 @@ class _LevelGemSocketState extends State<LevelGemSocket>
   int _lives = _maxLives;
   bool _layoutReady = false;
   bool _levelFinished = false;
-  final Random _rng = Random();
+  final Random _rng = SeedService.instance.createRandom();
 
   bool _isDragging = false;
   bool _isPlaced = false;

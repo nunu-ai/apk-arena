@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
@@ -57,7 +58,7 @@ class _LevelOddOneOutState extends State<LevelOddOneOut> {
     super.initState();
     widget.registerPartialScoreGetter(
         () => LevelOutcome(score: _rounds.isEmpty ? 0.0 : (_correctAnswers / _rounds.length).clamp(0.0, 1.0)));
-    _rounds = _buildRounds(Random());
+    _rounds = _buildRounds(SeedService.instance.createRandom());
   }
 
   List<_IqRound> _buildRounds(Random rng) {

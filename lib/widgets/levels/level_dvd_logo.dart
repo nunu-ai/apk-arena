@@ -5,6 +5,7 @@ import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 import '../level_components/level_hud.dart';
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 
 class LevelDvdLogo extends LevelWidget {
   const LevelDvdLogo({Key? key, required super.onComplete}) : super(key: key);
@@ -39,7 +40,7 @@ class _LevelDvdLogoState extends State<LevelDvdLogo>
 
   // Visuals
   Color _color = Colors.red;
-  final _rng = Random();
+  final _rng = SeedService.instance.createRandom();
 
   static const _ballSize = 70.0; // sphere diameter for stage 3
   static const _logoW = 100.0;

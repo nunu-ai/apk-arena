@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -209,7 +210,7 @@ class _LevelLinkChainState extends State<LevelLinkChain>
   static const double _dropDurationSec = 0.32;
 
   // --- gameplay state ---
-  final Random _rng = Random();
+  final Random _rng = SeedService.instance.createRandom();
   late List<List<_Cell>> _board;
   late List<List<_DropAnim?>> _drops;
   final List<List<int>> _chain = []; // [row, col] pairs

@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -15,7 +16,7 @@ class LevelEmojiCountFruits extends LevelWidget {
 }
 
 class _LevelEmojiCountFruitsState extends State<LevelEmojiCountFruits> {
-  final Random _rand = Random();
+  final Random _rand = SeedService.instance.createRandom();
 
   // each stage: (targetMin, targetMax, distractorTypes, distractorPerType)
   static const List<(int, int, int, int)> _stages = [

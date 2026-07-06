@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
@@ -96,7 +97,7 @@ class _LevelSnakeState extends State<LevelSnake> {
   bool _gameOver = false;
   bool _started = false;
   bool _finishing = false;
-  final _rng = Random();
+  final _rng = SeedService.instance.createRandom();
 
   _StageConfig get _config => _stageConfigs[_stageIndex];
 
