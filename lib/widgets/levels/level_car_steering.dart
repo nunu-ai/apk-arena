@@ -4,6 +4,7 @@ import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 import '../level_components/level_hud.dart';
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 
 class Obstacle {
   double x; // 0.0 to 1.0 normalized horizontal position
@@ -29,7 +30,7 @@ class LevelCarSteering extends LevelWidget {
 class _LevelCarSteeringState extends State<LevelCarSteering>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  final Random _random = Random();
+  final Random _random = SeedService.instance.createRandom();
 
   // Game state
   double _carX = 0.5; // normalized 0.0 to 1.0

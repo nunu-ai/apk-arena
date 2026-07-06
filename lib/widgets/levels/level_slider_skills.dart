@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
@@ -25,7 +26,7 @@ class _LevelSliderSkillsState extends State<LevelSliderSkills> {
   static const Color _subtleGrey = Color(0xFF9CA3AF);
   static const double _reactorTargetMin = 0.45;
   static const double _reactorTargetMax = 0.55;
-  final Random _rng = Random();
+  final Random _rng = SeedService.instance.createRandom();
 
   int _stage = 0;
   int _submitAttempts = 0;

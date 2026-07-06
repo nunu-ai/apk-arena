@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
@@ -45,7 +46,7 @@ class _LevelSwipeDirectionsState extends State<LevelSwipeDirections> {
   bool _bannerPassedThroughGap = false;
   bool _bannerGestureDead = false;
 
-  final Random _rng = Random();
+  final Random _rng = SeedService.instance.createRandom();
   late List<String> _cardinalSeq;
 
   /// Min swipe length (px); rises each cardinal so later steps need a fuller swipe.

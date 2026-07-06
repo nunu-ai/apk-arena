@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +23,7 @@ class _LevelScrabbleState extends State<LevelScrabble> {
   static const int _targetScore = 450;
   static const Duration _runDuration = Duration(minutes: 30);
 
-  final Random _rng = Random();
+  final Random _rng = SeedService.instance.createRandom();
   final TransformationController _boardController = TransformationController();
   final List<List<_PlacedTile?>> _board = List.generate(
     _size,

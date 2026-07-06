@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
@@ -268,7 +269,7 @@ class _LevelCascadeProtocolState extends State<LevelCascadeProtocol> {
     ),
   ];
 
-  final Random _random = Random();
+  final Random _random = SeedService.instance.createRandom();
 
   late List<List<_BoardCell?>> _board;
   late DateTime _startedAt;

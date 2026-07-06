@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
@@ -69,7 +70,7 @@ class _LevelMegaMergeState extends State<LevelMegaMerge> {
   static const Duration _energyRegenInterval = Duration(seconds: 5);
   static const Duration _runDuration = Duration(minutes: 30);
 
-  final Random _random = Random();
+  final Random _random = SeedService.instance.createRandom();
   final Set<int> _manuallyUnlockedIndices = {};
   final Map<int, GlobalKey> _cellKeys = {};
   final Set<int> _unlockedTiers = {1};

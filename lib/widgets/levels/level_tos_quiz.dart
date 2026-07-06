@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
@@ -74,7 +75,7 @@ class _LevelTosQuizState extends State<LevelTosQuiz> {
       }
     });
 
-    final rand = Random();
+    final rand = SeedService.instance.createRandom();
 
     final emailLocals = [
       'legal',

@@ -7,6 +7,7 @@ import 'services/analytics_service.dart';
 import 'theme/app_theme.dart';
 import 'services/deeplink_service.dart';
 import 'services/navigation.dart';
+import 'services/seed_service.dart';
 import 'level_registry.dart';
 
 void main() async {
@@ -30,7 +31,9 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  // Track last URI + when it was handled to allow resending same link later
   String? _lastHandledUri;
+  DateTime? _lastHandledAt;
 
   @override
   void initState() {
@@ -38,7 +41,7 @@ class _MyAppState extends State<MyApp> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final uri = await DeeplinkService.instance.getInitialLink();
       if (uri != null) {
-        _handleUri(uri);
+        _handleUri(uri, fromColdStart: true);
       }
       DeeplinkService.instance.linkStream.listen((uri) {
         _handleUri(uri);
@@ -46,12 +49,30 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-  void _handleUri(Uri uri) {
+  void _handleUri(Uri uri, {bool fromColdStart = false}) {
     final s = uri.toString();
-    if (_lastHandledUri == s) return;
+    final now = DateTime.now();
+    // Dedup only within 1 second — prevents double-fire on cold start
+    // but allows resending the same link when the app is already open
+    if (_lastHandledUri == s &&
+        _lastHandledAt != null &&
+        now.difference(_lastHandledAt!).inMilliseconds < 1000) {
+      return;
+    }
     _lastHandledUri = s;
+    _lastHandledAt = now;
+
+    final seedParam = uri.queryParameters['seed'];
+    if (seedParam != null) {
+      SeedService.instance.setSeedFromString(seedParam);
+    }
+
     final link = _parseLevelLink(uri);
     if (link != null) {
+      // Pop back to root first so deeplinks always start from a clean state
+      if (!fromColdStart) {
+        appNavigatorKey.currentState?.popUntil((route) => route.isFirst);
+      }
       navigateToLevel(link.levelNumber, attemptsRemaining: link.attemptsRemaining);
     }
   }

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
@@ -69,7 +70,7 @@ class _LevelMarioPlatformerState extends State<LevelMarioPlatformer>
   late final AnimationController _ticker;
   Timer? _sessionTimer;
   late DateTime _sessionEndsAt;
-  final _rng = Random();
+  final _rng = SeedService.instance.createRandom();
 
   final List<_Platform> _platforms = [];
 

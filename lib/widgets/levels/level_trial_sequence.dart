@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
@@ -55,7 +56,7 @@ class _LevelTrialSequenceState extends State<LevelTrialSequence>
     '🌈',
   ];
 
-  final Random _random = Random();
+  final Random _random = SeedService.instance.createRandom();
 
   late final AnimationController _shakeController;
   late final Animation<double> _shakeOffset;

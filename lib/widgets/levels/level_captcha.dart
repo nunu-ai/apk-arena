@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
@@ -34,7 +35,7 @@ class _LevelCaptchaState extends State<LevelCaptcha> {
   bool _stageActionLocked = false;
   bool _isFinished = false;
 
-  final Random _rng = Random();
+  final Random _rng = SeedService.instance.createRandom();
   final Stopwatch _playSw = Stopwatch();
 
   // Stage scoring:

@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
@@ -54,7 +55,7 @@ class LevelEyeChart extends LevelWidget {
 }
 
 class _LevelEyeChartState extends State<LevelEyeChart> {
-  final _rand = Random();
+  final _rand = SeedService.instance.createRandom();
   final _controller = TextEditingController();
 
   static const List<_StageConfig> _stages = [

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:apk_arena/models/level_outcome.dart';
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 import 'package:flutter/material.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
@@ -22,7 +23,7 @@ class _LevelSequenceMemoryState extends State<LevelSequenceMemory>
   static const Duration _initialTime = Duration(minutes: 10);
   static const Duration _bonusTime = Duration(minutes: 3);
 
-  final Random _random = Random();
+  final Random _random = SeedService.instance.createRandom();
 
   List<int> _sequence = [];
   int _currentInputIndex = 0;

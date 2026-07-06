@@ -4,6 +4,7 @@ import '../level_components/level_hud.dart';
 import '../level_widget.dart';
 import '../../theme/app_theme.dart';
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 
 class LevelConnectTheDots extends LevelWidget {
   const LevelConnectTheDots({super.key, required super.onComplete});
@@ -56,7 +57,7 @@ class _LevelConnectTheDotsState extends State<LevelConnectTheDots> {
   void _generateDots(Size size, {bool force = false}) {
     if (!force && _dotPositions.isNotEmpty) return;
 
-    final random = Random();
+    final random = SeedService.instance.createRandom();
     _dotPositions.clear();
     _connectedPositions.clear();
     _linePoints.clear();

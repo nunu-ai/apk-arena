@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
@@ -45,7 +46,7 @@ class _LevelClickAccuracyState extends State<LevelClickAccuracy> {
     1, // round 20
   ];
 
-  final Random _rng = Random();
+  final Random _rng = SeedService.instance.createRandom();
 
   /// Successful hits so far (0 … roundCount); size uses this index clamped to roundCount - 1.
   int _roundIndex = 0;

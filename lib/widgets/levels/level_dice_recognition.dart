@@ -6,6 +6,7 @@ import '../../theme/app_theme.dart';
 import '../level_components/dice.dart';
 import '../level_components/level_hud.dart';
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 
 /// Per-stage config.
 class _StageConfig {
@@ -81,7 +82,7 @@ class _LevelDiceRecognitionState extends State<LevelDiceRecognition> {
     ), // 10: dense endgame
   ];
 
-  final _rand = Random();
+  final _rand = SeedService.instance.createRandom();
   final _controller = TextEditingController();
 
   int _stageIndex = 0;

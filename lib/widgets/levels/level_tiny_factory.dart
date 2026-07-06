@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:apk_arena/services/seed_service.dart';
 
 import 'package:apk_arena/models/level_outcome.dart';
 import 'package:flutter/material.dart';
@@ -750,7 +751,7 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
   }
 
   void _generateMap() {
-    final rng = Random();
+    final rng = SeedService.instance.createRandom();
     _hubAnchor = const Point((_kCols - 3) ~/ 2, (_kRows - 3) ~/ 2);
     final hub = _Machine(
       id: _nextId++,
