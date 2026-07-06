@@ -25,6 +25,7 @@ jobs:
         with:
           channel: stable
           cache: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get dependencies
         run: flutter pub get
