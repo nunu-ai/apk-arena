@@ -239,8 +239,8 @@ final List<LevelEntry> iqLevels = [
   LevelEntry(
     data: LevelData(
       title: "push-box gauntlet",
-      instructions: "push the boxes into the holes.",
-      timeLimit: Duration(minutes: 30),
+      instructions: "push the boxes into the holes. mind the gates.",
+      timeLimit: Duration(minutes: 60),
     ),
     widgetBuilder: (onComplete) => LevelPushBoxCampaign(onComplete: onComplete),
   ),
