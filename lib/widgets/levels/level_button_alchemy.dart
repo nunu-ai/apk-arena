@@ -7,34 +7,40 @@ import '../level_components/level_hud.dart';
 
 class LevelButtonAlchemy extends LevelWidget {
   const LevelButtonAlchemy({Key? key, required super.onComplete})
-    : super(key: key);
+      : super(key: key);
 
   @override
   State<LevelButtonAlchemy> createState() => _LevelButtonAlchemyState();
+}
+
+class _ButtonDef {
+  // cycle: ops applied in rotation on each press (length=1 → fixed op)
+  final List<int Function(int)> cycle;
+  final int? maxUses; // null = unlimited
+
+  _ButtonDef(this.cycle, {this.maxUses});
+
+  bool get isAlternating => cycle.length > 1;
+  bool get hasLimit => maxUses != null;
 }
 
 class _Stage {
   final String name;
   final int startValue;
   final int target;
-  final List<int Function(int)> ops;
+  final List<_ButtonDef> buttons;
   final int? modulus;
 
   _Stage({
     required this.name,
     required this.startValue,
     required this.target,
-    required this.ops,
+    required this.buttons,
     this.modulus,
   });
 }
 
 class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
-  // One press per button is enough to learn what each operation does
-  // (and `reset value` is free), so a skilled run only needs the optimal
-  // path plus this small discovery budget. Anything beyond that is waste.
-  static const int _discoveryPressesPerButton = 1;
-  static const int _numButtons = 3;
   static const int _maxVal = 9999;
   static const _buttonLabels = ['a', 'b', 'c'];
   static const _buttonColors = [
@@ -44,139 +50,176 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
   ];
 
   late final List<_Stage> _stages;
-  late final List<int> _optimalMoves;
 
   int _stageIndex = 0;
   int _value = 1;
   int _moveCount = 0;
+  int _resetCount = 0; // resets this stage; first one is free
   bool _stageComplete = false;
   bool _finished = false;
   final List<double> _stageScores = [];
   final Map<String, dynamic> _metrics = {};
 
+  // [stageIndex][buttonIndex] = total press count for that button this stage.
+  // NOT reset when the user resets value — intentional, keeps cycling/limited tricky.
+  late List<List<int>> _buttonPressCounts;
+
   @override
   void initState() {
     super.initState();
+    _stages = _buildStages();
+    _buttonPressCounts =
+        _stages.map((s) => List<int>.filled(s.buttons.length, 0)).toList();
+    _value = _stages.first.startValue;
+
     widget.registerPartialScoreGetter(
       () => LevelOutcome(
-        score: _stageScores.fold(0.0, (s, v) => s + v) / _stages.length,
+        score: _stageScores.isEmpty
+            ? 0
+            : _stageScores.fold(0.0, (s, v) => s + v) / _stages.length,
         metrics: {'stage_reached': _stageIndex + 1},
       ),
     );
-    _stages = [
-      _Stage(
-        name: 'easy',
-        startValue: 1,
-        target: 100,
-        ops: [(v) => v * 2, (v) => v - 5, (v) => v + 7],
-      ),
-      _Stage(
-        name: 'medium',
-        startValue: 1,
-        target: 200,
-        ops: [(v) => v * 3, (v) => v - 8, (v) => v + 15],
-      ),
-      _Stage(
-        name: 'hard',
-        startValue: 1,
-        target: 173,
-        ops: [(v) => v * 3, (v) => v + 29, (v) => v * 7],
-        modulus: 256,
-      ),
-    ];
-    _optimalMoves = _stages.map(_bfs).toList();
-    _value = _stages.first.startValue;
   }
 
-  // ── core logic ──
+  List<_Stage> _buildStages() => [
+    // ── Stage 1: fixed ops, non-trivial target ────────────────────────────
+    // Optimal path is 8 moves: ×3, +7, ×3, ×3, +7, +7, ×3, +7 = 319.
+    // The C button (−2) is a red herring — not needed for optimal.
+    _Stage(
+      name: 'basics',
+      startValue: 1,
+      target: 319,
+      buttons: [
+        _ButtonDef([(v) => v * 3]),
+        _ButtonDef([(v) => v + 7]),
+        _ButtonDef([(v) => v - 2]),
+      ],
+    ),
 
-  int _applyOp(_Stage stage, int value, int opIndex) {
-    int result = stage.ops[opIndex](value);
-    if (stage.modulus != null) {
-      result = result % stage.modulus!;
-    }
-    return result.clamp(0, stage.modulus ?? _maxVal);
-  }
+    // ── Stage 2: modular arithmetic ───────────────────────────────────────
+    // Values wrap at 128. Overflowing intentionally is key.
+    _Stage(
+      name: 'modular',
+      startValue: 1,
+      target: 77,
+      modulus: 128,
+      buttons: [
+        _ButtonDef([(v) => v * 3]),
+        _ButtonDef([(v) => v * 2]),
+        _ButtonDef([(v) => v + 11]),
+      ],
+    ),
 
-  int _bfs(_Stage stage) {
-    final start = stage.startValue;
-    final target = stage.target;
-    if (start == target) return 0;
+    // ── Stage 3: alternating button ───────────────────────────────────────
+    // Button A cycles ×2 / ×3 on alternate presses. Parity is NOT reset
+    // when you reset the value — so you must track A's press count globally.
+    _Stage(
+      name: 'flip-flop',
+      startValue: 2,
+      target: 96,
+      buttons: [
+        _ButtonDef([(v) => v * 2, (v) => v * 3]),
+        _ButtonDef([(v) => v + 5]),
+        _ButtonDef([(v) => v - 1]),
+      ],
+    ),
 
-    final visited = <int>{start};
-    var frontier = [start];
-    int depth = 0;
-    final upperBound = stage.modulus != null ? stage.modulus! - 1 : _maxVal;
+    // ── Stage 4: conditional (Collatz) ───────────────────────────────────
+    // Button A halves even values and does ×3+1 on odd. Both branches must
+    // be observed — which means engineering an odd value first via B or C.
+    _Stage(
+      name: 'collatz',
+      startValue: 12,
+      target: 1,
+      buttons: [
+        _ButtonDef([(v) => v.isEven ? v ~/ 2 : v * 3 + 1]),
+        _ButtonDef([(v) => v + 1]),
+        _ButtonDef([(v) => v + 8]),
+      ],
+    ),
 
-    while (frontier.isNotEmpty && depth < 1000) {
-      depth++;
-      final next = <int>[];
-      for (final v in frontier) {
-        for (int i = 0; i < stage.ops.length; i++) {
-          final nv = _applyOp(stage, v, i);
-          if (nv == target) return depth;
-          if (nv >= 0 && nv <= upperBound && visited.add(nv)) {
-            next.add(nv);
-          }
-        }
-      }
-      frontier = next;
-    }
-    return 999;
-  }
+    // ── Stage 5: demon tier ───────────────────────────────────────────────
+    // A runs a 4-cycle: ×2 → +11 → ×3 → −17 → repeat. You need 4 presses
+    // to see the full pattern — and presses are rationed. Button B looks like
+    // it always subtracts 4, but jumps +31 when value is divisible by 5.
+    // The optimal path lands on 255 (÷5=0) and uses B's secret branch once.
+    // Every press is permanent — reset restores value but not uses.
+    _Stage(
+      name: 'demon',
+      startValue: 1,
+      target: 286,
+      buttons: [
+        _ButtonDef([(v) => v * 2, (v) => v + 11, (v) => v * 3, (v) => v - 17],
+            maxUses: 8),
+        _ButtonDef([(v) => v % 5 == 0 ? v + 31 : v - 4], maxUses: 6),
+        _ButtonDef([(v) => v * 2], maxUses: 3),
+      ],
+    ),
+  ];
 
-  void _pressOp(int opIndex) {
+  // ── game logic ────────────────────────────────────────────────────────────
+
+  void _pressOp(int btnIdx) {
     if (_stageComplete || _finished) return;
     final stage = _stages[_stageIndex];
+    final btn = stage.buttons[btnIdx];
+    final counts = _buttonPressCounts[_stageIndex];
+
+    if (btn.maxUses != null && counts[btnIdx] >= btn.maxUses!) return;
+
+    final opIdx = counts[btnIdx] % btn.cycle.length;
+    int result = btn.cycle[opIdx](_value);
+    if (stage.modulus != null) result = result % stage.modulus!;
+    result = result.clamp(0, stage.modulus ?? _maxVal);
+
     setState(() {
-      _value = _applyOp(stage, _value, opIndex);
+      _buttonPressCounts[_stageIndex][btnIdx]++;
+      _value = result;
       _moveCount++;
     });
-    if (_value == stage.target) {
-      _onStageCleared();
-    }
+
+    if (_value == stage.target) _onStageCleared();
   }
 
   void _reset() {
     if (_stageComplete || _finished) return;
     HapticFeedback.selectionClick();
-    setState(() => _value = _stages[_stageIndex].startValue);
+    // Resets value only — button press counts and remaining uses stay.
+    setState(() {
+      _value = _stages[_stageIndex].startValue;
+      _resetCount++;
+    });
   }
 
   void _onStageCleared() {
     HapticFeedback.mediumImpact();
-    final optimal = _optimalMoves[_stageIndex];
-    final par = optimal + _discoveryPressesPerButton * _numButtons;
-    final score = _scoreForMoves(moves: _moveCount, par: par);
+    final score = _scoreForResets(_resetCount);
     _stageScores.add(score);
-    _recordStageMetrics(skipped: false);
-
+    _recordStageMetrics();
     setState(() => _stageComplete = true);
-
-    Future.delayed(const Duration(milliseconds: 1400), () {
+    Future.delayed(const Duration(milliseconds: 1600), () {
       if (!mounted) return;
       _advanceOrFinish();
     });
   }
 
-  double _scoreForMoves({required int moves, required int par}) {
-    if (moves <= par) return 1.0;
-    // Steep quadratic falloff past par: taking twice the allowed moves
-    // drops the stage to a quarter score, so wasted presses hurt fast.
-    final ratio = par / moves;
-    return (ratio * ratio).clamp(0.0, 1.0);
+  // First reset is free. Each additional reset costs 0.25.
+  // 0–1 resets → 1.0, 2 → 0.75, 3 → 0.50, 4 → 0.25, 5+ → 0.0
+  double _scoreForResets(int resets) {
+    return (1.0 - 0.25 * (resets - 1).clamp(0, 4)).clamp(0.0, 1.0);
   }
 
   void _skipStage() {
     if (_stageComplete || _finished) return;
-    _stageScores.add(0);
-    _recordStageMetrics(skipped: true);
+    _stageScores.add(0.0);
+    _recordStageMetrics();
     _advanceOrFinish();
   }
 
-  void _recordStageMetrics({required bool skipped}) {
+  void _recordStageMetrics() {
     final i = _stageIndex + 1;
-    _metrics['stage_${i}_moves'] = _moveCount;
+    _metrics['stage_${i}_resets'] = _resetCount;
     _metrics['stage_${i}_score'] = double.parse(
       _stageScores.last.toStringAsFixed(2),
     );
@@ -188,6 +231,7 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
         _stageIndex++;
         _value = _stages[_stageIndex].startValue;
         _moveCount = 0;
+        _resetCount = 0;
         _stageComplete = false;
       });
     } else {
@@ -198,22 +242,21 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
   void _finish() {
     if (_finished) return;
     _finished = true;
-
     while (_stageScores.length < _stages.length) {
-      _stageScores.add(0);
+      _stageScores.add(0.0);
     }
-
-    final avgScore = _stageScores.fold(0.0, (a, b) => a + b) / _stages.length;
+    final avgScore =
+        _stageScores.fold(0.0, (a, b) => a + b) / _stages.length;
     widget.onComplete(
       LevelOutcome(
         score: avgScore,
         metrics: {
           for (int i = 1; i <= _stages.length; i++)
             'stage_${i}_score': _metrics['stage_${i}_score'] ?? 0,
-          'total_moves': [
+          'total_resets': [
             for (int i = 1; i <= _stages.length; i++)
-              (_metrics['stage_${i}_moves'] as int?) ?? 0,
-          ].fold<int>(0, (sum, moves) => sum + moves),
+              (_metrics['stage_${i}_resets'] as int?) ?? 0,
+          ].fold<int>(0, (sum, r) => sum + r),
         },
         visibleMetricKeys: [
           for (int i = 1; i <= _stages.length; i++) 'stage_${i}_score',
@@ -222,7 +265,7 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
     );
   }
 
-  // ── build ──
+  // ── build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -258,14 +301,8 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
                       const SizedBox(height: 16),
                       Row(
                         children: List.generate(
-                          _numButtons,
-                          (i) => _buildOpButton(
-                            label: _buttonLabels[i],
-                            onPressed: _stageComplete
-                                ? null
-                                : () => _pressOp(i),
-                            color: _buttonColors[i],
-                          ),
+                          stage.buttons.length,
+                          (i) => _buildOpButton(i, stage),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -279,16 +316,21 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
                               size: 18,
                               color: NunuColors.errorLight,
                             ),
-                            label: const Text(
-                              'reset value',
-                              style: TextStyle(color: NunuColors.errorLight),
+                            label: Text(
+                              _resetCount == 0
+                                  ? 'reset value'
+                                  : 'reset value  ($_resetCount)',
+                              style:
+                                  const TextStyle(color: NunuColors.errorLight),
                             ),
                           ),
                           TextButton(
                             onPressed: _stageComplete ? null : _skipStage,
                             child: const Text(
                               'skip stage',
-                              style: TextStyle(color: NunuColors.textSecondary),
+                              style: TextStyle(
+                                color: NunuColors.textSecondary,
+                              ),
                             ),
                           ),
                         ],
@@ -317,6 +359,8 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
   }
 
   Widget _buildStageCompleteContent(TextTheme textTheme) {
+    final resets = _resetCount;
+    final score = _stageScores.last;
     return Column(
       children: [
         const SizedBox(height: 8),
@@ -328,7 +372,11 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
         ),
         const SizedBox(height: 4),
         Text(
-          '$_moveCount moves',
+          resets == 0
+              ? 'no resets — perfect'
+              : resets == 1
+                  ? '1 reset (free)'
+                  : '$resets resets  ·  score ${(score * 100).round()}%',
           style: textTheme.bodyMedium?.copyWith(
             color: NunuColors.textSecondary,
           ),
@@ -379,7 +427,9 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
             Expanded(
               child: Text(
                 _value.toString(),
-                style: textTheme.headlineMedium?.copyWith(color: Colors.white),
+                style: textTheme.headlineMedium?.copyWith(
+                  color: Colors.white,
+                ),
               ),
             ),
             Container(
@@ -402,24 +452,45 @@ class _LevelButtonAlchemyState extends State<LevelButtonAlchemy> {
     );
   }
 
-  Widget _buildOpButton({
-    required String label,
-    required VoidCallback? onPressed,
-    required Color color,
-  }) {
+  Widget _buildOpButton(int idx, _Stage stage) {
+    final btn = stage.buttons[idx];
+    final counts = _buttonPressCounts[_stageIndex];
+    final usesLeft =
+        btn.maxUses != null ? btn.maxUses! - counts[idx] : null;
+    final exhausted = usesLeft != null && usesLeft <= 0;
+    final color = _buttonColors[idx % _buttonColors.length];
+    final enabled = !_stageComplete && !exhausted;
+
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 6),
         child: ElevatedButton(
-          onPressed: onPressed,
+          onPressed: enabled ? () => _pressOp(idx) : null,
           style: ElevatedButton.styleFrom(
-            backgroundColor: color.withValues(
-              alpha: onPressed != null ? 0.7 : 0.25,
-            ),
+            backgroundColor: color.withValues(alpha: enabled ? 0.7 : 0.2),
             foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            padding: const EdgeInsets.symmetric(vertical: 14),
           ),
-          child: Text(label),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_buttonLabels[idx]),
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  usesLeft != null ? '×$usesLeft left' : '',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: usesLeft != null
+                        ? (usesLeft <= 1
+                            ? NunuColors.errorLight
+                            : NunuColors.textSecondary)
+                        : Colors.transparent,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -8,8 +8,15 @@ import '../../theme/app_theme.dart';
 import '../level_components/level_hud.dart';
 import '../level_widget.dart';
 
-/// Sokoban-style campaign: five hardcoded boards, gated progression,
-/// internal budget starting at 15:00 with +3:00 after each solved board.
+/// Sokoban-style campaign: twelve hardcoded boards, gated progression,
+/// internal budget starting at 15:00 with +4:00 after each solved board.
+///
+/// The back half introduces pressure plates and gates: a plate opens all
+/// gates of its color while a crate (or the player) stands on it. Gates
+/// never crush — anything standing on a gate cell can always move out.
+///
+/// Every board is solvability-verified by a BFS solver against these exact
+/// movement rules; do not edit a board without re-verifying it.
 class LevelPushBoxCampaign extends LevelWidget {
   const LevelPushBoxCampaign({super.key, required super.onComplete});
 
@@ -25,11 +32,18 @@ class _BoardSpec {
 }
 
 class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
-  static const int _stageCount = 6;
+  static const int _stageCount = 12;
   static const Duration _initialBudget = Duration(minutes: 15);
-  static const Duration _bonusPerStage = Duration(minutes: 3);
+  static const Duration _bonusPerStage = Duration(minutes: 4);
 
-  /// Walls `#`, floor ` `, goals `.`, player `@`/`+`, crates `B`/`*`.
+  static const Map<String, Color> _channelColors = {
+    'p': Color(0xFF22D3EE), // cyan
+    'q': Color(0xFFFF7043), // orange
+    'r': Color(0xFFA3E635), // lime
+  };
+
+  /// Walls `#`, floor ` `, goals `.`, player `@`/`+`, crates `B`/`*`,
+  /// plates `p`/`q`/`r`, gates `P`/`Q`/`R` (gate X open while plate x pressed).
   static const List<_BoardSpec> _boards = [
     _BoardSpec(
       name: 'warm-up',
@@ -109,12 +123,89 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
         '  ##### ',
       ],
     ),
+    _BoardSpec(
+      name: 'airlock',
+      rows: [
+        '#######',
+        '# p   #',
+        '# B B #',
+        '#  @  #',
+        '###P###',
+        '  #.# ',
+        '  ### ',
+      ],
+    ),
+    _BoardSpec(
+      name: 'toll booth',
+      rows: [
+        '#########',
+        '#  p    #',
+        '#  B ####',
+        '# BB P..#',
+        '#  @ ####',
+        '#########',
+      ],
+    ),
+    _BoardSpec(
+      name: 'valve lanes',
+      rows: [
+        '##########',
+        '#@       #',
+        '# B  pP.##',
+        '#    B   #',
+        '#.Rr  B  #',
+        '#    q   #',
+        '#####Q####',
+        '#####.####',
+        '##########',
+      ],
+    ),
+    _BoardSpec(
+      name: 'chain reaction',
+      rows: [
+        '############',
+        '#@   #  #  #',
+        '# BB Q  #  #',
+        '# B  #  P .#',
+        '#  q # p#  #',
+        '############',
+      ],
+    ),
+    _BoardSpec(
+      name: 'packing floor',
+      rows: [
+        '#########',
+        '#   #   #',
+        '# B B B #',
+        '# B @   #',
+        '####  ###',
+        '###.. ###',
+        '###.. ###',
+        '#########',
+      ],
+    ),
+    _BoardSpec(
+      name: 'vault',
+      rows: [
+        '##########',
+        '#....P   #',
+        '#####P B #',
+        '#  p #BB #',
+        '# BB # B #',
+        '# @  #   #',
+        '#  ###Q###',
+        '#      q #',
+        '##########',
+      ],
+    ),
   ];
 
   late List<List<int>> _walls;
   late List<List<int>> _goals;
   late List<List<int>> _boxes;
   late List<List<int>> _floor;
+  late List<List<String>> _plates;
+  late List<List<String>> _gates;
   late int _playerR;
   late int _playerC;
   late int _rows;
@@ -186,6 +277,8 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
     _goals = List.generate(_rows, (_) => List.filled(_cols, 0));
     _boxes = List.generate(_rows, (_) => List.filled(_cols, 0));
     _floor = List.generate(_rows, (_) => List.filled(_cols, 0));
+    _plates = List.generate(_rows, (_) => List.filled(_cols, ''));
+    _gates = List.generate(_rows, (_) => List.filled(_cols, ''));
 
     for (int r = 0; r < _rows; r++) {
       final line = spec.rows[r];
@@ -215,7 +308,15 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
             _boxes[r][c] = 1;
             _goals[r][c] = 1;
             break;
-          case ' ':
+          case 'p':
+          case 'q':
+          case 'r':
+            _plates[r][c] = ch;
+            break;
+          case 'P':
+          case 'Q':
+          case 'R':
+            _gates[r][c] = ch.toLowerCase();
             break;
           default:
             break;
@@ -225,8 +326,8 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
 
     _history.clear();
 
-    // Mark floor cells reachable from the player (ignoring crates), so
-    // out-of-room voids in irregular boards render as plain background.
+    // Mark floor cells reachable from the player (ignoring crates and gate
+    // state), so out-of-room voids in irregular boards render as background.
     final queue = <List<int>>[
       [_playerR, _playerC],
     ];
@@ -249,6 +350,19 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
         queue.add([nr, nc]);
       }
     }
+  }
+
+  Set<String> _pressedChannels() {
+    final pressed = <String>{};
+    for (int r = 0; r < _rows; r++) {
+      for (int c = 0; c < _cols; c++) {
+        if (_plates[r][c].isEmpty) continue;
+        if (_boxes[r][c] == 1 || (_playerR == r && _playerC == c)) {
+          pressed.add(_plates[r][c]);
+        }
+      }
+    }
+    return pressed;
   }
 
   bool _allGoalsFilled() {
@@ -328,12 +442,19 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
     if (nr < 0 || nr >= _rows || nc < 0 || nc >= _cols) return;
     if (_walls[nr][nc] == 1) return;
 
+    // Gate state is evaluated before the move: entering a gate cell requires
+    // it to be open now. Anything already on a gate cell can always move out.
+    final pressed = _pressedChannels();
+    bool gateClosed(int r, int c) =>
+        _gates[r][c].isNotEmpty && !pressed.contains(_gates[r][c]);
+
     setState(() {
       if (_boxes[nr][nc] == 1) {
         final br = nr + dr;
         final bc = nc + dc;
         if (br < 0 || br >= _rows || bc < 0 || bc >= _cols) return;
         if (_walls[br][bc] == 1 || _boxes[br][bc] == 1) return;
+        if (gateClosed(br, bc)) return;
 
         _history.add(
           _Snapshot(
@@ -350,6 +471,8 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
         _totalPushes++;
         HapticFeedback.lightImpact();
       } else {
+        if (gateClosed(nr, nc)) return;
+
         _history.add(
           _Snapshot(
             _playerR,
@@ -392,9 +515,9 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
               infoTitle: 'push-box gauntlet',
               infoItems: const [
                 LevelHudBullet('📦', 'push every crate onto a glowing goal tile to clear the stage'),
-                LevelHudBullet('↩️', 'undo reverts your last move'),
-                LevelHudBullet('🔄', 'reset restarts the current board from scratch'),
-                LevelHudBullet('⏱', 'you start with 15:00 and earn +3:00 for each stage cleared'),
+                LevelHudBullet('🔘', 'later stages: a pressure plate opens all gates of its color while a crate or you stand on it'),
+                LevelHudBullet('↩️', 'undo reverts your last move, reset restarts the current board'),
+                LevelHudBullet('⏱', 'you start with 15:00 and earn +4:00 for each stage cleared'),
               ],
             ),
             Expanded(child: Center(child: _buildGrid())),
@@ -443,6 +566,9 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
     final isPlayer = _playerR == r && _playerC == c;
     final isBoxOnGoal = isBox && isGoal;
     final isVoid = !isWall && _floor[r][c] == 0;
+    final plate = _plates[r][c];
+    final gate = _gates[r][c];
+    final pressed = _pressedChannels();
 
     if (isVoid) {
       return const SizedBox.shrink();
@@ -457,6 +583,121 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
       bg = NunuColors.backgroundPaper.withValues(alpha: 0.72);
     }
 
+    Widget? marker;
+    if (isWall) {
+      marker = Container(
+        margin: const EdgeInsets.all(1),
+        decoration: BoxDecoration(
+          color: NunuColors.secondaryDark,
+          borderRadius: BorderRadius.circular(3),
+          boxShadow: [
+            BoxShadow(
+              color: NunuColors.primaryDark.withValues(alpha: 0.28),
+              offset: const Offset(1, 2),
+              blurRadius: 2,
+            ),
+          ],
+        ),
+      );
+    } else if (plate.isNotEmpty) {
+      final color = _channelColors[plate]!;
+      final isPressed = pressed.contains(plate);
+      marker = Container(
+        margin: EdgeInsets.all(size * 0.16),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: isPressed ? 0.55 : 0.12),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: color.withValues(alpha: 0.9), width: 2),
+        ),
+        child: Center(
+          child: Icon(
+            Icons.radio_button_checked,
+            color: color.withValues(alpha: isPressed ? 1.0 : 0.55),
+            size: size * 0.3,
+          ),
+        ),
+      );
+    } else if (gate.isNotEmpty) {
+      final color = _channelColors[gate]!;
+      final isOpen = pressed.contains(gate);
+      marker = Container(
+        margin: EdgeInsets.all(size * 0.06),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: isOpen ? 0.08 : 0.30),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(
+            color: color.withValues(alpha: isOpen ? 0.45 : 0.95),
+            width: 2,
+          ),
+        ),
+        child: Center(
+          child: Icon(
+            isOpen ? Icons.lock_open : Icons.lock,
+            color: color.withValues(alpha: isOpen ? 0.5 : 1.0),
+            size: size * 0.34,
+          ),
+        ),
+      );
+    } else if (isGoal && !isBox && !isPlayer) {
+      marker = Center(
+        child: Container(
+          width: size * 0.38,
+          height: size * 0.38,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: NunuColors.primaryDark.withValues(alpha: 0.35),
+            border: Border.all(
+              color: NunuColors.primaryLight.withValues(alpha: 0.85),
+              width: 2,
+            ),
+          ),
+        ),
+      );
+    }
+
+    Widget? entity;
+    if (isPlayer) {
+      entity = Container(
+        width: size * 0.62,
+        height: size * 0.62,
+        decoration: BoxDecoration(
+          color: NunuColors.primaryMain,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: NunuColors.primaryMain.withValues(alpha: 0.45),
+              blurRadius: 6,
+            ),
+          ],
+        ),
+        child: Icon(Icons.person, color: Colors.white, size: size * 0.28),
+      );
+    } else if (isBox) {
+      entity = Container(
+        width: size * 0.72,
+        height: size * 0.72,
+        decoration: BoxDecoration(
+          color: isBoxOnGoal ? NunuColors.successMain : NunuColors.warningMain,
+          borderRadius: BorderRadius.circular(5),
+          boxShadow: [
+            BoxShadow(
+              color:
+                  (isBoxOnGoal
+                          ? NunuColors.successMain
+                          : NunuColors.warningMain)
+                      .withValues(alpha: 0.35),
+              blurRadius: 5,
+            ),
+          ],
+        ),
+        child: Icon(
+          isBoxOnGoal ? Icons.check : Icons.inventory_2,
+          color: Colors.white,
+          size: size * 0.3,
+        ),
+      );
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: bg,
@@ -467,82 +708,12 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
                 width: 0.5,
               ),
       ),
-      child: Center(
-        child: isPlayer
-            ? Container(
-                width: size * 0.62,
-                height: size * 0.62,
-                decoration: BoxDecoration(
-                  color: NunuColors.primaryMain,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: NunuColors.primaryMain.withValues(alpha: 0.45),
-                      blurRadius: 6,
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  Icons.person,
-                  color: Colors.white,
-                  size: size * 0.28,
-                ),
-              )
-            : isBox
-            ? Container(
-                width: size * 0.72,
-                height: size * 0.72,
-                decoration: BoxDecoration(
-                  color: isBoxOnGoal
-                      ? NunuColors.successMain
-                      : NunuColors.warningMain,
-                  borderRadius: BorderRadius.circular(5),
-                  boxShadow: [
-                    BoxShadow(
-                      color:
-                          (isBoxOnGoal
-                                  ? NunuColors.successMain
-                                  : NunuColors.warningMain)
-                              .withValues(alpha: 0.35),
-                      blurRadius: 5,
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  isBoxOnGoal ? Icons.check : Icons.inventory_2,
-                  color: Colors.white,
-                  size: size * 0.3,
-                ),
-              )
-            : isGoal
-            ? Container(
-                width: size * 0.38,
-                height: size * 0.38,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: NunuColors.primaryDark.withValues(alpha: 0.35),
-                  border: Border.all(
-                    color: NunuColors.primaryLight.withValues(alpha: 0.85),
-                    width: 2,
-                  ),
-                ),
-              )
-            : isWall
-            ? Container(
-                margin: const EdgeInsets.all(1),
-                decoration: BoxDecoration(
-                  color: NunuColors.secondaryDark,
-                  borderRadius: BorderRadius.circular(3),
-                  boxShadow: [
-                    BoxShadow(
-                      color: NunuColors.primaryDark.withValues(alpha: 0.28),
-                      offset: const Offset(1, 2),
-                      blurRadius: 2,
-                    ),
-                  ],
-                ),
-              )
-            : null,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          if (marker != null) Positioned.fill(child: marker),
+          if (entity != null) entity,
+        ],
       ),
     );
   }
