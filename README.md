@@ -12,6 +12,10 @@ Check out the results we achieve with our harness or get the app and run the ben
   <a href="https://github.com/nunu-ai/apk-arena/releases/tag/latest-ios">
     <img src="assets/docs/ipa-download.png" width="260" alt="Download IPA">
   </a>
+
+  <a href="https://nunu.ai/blog/apk-arena">
+    <img src="assets/docs/to-blog-post.png" width="260" alt="Read the blog post">
+  </a>
 </p>
 
 ---
