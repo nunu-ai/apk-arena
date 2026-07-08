@@ -4,11 +4,8 @@ class DiceWidget extends StatelessWidget {
   final int value;
   final double size;
 
-  const DiceWidget({
-    Key? key,
-    required this.value,
-    this.size = 60,
-  }) : super(key: key);
+  const DiceWidget({Key? key, required this.value, this.size = 60})
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +14,9 @@ class DiceWidget extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(size * 0.133), // Proportional to size
+        borderRadius: BorderRadius.circular(
+          size * 0.133,
+        ), // Proportional to size
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.3),
@@ -64,10 +63,7 @@ class DiceWidget extends StatelessWidget {
       case 1:
         return [const Offset(center, center)];
       case 2:
-        return [
-          const Offset(left, top),
-          const Offset(right, bottom),
-        ];
+        return [const Offset(left, top), const Offset(right, bottom)];
       case 3:
         return [
           const Offset(left, top),
@@ -109,18 +105,17 @@ class DiceWidget extends StatelessWidget {
           const Offset(left, bottom),
           const Offset(right, bottom),
         ];
-      case 8:
-        // two columns of four
-        const double midTop = 0.333 - 0.083;
-        const double midBot = 0.667 - 0.083;
+      case 9:
+        // clean 3x3 grid
         return [
           const Offset(left, top),
+          const Offset(center, top),
           const Offset(right, top),
-          const Offset(left, midTop),
-          const Offset(right, midTop),
-          const Offset(left, midBot),
-          const Offset(right, midBot),
+          const Offset(left, center),
+          const Offset(center, center),
+          const Offset(right, center),
           const Offset(left, bottom),
+          const Offset(center, bottom),
           const Offset(right, bottom),
         ];
       default:
