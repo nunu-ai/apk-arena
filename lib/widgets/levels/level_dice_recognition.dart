@@ -17,14 +17,19 @@ class _StageConfig {
   final bool rotate;
   final List<int> requiredFaces;
 
+  /// When set, the stage always uses exactly this many dice (overrides the
+  /// diceMin/diceMax range). Used for the dense multi-row endgame stages.
+  final int? fixedCount;
+
   const _StageConfig({
-    required this.diceMin,
-    required this.diceMax,
+    this.diceMin = 0,
+    this.diceMax = 0,
     this.faceMin = 1,
     this.faceMax = 6,
     this.mixSizes = false,
     this.rotate = false,
     this.requiredFaces = const [],
+    this.fixedCount,
   });
 }
 
@@ -40,21 +45,14 @@ class _LevelDiceRecognitionState extends State<LevelDiceRecognition> {
   static const List<_StageConfig> _stages = [
     _StageConfig(diceMin: 4, diceMax: 5), // 1: warmup
     _StageConfig(diceMin: 5, diceMax: 6), // 2: more dice
-    _StageConfig(diceMin: 5, diceMax: 7), // 3: busy
-    _StageConfig(
-      diceMin: 4,
-      diceMax: 6,
-      faceMin: 4,
-      faceMax: 6,
-    ), // 4: confusables only
-    _StageConfig(diceMin: 5, diceMax: 7, mixSizes: true), // 5: mixed sizes
-    _StageConfig(diceMin: 5, diceMax: 7, rotate: true), // 6: rotated
+    _StageConfig(diceMin: 5, diceMax: 7, mixSizes: true), // 3: mixed sizes
+    _StageConfig(diceMin: 5, diceMax: 7, rotate: true), // 4: rotated
     _StageConfig(
       diceMin: 5,
       diceMax: 7,
       faceMax: 7,
       requiredFaces: [7],
-    ), // 7: guaranteed 7-dot
+    ), // 5: guaranteed 7-dot
     _StageConfig(
       diceMin: 5,
       diceMax: 8,
@@ -62,23 +60,38 @@ class _LevelDiceRecognitionState extends State<LevelDiceRecognition> {
       mixSizes: true,
       rotate: true,
       requiredFaces: [7],
-    ), // 8: 7-dot under chaos
+    ), // 6: 7-dot under chaos
     _StageConfig(
       diceMin: 5,
       diceMax: 8,
-      faceMax: 8,
+      faceMax: 9,
       mixSizes: true,
       requiredFaces: [7],
-    ), // 9: 8s join the pool
+    ), // 7: 9s join the pool
     _StageConfig(
       diceMin: 6,
       diceMax: 8,
       faceMin: 4,
-      faceMax: 8,
+      faceMax: 9,
       mixSizes: true,
       rotate: true,
       requiredFaces: [7],
-    ), // 10: dense endgame
+    ), // 8: dense endgame
+    _StageConfig(fixedCount: 15), // 9: 15 dice, normal 1-6
+    _StageConfig(fixedCount: 20), // 10: 20 dice, normal 1-6
+    _StageConfig(
+      fixedCount: 20,
+      faceMax: 7,
+      requiredFaces: [7],
+    ), // 11: 20 dice, 1-7
+    _StageConfig(fixedCount: 25), // 12: 25 dice, normal 1-6
+    _StageConfig(
+      fixedCount: 25,
+      faceMax: 9,
+      mixSizes: true,
+      rotate: true,
+      requiredFaces: [7, 9],
+    ), // 13: 25 dice, 1-9, sizes + rotations
   ];
 
   final _rand = Random();
@@ -94,10 +107,12 @@ class _LevelDiceRecognitionState extends State<LevelDiceRecognition> {
   @override
   void initState() {
     super.initState();
-    widget.registerPartialScoreGetter(() => LevelOutcome(
-          score: _scoreAccum.clamp(0.0, 1.0),
-          metrics: {'stages_scored': _stageIndex},
-        ));
+    widget.registerPartialScoreGetter(
+      () => LevelOutcome(
+        score: _scoreAccum.clamp(0.0, 1.0),
+        metrics: {'stages_scored': _stageIndex},
+      ),
+    );
     _generateStage();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       FocusManager.instance.primaryFocus?.unfocus();
@@ -115,12 +130,16 @@ class _LevelDiceRecognitionState extends State<LevelDiceRecognition> {
 
   void _generateStage() {
     final cfg = _stages[_stageIndex];
-    final count = cfg.diceMin + _rand.nextInt(cfg.diceMax - cfg.diceMin + 1);
+    final count =
+        cfg.fixedCount ??
+        (cfg.diceMin + _rand.nextInt(cfg.diceMax - cfg.diceMin + 1));
 
     // sizes are computed later in build based on available width;
     // store a relative scale factor per die (1.0 = base, mixed varies)
     _dice = List.generate(count, (_) {
-      final value = cfg.faceMin + _rand.nextInt(cfg.faceMax - cfg.faceMin + 1);
+      var value = cfg.faceMin + _rand.nextInt(cfg.faceMax - cfg.faceMin + 1);
+      // there is no 8-dot die; the high face is the clean 3x3 nine.
+      if (value == 8) value = 9;
       final scale = cfg.mixSizes
           ? ([0.65, 0.8, 1.0, 1.3]..shuffle(_rand)).first
           : 1.0;
@@ -151,6 +170,14 @@ class _LevelDiceRecognitionState extends State<LevelDiceRecognition> {
   }
 
   String get _correctAnswer => _dice.map((d) => d.value).join();
+
+  /// Number of dice per row. Small stages stay on a single row; dense stages
+  /// flow into a clean grid that reads left-to-right, top-to-bottom.
+  int get _columns {
+    final n = _dice.length;
+    if (n <= 8) return n;
+    return 5;
+  }
 
   void _submit() {
     if (_feedbackText != null) return;
@@ -257,7 +284,7 @@ class _LevelDiceRecognitionState extends State<LevelDiceRecognition> {
                             SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'enter the numbers from left to right',
+                                'enter the numbers left to right, top to bottom',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.white,
@@ -269,11 +296,12 @@ class _LevelDiceRecognitionState extends State<LevelDiceRecognition> {
                       ),
                       const SizedBox(height: 24),
 
-                      // dice display — sizes computed to fit one row
+                      // dice display — laid out left-to-right, top-to-bottom
                       LayoutBuilder(
                         builder: (context, constraints) {
                           const padding = 12.0 * 2;
                           const spacing = 8.0;
+                          final cols = _columns;
                           final availableWidth = constraints.maxWidth - padding;
                           // rotation makes a square of side s take up s*sqrt(2) at 45°;
                           // approximate max expansion factor from the largest scale + angle
@@ -287,10 +315,9 @@ class _LevelDiceRecognitionState extends State<LevelDiceRecognition> {
                           );
                           // rotated bounding box width for a square: s*(cos+sin)
                           final rotExpand = cos(maxAngle) + sin(maxAngle);
-                          final effectiveSlots =
-                              _dice.length * maxScale * rotExpand;
+                          final effectiveSlots = cols * maxScale * rotExpand;
                           final baseSize =
-                              ((availableWidth - spacing * (_dice.length - 1)) /
+                              ((availableWidth - spacing * (cols - 1)) /
                                       effectiveSlots)
                                   .clamp(20.0, 70.0);
 
@@ -300,12 +327,12 @@ class _LevelDiceRecognitionState extends State<LevelDiceRecognition> {
                               color: Colors.grey.shade800.withOpacity(0.5),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
+                            child: Wrap(
+                              alignment: WrapAlignment.center,
+                              spacing: spacing,
+                              runSpacing: spacing,
                               children: [
-                                for (int i = 0; i < _dice.length; i++) ...[
-                                  if (i > 0) const SizedBox(width: 8),
+                                for (int i = 0; i < _dice.length; i++)
                                   Builder(
                                     builder: (_) {
                                       final d = _dice[i];
@@ -335,7 +362,6 @@ class _LevelDiceRecognitionState extends State<LevelDiceRecognition> {
                                       );
                                     },
                                   ),
-                                ],
                               ],
                             ),
                           );
@@ -367,80 +393,91 @@ class _LevelDiceRecognitionState extends State<LevelDiceRecognition> {
                         ),
 
                       // input
-                      Container(
-                        constraints: const BoxConstraints(maxWidth: 260),
-                        child: Column(
-                          children: [
-                            TextFormField(
-                              controller: _controller,
-                              keyboardType: TextInputType.number,
-                              textAlign: TextAlign.center,
-                              maxLength: 8,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 24,
-                                letterSpacing: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
+                      Builder(
+                        builder: (_) {
+                          final manyDigits = _dice.length > 9;
+                          final inputFontSize = manyDigits ? 16.0 : 24.0;
+                          final inputSpacing = manyDigits ? 3.0 : 10.0;
+                          return Container(
+                            constraints: BoxConstraints(
+                              maxWidth: manyDigits ? 340 : 260,
+                            ),
+                            child: Column(
+                              children: [
+                                TextFormField(
+                                  controller: _controller,
+                                  keyboardType: TextInputType.number,
+                                  textAlign: TextAlign.center,
+                                  maxLength: _dice.length,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: inputFontSize,
+                                    letterSpacing: inputSpacing,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                  ],
+                                  decoration: InputDecoration(
+                                    counterText: '',
+                                    hintText: '•' * _dice.length,
+                                    hintStyle: TextStyle(
+                                      color: Colors.grey.shade600,
+                                      letterSpacing: inputSpacing,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: Colors.grey.shade700,
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: Colors.grey.shade700,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: const BorderSide(
+                                        color: NunuColors.primaryMain,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                  ),
+                                  onFieldSubmitted: (_) => _submit(),
+                                ),
+                                const SizedBox(height: 16),
+                                FilledButton(
+                                  onPressed: _feedbackText != null
+                                      ? null
+                                      : _submit,
+                                  style: FilledButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 40,
+                                      vertical: 14,
+                                    ),
+                                    backgroundColor: NunuColors.primaryMain,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'submit',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
                               ],
-                              decoration: InputDecoration(
-                                counterText: '',
-                                hintText: '•' * _dice.length,
-                                hintStyle: TextStyle(
-                                  color: Colors.grey.shade600,
-                                  letterSpacing: 10,
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(
-                                    color: Colors.grey.shade700,
-                                  ),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(
-                                    color: Colors.grey.shade700,
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(
-                                    color: NunuColors.primaryMain,
-                                    width: 2,
-                                  ),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                              ),
-                              onFieldSubmitted: (_) => _submit(),
                             ),
-                            const SizedBox(height: 16),
-                            FilledButton(
-                              onPressed: _feedbackText != null ? null : _submit,
-                              style: FilledButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 40,
-                                  vertical: 14,
-                                ),
-                                backgroundColor: NunuColors.primaryMain,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: const Text(
-                                'submit',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                          );
+                        },
                       ),
 
                       const SizedBox(height: 16),
