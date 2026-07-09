@@ -8,12 +8,12 @@ import '../../theme/app_theme.dart';
 import '../level_components/level_hud.dart';
 import '../level_widget.dart';
 
-/// Sokoban-style campaign: twelve hardcoded boards, gated progression,
-/// internal budget starting at 15:00 with +4:00 after each solved board.
+/// Sokoban-style campaign: nine hardcoded boards, gated progression,
+/// internal budget starting at 20:00 with +5:00 after each solved board.
 ///
-/// The back half introduces pressure plates and gates: a plate opens all
-/// gates of its color while a crate (or the player) stands on it. Gates
-/// never crush — anything standing on a gate cell can always move out.
+/// Pressure plates open all gates of their color while a crate (or the player)
+/// stands on them. One-way floors only accept movement in their arrow
+/// direction. Cracked floors collapse after the player leaves them.
 ///
 /// Every board is solvability-verified by a BFS solver against these exact
 /// movement rules; do not edit a board without re-verifying it.
@@ -32,9 +32,8 @@ class _BoardSpec {
 }
 
 class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
-  static const int _stageCount = 12;
-  static const Duration _initialBudget = Duration(minutes: 15);
-  static const Duration _bonusPerStage = Duration(minutes: 4);
+  static const Duration _initialBudget = Duration(minutes: 20);
+  static const Duration _bonusPerStage = Duration(minutes: 5);
 
   static const Map<String, Color> _channelColors = {
     'p': Color(0xFF22D3EE), // cyan
@@ -43,75 +42,11 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
   };
 
   /// Walls `#`, floor ` `, goals `.`, player `@`/`+`, crates `B`/`*`,
-  /// plates `p`/`q`/`r`, gates `P`/`Q`/`R` (gate X open while plate x pressed).
+  /// plates `p`/`q`/`r`, gates `P`/`Q`/`R` (gate X open while plate x pressed),
+  /// one-way floors `^`/`v`/`<`/`>`, cracked floors `x`.
   static const List<_BoardSpec> _boards = [
     _BoardSpec(
-      name: 'warm-up',
-      rows: [
-        ' ######',
-        '##    #',
-        '#  BB@#',
-        '#   ###',
-        '#. .#  ',
-        '#   #  ',
-        '#####  ',
-      ],
-    ),
-    _BoardSpec(
-      name: 'maze push',
-      rows: [
-        '########',
-        '#      #',
-        '#      #',
-        '# @# # #',
-        '#  # B #',
-        '# B# #.#',
-        '#  #  .#',
-        '########',
-      ],
-    ),
-    _BoardSpec(
-      name: 'two crates',
-      rows: [
-        '  #### ',
-        '  #+ ##',
-        '  #.  #',
-        '### B #',
-        '# B ###',
-        '# # #  ',
-        '#   #  ',
-        '#####  ',
-      ],
-    ),
-    _BoardSpec(
-      name: 'corner case',
-      rows: [
-        '#####   ',
-        '# B.### ',
-        '#  .. # ',
-        '#  ##B##',
-        '##  #  #',
-        ' #B    #',
-        ' # @####',
-        ' ####   ',
-      ],
-    ),
-    _BoardSpec(
-      name: 'hallway',
-      rows: [
-        '###### ',
-        '#  B.# ',
-        '#.BB # ',
-        '# # .# ',
-        '#   ## ',
-        '#   #  ',
-        '# @ #  ',
-        '#   #  ',
-        '#####  ',
-      ],
-    ),
-    _BoardSpec(
-      name: 'warehouse',
+      name: 'warehouse lock',
       rows: [
         ' #####  ',
         '##.  #  ',
@@ -124,25 +59,23 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
       ],
     ),
     _BoardSpec(
-      name: 'airlock',
+      name: 'borrowed key',
       rows: [
-        '#######',
-        '# p   #',
-        '# B B #',
-        '#  @  #',
-        '###P###',
-        '  #.# ',
-        '  ### ',
+        '#########',
+        '#@ BpP .#',
+        '#       #',
+        '# B    .#',
+        '#########',
       ],
     ),
     _BoardSpec(
-      name: 'toll booth',
+      name: 'one-way intake',
       rows: [
         '#########',
-        '#  p    #',
-        '#  B ####',
-        '# BB P..#',
-        '#  @ ####',
+        '#@ B> . #',
+        '# ### # #',
+        '# . Bv  #',
+        '#   #   #',
         '#########',
       ],
     ),
@@ -157,6 +90,18 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
         '#    q   #',
         '#####Q####',
         '#####.####',
+        '##########',
+      ],
+    ),
+    _BoardSpec(
+      name: 'cracked relay',
+      rows: [
+        '##########',
+        '#@ x   ..#',
+        '# ##x##  #',
+        '# B  B   #',
+        '#   x##  #',
+        '#  B    .#',
         '##########',
       ],
     ),
@@ -198,7 +143,21 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
         '##########',
       ],
     ),
+    _BoardSpec(
+      name: 'final audit',
+      rows: [
+        '###########',
+        '#@ Bp   .#',
+        '#   ##P# #',
+        '# B q   .#',
+        '# ##Q##  #',
+        '#  B   x.#',
+        '###########',
+      ],
+    ),
   ];
+
+  static int get _stageCount => _boards.length;
 
   late List<List<int>> _walls;
   late List<List<int>> _goals;
@@ -206,6 +165,9 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
   late List<List<int>> _floor;
   late List<List<String>> _plates;
   late List<List<String>> _gates;
+  late List<List<String>> _arrows;
+  late List<List<int>> _cracks;
+  late List<List<int>> _broken;
   late int _playerR;
   late int _playerC;
   late int _rows;
@@ -279,6 +241,9 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
     _floor = List.generate(_rows, (_) => List.filled(_cols, 0));
     _plates = List.generate(_rows, (_) => List.filled(_cols, ''));
     _gates = List.generate(_rows, (_) => List.filled(_cols, ''));
+    _arrows = List.generate(_rows, (_) => List.filled(_cols, ''));
+    _cracks = List.generate(_rows, (_) => List.filled(_cols, 0));
+    _broken = List.generate(_rows, (_) => List.filled(_cols, 0));
 
     for (int r = 0; r < _rows; r++) {
       final line = spec.rows[r];
@@ -318,6 +283,15 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
           case 'R':
             _gates[r][c] = ch.toLowerCase();
             break;
+          case '^':
+          case 'v':
+          case '<':
+          case '>':
+            _arrows[r][c] = ch;
+            break;
+          case 'x':
+            _cracks[r][c] = 1;
+            break;
           default:
             break;
         }
@@ -345,6 +319,7 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
         final nc = cell[1] + d[1];
         if (nr < 0 || nr >= _rows || nc < 0 || nc >= _cols) continue;
         if (_walls[nr][nc] == 1) continue;
+        if (_broken[nr][nc] == 1) continue;
         if (_floor[nr][nc] == 1) continue;
         _floor[nr][nc] = 1;
         queue.add([nr, nc]);
@@ -447,22 +422,46 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
     final pressed = _pressedChannels();
     bool gateClosed(int r, int c) =>
         _gates[r][c].isNotEmpty && !pressed.contains(_gates[r][c]);
+    bool arrowBlocked(int r, int c, int moveDr, int moveDc) {
+      final arrow = _arrows[r][c];
+      if (arrow.isEmpty) return false;
+      return switch (arrow) {
+        '^' => moveDr != -1 || moveDc != 0,
+        'v' => moveDr != 1 || moveDc != 0,
+        '<' => moveDr != 0 || moveDc != -1,
+        '>' => moveDr != 0 || moveDc != 1,
+        _ => false,
+      };
+    }
+    bool blockedCell(int r, int c, int moveDr, int moveDc) {
+      if (_walls[r][c] == 1 || _broken[r][c] == 1) return true;
+      if (gateClosed(r, c)) return true;
+      if (arrowBlocked(r, c, moveDr, moveDc)) return true;
+      return false;
+    }
+    void crackDeparture(int r, int c) {
+      if (_cracks[r][c] == 1) {
+        _broken[r][c] = 1;
+      }
+    }
 
     setState(() {
+      if (blockedCell(nr, nc, dr, dc)) return;
       if (_boxes[nr][nc] == 1) {
         final br = nr + dr;
         final bc = nc + dc;
         if (br < 0 || br >= _rows || bc < 0 || bc >= _cols) return;
-        if (_walls[br][bc] == 1 || _boxes[br][bc] == 1) return;
-        if (gateClosed(br, bc)) return;
+        if (_boxes[br][bc] == 1 || blockedCell(br, bc, dr, dc)) return;
 
         _history.add(
           _Snapshot(
             _playerR,
             _playerC,
             List.generate(_rows, (r) => List<int>.from(_boxes[r])),
+            List.generate(_rows, (r) => List<int>.from(_broken[r])),
           ),
         );
+        crackDeparture(_playerR, _playerC);
         _boxes[nr][nc] = 0;
         _boxes[br][bc] = 1;
         _playerR = nr;
@@ -471,15 +470,15 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
         _totalPushes++;
         HapticFeedback.lightImpact();
       } else {
-        if (gateClosed(nr, nc)) return;
-
         _history.add(
           _Snapshot(
             _playerR,
             _playerC,
             List.generate(_rows, (r) => List<int>.from(_boxes[r])),
+            List.generate(_rows, (r) => List<int>.from(_broken[r])),
           ),
         );
+        crackDeparture(_playerR, _playerC);
         _playerR = nr;
         _playerC = nc;
         _totalMoves++;
@@ -499,6 +498,7 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
       _playerR = prev.playerR;
       _playerC = prev.playerC;
       _boxes = prev.boxes;
+      _broken = prev.broken;
     });
   }
 
@@ -514,10 +514,29 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
               stageText: '${_stageIndex + 1}/$_stageCount',
               infoTitle: 'push-box gauntlet',
               infoItems: const [
-                LevelHudBullet('📦', 'push every crate onto a glowing goal tile to clear the stage'),
-                LevelHudBullet('🔘', 'later stages: a pressure plate opens all gates of its color while a crate or you stand on it'),
-                LevelHudBullet('↩️', 'undo reverts your last move, reset restarts the current board'),
-                LevelHudBullet('⏱', 'you start with 15:00 and earn +4:00 for each stage cleared'),
+                LevelHudBullet(
+                  '📦',
+                  'push every crate onto a glowing goal tile to clear the stage',
+                ),
+                LevelHudBullet(
+                  '🔘',
+                  'pressure plates open matching colored gates while a crate '
+                      'or you stand on them',
+                ),
+                LevelHudBullet(
+                  '➡️',
+                  'arrow floors are one-way; cracked tiles collapse after '
+                      'you leave them',
+                ),
+                LevelHudBullet(
+                  '↩️',
+                  'undo reverts your last move, reset restarts the current '
+                      'board',
+                ),
+                LevelHudBullet(
+                  '⏱',
+                  'you start with 20:00 and earn +5:00 for each stage cleared',
+                ),
               ],
             ),
             Expanded(child: Center(child: _buildGrid())),
@@ -565,12 +584,14 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
     final isBox = _boxes[r][c] == 1;
     final isPlayer = _playerR == r && _playerC == c;
     final isBoxOnGoal = isBox && isGoal;
+    final isBroken = _broken[r][c] == 1;
     final isVoid = !isWall && _floor[r][c] == 0;
     final plate = _plates[r][c];
     final gate = _gates[r][c];
+    final arrow = _arrows[r][c];
     final pressed = _pressedChannels();
 
-    if (isVoid) {
+    if (isVoid || isBroken) {
       return const SizedBox.shrink();
     }
 
@@ -635,6 +656,38 @@ class _LevelPushBoxCampaignState extends State<LevelPushBoxCampaign> {
             isOpen ? Icons.lock_open : Icons.lock,
             color: color.withValues(alpha: isOpen ? 0.5 : 1.0),
             size: size * 0.34,
+          ),
+        ),
+      );
+    } else if (arrow.isNotEmpty) {
+      marker = Center(
+        child: Icon(
+          switch (arrow) {
+            '^' => Icons.keyboard_arrow_up_rounded,
+            'v' => Icons.keyboard_arrow_down_rounded,
+            '<' => Icons.keyboard_arrow_left_rounded,
+            _ => Icons.keyboard_arrow_right_rounded,
+          },
+          color: NunuColors.secondaryLight.withValues(alpha: 0.82),
+          size: size * 0.48,
+        ),
+      );
+    } else if (_cracks[r][c] == 1) {
+      marker = Container(
+        margin: EdgeInsets.all(size * 0.12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(
+            color: NunuColors.warningMain.withValues(alpha: 0.56),
+            width: 1.4,
+          ),
+        ),
+        child: Center(
+          child: Icon(
+            Icons.crisis_alert_rounded,
+            color: NunuColors.warningMain.withValues(alpha: 0.8),
+            size: size * 0.26,
           ),
         ),
       );
@@ -840,6 +893,7 @@ class _Snapshot {
   final int playerR;
   final int playerC;
   final List<List<int>> boxes;
+  final List<List<int>> broken;
 
-  _Snapshot(this.playerR, this.playerC, this.boxes);
+  _Snapshot(this.playerR, this.playerC, this.boxes, this.broken);
 }

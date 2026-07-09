@@ -198,7 +198,7 @@ class _LevelScreenState extends State<LevelScreen> {
         ? widget.attemptsRemaining! - 1
         : null;
 
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (context) => LevelCompletionScreen(
