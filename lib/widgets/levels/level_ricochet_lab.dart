@@ -494,7 +494,7 @@ class _LevelRicochetLabState extends State<LevelRicochetLab> {
               infoItems: const [
                 LevelHudBullet('🤖', 'swipe on a robot to slide it. robots slide until they hit a wall or another robot — no partial moves'),
                 LevelHudBullet('🎯', 'get the marked robot onto the ring of its color. any robot may be moved — parked robots make good anchors'),
-                LevelHudBullet('⭐', 'reaching the ring at par clears the stage at full value. over par you may bank the stage for reduced credit — the further over par, the less it\'s worth'),
+                LevelHudBullet('⭐', 'hit par for full credit. over par, bank the ring for partial credit'),
                 LevelHudBullet('⏱', 'you start with 15:00 and earn +3:00 for each stage cleared'),
               ],
             ),
@@ -547,51 +547,58 @@ class _LevelRicochetLabState extends State<LevelRicochetLab> {
             ),
             if (_onRing && _stageMoves > _board.optimalMoves)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
+                    horizontal: 12,
+                    vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: NunuColors.warningMain.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(10),
+                    color: NunuColors.backgroundPaper.withValues(alpha: 0.92),
+                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: NunuColors.warningMain.withValues(alpha: 0.7),
+                      color: NunuColors.warningMain.withValues(alpha: 0.55),
                     ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
                     children: [
-                      Text(
-                        'ring reached in $_stageMoves — over par '
-                        '(${_board.optimalMoves}). undo/reset for full value, '
-                        'or bank it now.',
-                        style: const TextStyle(
-                          color: NunuColors.warningMain,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
+                      Icon(
+                        Icons.error_outline_rounded,
+                        size: 18,
+                        color: NunuColors.warningMain.withValues(alpha: 0.95),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'over par: $_stageMoves / ${_board.optimalMoves}',
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: NunuColors.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            fontFeatures: [FontFeature.tabularFigures()],
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(width: 10),
                       Material(
-                        color: NunuColors.warningMain.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(8),
+                        color: NunuColors.warningMain,
+                        borderRadius: BorderRadius.circular(999),
                         child: InkWell(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(999),
                           onTap: _bankStage,
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 8,
+                              horizontal: 12,
+                              vertical: 7,
                             ),
                             child: Text(
-                              'bank stage for ${(_bankCredit * 100).round()}%',
+                              'bank ${(_bankCredit * 100).round()}%',
                               style: const TextStyle(
-                                color: NunuColors.warningMain,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
+                                color: NunuColors.backgroundDefault,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w900,
                               ),
                             ),
                           ),
