@@ -30,10 +30,12 @@ import 'package:apk_arena/widgets/levels/level_multi_tap_sync.dart';
 import 'package:apk_arena/widgets/levels/level_odd_one_out.dart';
 import 'package:apk_arena/widgets/levels/level_pattern_match.dart';
 import 'package:apk_arena/widgets/levels/level_push_box_campaign.dart';
+import 'package:apk_arena/widgets/levels/level_ricochet_lab.dart';
 import 'package:apk_arena/widgets/levels/level_rush_hour.dart';
 import 'package:apk_arena/widgets/levels/level_scrabble.dart';
 import 'package:apk_arena/widgets/levels/level_scroll_mastery.dart';
 import 'package:apk_arena/widgets/levels/level_sequence_memory.dart';
+import 'package:apk_arena/widgets/levels/level_shattered_portrait.dart';
 import 'package:apk_arena/widgets/levels/level_signup_gauntlet.dart';
 import 'package:apk_arena/widgets/levels/level_slider_skills.dart';
 import 'package:apk_arena/widgets/levels/level_snake.dart';
@@ -46,6 +48,7 @@ import 'package:apk_arena/widgets/levels/level_trace_drawing.dart';
 import 'package:apk_arena/widgets/levels/level_trial_sequence.dart';
 import 'package:apk_arena/widgets/levels/level_upsell_checkout.dart';
 import 'package:apk_arena/widgets/levels/level_whack_a_mole.dart';
+import 'package:apk_arena/widgets/levels/level_word_law.dart';
 
 import '../models/level_data.dart';
 import '../models/level_outcome.dart';
@@ -232,7 +235,8 @@ final List<LevelEntry> iqLevels = [
   LevelEntry(
     data: LevelData(
       title: "blackout",
-      instructions: "turn off all the lights.",
+      instructions: "clear every board — turn all the lights off.",
+      timeLimit: Duration(hours: 3),
     ),
     widgetBuilder: (onComplete) => LevelLightsOut(onComplete: onComplete),
   ),
@@ -243,6 +247,30 @@ final List<LevelEntry> iqLevels = [
       timeLimit: Duration(minutes: 60),
     ),
     widgetBuilder: (onComplete) => LevelPushBoxCampaign(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "ricochet lab",
+      instructions: "get the marked robot onto its ring. robots slide until they hit something.",
+      timeLimit: Duration(minutes: 60),
+    ),
+    widgetBuilder: (onComplete) => LevelRicochetLab(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "shattered portrait",
+      instructions: "restore the paintings.",
+      timeLimit: Duration(minutes: 60),
+    ),
+    widgetBuilder: (onComplete) => LevelShatteredPortrait(onComplete: onComplete),
+  ),
+  LevelEntry(
+    data: LevelData(
+      title: "syntax error",
+      instructions: "reach the win condition.",
+      timeLimit: Duration(minutes: 60),
+    ),
+    widgetBuilder: (onComplete) => LevelWordLaw(onComplete: onComplete),
   ),
 ];
 

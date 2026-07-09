@@ -121,8 +121,10 @@ class LevelCompletionScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final pct = (score * 100).round();
 
-    return Scaffold(
-      body: Center(
+    return WillPopScope(
+      onWillPop: () async => false,
+      child: Scaffold(
+        body: Center(
         child: Padding(
           padding: const EdgeInsets.all(32.0),
           child: Column(
@@ -315,6 +317,7 @@ class LevelCompletionScreen extends StatelessWidget {
               ],
             ],
           ),
+        ),
         ),
       ),
     );
