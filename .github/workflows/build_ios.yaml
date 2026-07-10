@@ -3,8 +3,6 @@ name: Build iOS and Upload to nunu.ai
 on:
   push:
     branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
