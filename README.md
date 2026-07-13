@@ -53,4 +53,23 @@ We feature 50+ levels across 7 categories:
 
 ---
 
+## 📄 Citation
+
+If you use APK Arena in your research, please cite it:
+
+```bibtex
+@misc{nunuai2026apkarena,
+  author       = {{nunu.ai team}},
+  title        = {{APK Arena}: A Benchmark for Phone Use Agents},
+  year         = {2026},
+  month        = jul,
+  publisher    = {nunu.ai},
+  howpublished = {Blog post and open-source software repository},
+  url          = {https://nunu.ai/blog/apk-arena},
+  note         = {Implementation available at \url{https://github.com/nunu-ai/apk-arena}}
+}
+```
+
+---
+
 Made with ❤️ by the nunu.ai team - for better mobile agents
