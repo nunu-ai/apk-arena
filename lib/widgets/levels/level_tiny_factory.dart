@@ -777,7 +777,8 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
         final cells = <Point<int>>{Point(cx, cy)};
         final frontier = <Point<int>>[Point(cx, cy)];
         while (cells.length < size && frontier.isNotEmpty) {
-          final p = frontier[rng.nextInt(frontier.length)];
+          final pi = rng.nextInt(frontier.length);
+          final p = frontier[pi];
           final nbrs = [
             Point(p.x + 1, p.y),
             Point(p.x - 1, p.y),
@@ -785,15 +786,29 @@ class _LevelTinyFactoryState extends State<LevelTinyFactory>
             Point(p.x, p.y - 1),
           ];
           nbrs.shuffle(rng);
+          bool grew = false;
           for (final n in nbrs) {
             if (n.x < 0 || n.x >= _kCols || n.y < 0 || n.y >= _kRows) continue;
             if (_isHub(n.x, n.y)) continue;
             if (_patches[n.x][n.y] != null) continue;
-            cells.add(n);
+            // Only count genuinely new cells as growth: `cells` is a set, so a
+            // neighbour already in this blob would otherwise be re-added to the
+            // frontier forever without ever increasing `cells.length`.
+            if (!cells.add(n)) continue;
             frontier.add(n);
+            grew = true;
             if (cells.length >= size) break;
           }
-          if (frontier.length > 20) frontier.removeAt(0);
+          // Drop exhausted frontier cells so the loop always makes progress:
+          // each iteration now either grows `cells` (bounded by `size`) or
+          // shrinks the frontier. A cell boxed in by the map edge, the hub, or
+          // existing patches can never expand, and leaving it in the frontier
+          // would otherwise spin forever.
+          if (!grew) {
+            frontier.removeAt(pi);
+          } else if (frontier.length > 20) {
+            frontier.removeAt(0);
+          }
         }
         bool collide = false;
         for (final c in cells) {
