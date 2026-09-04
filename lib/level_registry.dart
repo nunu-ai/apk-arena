@@ -251,7 +251,8 @@ final List<LevelEntry> iqLevels = [
   LevelEntry(
     data: LevelData(
       title: "ricochet lab",
-      instructions: "get the marked robot onto its ring. robots slide until they hit something.",
+      instructions:
+          "get the marked robot onto its ring. robots slide until they hit something.",
       timeLimit: Duration(minutes: 60),
     ),
     widgetBuilder: (onComplete) => LevelRicochetLab(onComplete: onComplete),
@@ -262,7 +263,8 @@ final List<LevelEntry> iqLevels = [
       instructions: "restore the paintings.",
       timeLimit: Duration(minutes: 60),
     ),
-    widgetBuilder: (onComplete) => LevelShatteredPortrait(onComplete: onComplete),
+    widgetBuilder: (onComplete) =>
+        LevelShatteredPortrait(onComplete: onComplete),
   ),
   LevelEntry(
     data: LevelData(
@@ -304,7 +306,10 @@ final List<LevelEntry> tempospatialLevels = [
     widgetBuilder: (onComplete) => LevelSequenceMemory(onComplete: onComplete),
   ),
   LevelEntry(
-    data: LevelData(title: "reflex arena", instructions: "whack the moles."),
+    data: LevelData(
+      title: "reflex arena",
+      instructions: "whack the moles, leave the bombs alone.",
+    ),
     widgetBuilder: (onComplete) => LevelWhackAMole(onComplete: onComplete),
   ),
   LevelEntry(
@@ -324,7 +329,7 @@ final List<LevelEntry> tempospatialLevels = [
   LevelEntry(
     data: LevelData(
       title: "escape the simulation",
-      instructions: "find the exit.",
+      instructions: "find the exit twice. the second layer is off the map.",
     ),
     widgetBuilder: (onComplete) => LevelFpsMaze(onComplete: onComplete),
   ),

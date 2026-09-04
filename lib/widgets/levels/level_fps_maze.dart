@@ -17,9 +17,9 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
   late AnimationController _controller;
 
   // Player state
-  double _playerX = 1.5;
-  double _playerY = 1.5;
-  double _playerAngle = 0.0; // radians
+  late double _playerX;
+  late double _playerY;
+  late double _playerAngle; // radians
 
   // Movement state
   bool _movingForward = false;
@@ -30,61 +30,90 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
   bool _strafingRight = false;
 
   // Constants
-  static const Duration _runLimit = Duration(minutes: 30);
+  static const Duration _runLimit = Duration(minutes: 40);
+  static const Duration _stageTransition = Duration(milliseconds: 1800);
   static const double _moveSpeed = 3.0; // cells per second
   static const double _turnSpeed = 2.5; // radians per second
   static const double _fov = pi / 3; // 60 degree field of view
   static const double _collisionRadius = 0.25;
+  // A stage in progress can never be worth as much as a cleared one
+  static const double _partialStageCredit = 0.9;
 
-  // Exit position
+  // Exit position of the current stage
   late int _exitX;
   late int _exitY;
 
+  int _stageIndex = 0;
+  int _stagesCleared = 0;
+  bool _transitioning = false;
   bool _completed = false;
   DateTime _lastFrame = DateTime.now();
   Timer? _runTimer;
-  late final int _startDistanceToExit;
+  Timer? _transitionTimer;
+  late int _startDistanceToExit;
   int? _bestDistanceToExit;
 
-  // 15x15 maze (1 = wall, 0 = open, 2 = exit)
-  // Hand-crafted to be navigable but not trivial
-  final List<List<int>> _maze = [
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1],
-    [1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1],
-    [1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1],
-    [1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1],
-    [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1],
-    [1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1],
-    [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
-    [1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1],
-    [1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  // 15x15 mazes (1 = wall, 0 = open, 2 = exit)
+  static const List<_MazeStage> _stages = [
+    // Stage 1: open layout with a minimap to lean on
+    _MazeStage(
+      startX: 1.5,
+      startY: 1.5,
+      startAngle: 0,
+      showMinimap: true,
+      maze: [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+        [1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1],
+        [1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1],
+        [1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1],
+        [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1],
+        [1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1],
+        [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+        [1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      ],
+    ),
+    // Stage 2: dense maze with dead ends, navigated blind
+    _MazeStage(
+      startX: 1.5,
+      startY: 1.5,
+      startAngle: pi / 2,
+      showMinimap: false,
+      maze: [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+        [1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1],
+        [1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1],
+        [1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1],
+        [1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
+        [1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1],
+        [1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+        [1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1],
+        [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1],
+        [1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1],
+        [1, 0, 1, 2, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+        [1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      ],
+    ),
   ];
+
+  _MazeStage get _stage => _stages[_stageIndex];
+  List<List<int>> get _maze => _stage.maze;
 
   @override
   void initState() {
     super.initState();
     widget.registerPartialScoreGetter(_buildTimeoutOutcome);
 
-    // Find exit position
-    for (int y = 0; y < _maze.length; y++) {
-      for (int x = 0; x < _maze[y].length; x++) {
-        if (_maze[y][x] == 2) {
-          _exitX = x;
-          _exitY = y;
-        }
-      }
-    }
-    _startDistanceToExit = max(
-      1,
-      _distanceToExit(_playerX.floor(), _playerY.floor()) ?? 1,
-    );
-    _bestDistanceToExit = _startDistanceToExit;
+    _loadStage(0);
 
     _controller = AnimationController(
       vsync: this,
@@ -98,13 +127,43 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
   @override
   void dispose() {
     _runTimer?.cancel();
+    _transitionTimer?.cancel();
     widget.clearPartialScoreGetter();
     _controller.dispose();
     super.dispose();
   }
 
+  void _loadStage(int index) {
+    _stageIndex = index;
+    _playerX = _stage.startX;
+    _playerY = _stage.startY;
+    _playerAngle = _stage.startAngle;
+
+    _movingForward = false;
+    _movingBackward = false;
+    _turningLeft = false;
+    _turningRight = false;
+    _strafingLeft = false;
+    _strafingRight = false;
+
+    for (int y = 0; y < _maze.length; y++) {
+      for (int x = 0; x < _maze[y].length; x++) {
+        if (_maze[y][x] == 2) {
+          _exitX = x;
+          _exitY = y;
+        }
+      }
+    }
+    _startDistanceToExit = max(
+      1,
+      _distanceToExit(_playerX.floor(), _playerY.floor()) ?? 1,
+    );
+    _bestDistanceToExit = _startDistanceToExit;
+    _lastFrame = DateTime.now();
+  }
+
   void _gameLoop() {
-    if (_completed) return;
+    if (_completed || _transitioning) return;
 
     final now = DateTime.now();
     final dt = (now.difference(_lastFrame).inMicroseconds) / 1000000.0;
@@ -162,8 +221,8 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
     // Check exit
     final playerGridX = _playerX.floor();
     final playerGridY = _playerY.floor();
-    if (playerGridX == _exitX && playerGridY == _exitY && !_completed) {
-      _completeMaze();
+    if (playerGridX == _exitX && playerGridY == _exitY) {
+      _clearStage();
     }
 
     setState(() {});
@@ -179,25 +238,29 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
   }
 
   double _progressScore() {
-    final best = _bestDistanceToExit ?? _startDistanceToExit;
-    final progress = (_startDistanceToExit - best) / _startDistanceToExit;
-    return progress.clamp(0.0, 0.95).toDouble();
+    final stageWeight = 1.0 / _stages.length;
+    double score = _stagesCleared * stageWeight;
+
+    if (!_transitioning && _stagesCleared < _stages.length) {
+      final best = _bestDistanceToExit ?? _startDistanceToExit;
+      final stageProgress =
+          (_startDistanceToExit - best) / _startDistanceToExit;
+      score +=
+          stageProgress.clamp(0.0, 1.0) * _partialStageCredit * stageWeight;
+    }
+
+    return score.clamp(0.0, 1.0).toDouble();
   }
 
   Map<String, dynamic> _progressMetrics({
     required bool timedOut,
     bool gaveUp = false,
   }) {
-    final currentDistance =
-        _distanceToExit(_playerX.floor(), _playerY.floor()) ??
-        _startDistanceToExit;
-    final progressPct = (_progressScore() * 100).round();
     return {
       'timed_out': timedOut,
       'gave_up': gaveUp,
-      'progress_pct': progressPct,
-      'distance_remaining': currentDistance,
-      'best_distance_remaining': _bestDistanceToExit ?? currentDistance,
+      'stages_cleared': _stagesCleared,
+      'progress_pct': (_progressScore() * 100).round(),
     };
   }
 
@@ -205,11 +268,32 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
     return LevelOutcome(
       score: _progressScore(),
       metrics: _progressMetrics(timedOut: true),
-      visibleMetricKeys: const ['progress_pct', 'distance_remaining'],
+      visibleMetricKeys: const ['stages_cleared', 'progress_pct'],
     );
   }
 
-  void _completeMaze() {
+  void _clearStage() {
+    if (_completed || _transitioning) return;
+    _stagesCleared++;
+
+    if (_stageIndex >= _stages.length - 1) {
+      _completeRun();
+      return;
+    }
+
+    setState(() {
+      _transitioning = true;
+    });
+    _transitionTimer = Timer(_stageTransition, () {
+      if (!mounted || _completed) return;
+      setState(() {
+        _transitioning = false;
+        _loadStage(_stageIndex + 1);
+      });
+    });
+  }
+
+  void _completeRun() {
     if (_completed) return;
     _completed = true;
     _runTimer?.cancel();
@@ -218,9 +302,9 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
       if (!mounted) return;
       widget.onComplete(
         LevelOutcome(
-          score: 1,
+          score: _progressScore(),
           metrics: _progressMetrics(timedOut: false),
-          visibleMetricKeys: const ['progress_pct', 'distance_remaining'],
+          visibleMetricKeys: const ['stages_cleared', 'progress_pct'],
         ),
       );
     });
@@ -229,6 +313,7 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
   void _finishTimedOut() {
     if (_completed) return;
     _completed = true;
+    _transitionTimer?.cancel();
     _controller.stop();
     widget.onComplete(_buildTimeoutOutcome());
   }
@@ -237,12 +322,13 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
     if (_completed) return;
     _completed = true;
     _runTimer?.cancel();
+    _transitionTimer?.cancel();
     _controller.stop();
     widget.onComplete(
       LevelOutcome(
         score: _progressScore(),
         metrics: _progressMetrics(timedOut: false, gaveUp: true),
-        visibleMetricKeys: const ['progress_pct', 'distance_remaining'],
+        visibleMetricKeys: const ['stages_cleared', 'progress_pct'],
       ),
     );
   }
@@ -344,34 +430,14 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
                 ),
               ),
 
-              // Minimap
+              Positioned(top: 12, right: 12, child: _buildMapPanel()),
+              Positioned(top: 12, left: 12, child: _buildGiveUpButton()),
               Positioned(
                 top: 12,
-                right: 12,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.7),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: NunuColors.primaryMain.withValues(alpha: 0.5),
-                      width: 1,
-                    ),
-                  ),
-                  padding: const EdgeInsets.all(4),
-                  child: CustomPaint(
-                    size: const Size(100, 100),
-                    painter: _MinimapPainter(
-                      maze: _maze,
-                      playerX: _playerX,
-                      playerY: _playerY,
-                      playerAngle: _playerAngle,
-                      exitX: _exitX,
-                      exitY: _exitY,
-                    ),
-                  ),
-                ),
+                left: 0,
+                right: 0,
+                child: Center(child: _buildStageBadge()),
               ),
-              Positioned(top: 12, left: 12, child: _buildGiveUpButton()),
 
               // Controls area
               Positioned(
@@ -392,6 +458,9 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
                   child: _buildControls(),
                 ),
               ),
+
+              if (_transitioning)
+                Positioned.fill(child: _buildStageTransition()),
             ],
           ),
         );
@@ -409,6 +478,110 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
           _buildMovementPad(),
           // Right side: turn buttons
           _buildTurnPad(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMapPanel() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: _stage.showMinimap
+              ? NunuColors.primaryMain.withValues(alpha: 0.5)
+              : NunuColors.errorMain.withValues(alpha: 0.4),
+          width: 1,
+        ),
+      ),
+      padding: const EdgeInsets.all(4),
+      child: _stage.showMinimap
+          ? CustomPaint(
+              size: const Size(100, 100),
+              painter: _MinimapPainter(
+                maze: _maze,
+                playerX: _playerX,
+                playerY: _playerY,
+                playerAngle: _playerAngle,
+                exitX: _exitX,
+                exitY: _exitY,
+              ),
+            )
+          : const SizedBox(
+              width: 100,
+              height: 100,
+              child: Center(
+                child: Text(
+                  'no signal',
+                  style: TextStyle(
+                    color: NunuColors.errorMain,
+                    fontSize: 11,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ),
+            ),
+    );
+  }
+
+  Widget _buildStageBadge() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: NunuColors.primaryMain.withValues(alpha: 0.35),
+          width: 1,
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      child: Text(
+        'layer ${_stageIndex + 1}/${_stages.length}',
+        style: const TextStyle(
+          color: NunuColors.primaryLight,
+          fontSize: 11,
+          letterSpacing: 1,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStageTransition() {
+    return Container(
+      color: Colors.black.withValues(alpha: 0.88),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'layer $_stagesCleared cleared',
+            style: const TextStyle(
+              color: NunuColors.successMain,
+              fontSize: 20,
+              letterSpacing: 2,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'descending deeper...',
+            style: TextStyle(
+              color: NunuColors.textSecondary,
+              fontSize: 13,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 28),
+          const Text(
+            'mapping signal lost',
+            style: TextStyle(
+              color: NunuColors.errorMain,
+              fontSize: 13,
+              letterSpacing: 1,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
     );
@@ -569,6 +742,22 @@ class _LevelFpsMazeState extends State<LevelFpsMaze>
       ),
     );
   }
+}
+
+class _MazeStage {
+  final List<List<int>> maze;
+  final double startX;
+  final double startY;
+  final double startAngle;
+  final bool showMinimap;
+
+  const _MazeStage({
+    required this.maze,
+    required this.startX,
+    required this.startY,
+    required this.startAngle,
+    required this.showMinimap,
+  });
 }
 
 class _MazeNode {
@@ -795,7 +984,8 @@ class _RaycastPainter extends CustomPainter {
   bool shouldRepaint(_RaycastPainter oldDelegate) {
     return oldDelegate.playerX != playerX ||
         oldDelegate.playerY != playerY ||
-        oldDelegate.playerAngle != playerAngle;
+        oldDelegate.playerAngle != playerAngle ||
+        oldDelegate.maze != maze;
   }
 }
 

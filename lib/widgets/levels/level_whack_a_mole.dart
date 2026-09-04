@@ -21,6 +21,16 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
   static const int _timeLimitSeconds = 300; // 5 minutes
   static const Duration _spawnInterval = Duration(milliseconds: 900);
 
+  // Bombs never speed up: they sit on the board long enough that tapping one
+  // is a deliberate mistake rather than bad luck. Spawn rate and lifetime set
+  // the resting count (~8 bombs); the cap only bites during bursts.
+  static const Duration _bombSpawnInterval = Duration(milliseconds: 1200);
+  static const Duration _bombLifetime = Duration(seconds: 10);
+  static const int _maxActiveBombs = 10;
+
+  /// A bomb hit cancels out this many mole hits.
+  static const double _bombPenalty = 5.0;
+
   // Mole lifetime curve: (elapsed_seconds, lifetime_seconds).
   // Linearly interpolated between waypoints. Past the last point we hold
   // the final value (0.5s) until the run ends.
@@ -35,6 +45,7 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
 
   Timer? _gameTimer;
   Timer? _spawnTimer;
+  Timer? _bombSpawnTimer;
   int _secondsRemaining = _timeLimitSeconds;
   bool _started = false;
   bool _done = false;
@@ -42,12 +53,19 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
   final Map<int, DateTime> _activeMoles = {};
   final Map<int, Timer> _removalTimers = {};
 
+  final Set<int> _activeBombs = {};
+  final Map<int, Timer> _bombRemovalTimers = {};
+
   int _hits = 0;
   int _missed = 0;
   int _totalSpawned = 0;
+  int _bombsHit = 0;
 
   int? _lastWhackedIndex;
   Timer? _whackFeedbackTimer;
+
+  int? _lastBombedIndex;
+  Timer? _bombFeedbackTimer;
 
   final _rng = SeedService.instance.createRandom();
 
@@ -55,11 +73,22 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
   void dispose() {
     _gameTimer?.cancel();
     _spawnTimer?.cancel();
+    _bombSpawnTimer?.cancel();
     _whackFeedbackTimer?.cancel();
+    _bombFeedbackTimer?.cancel();
     for (final t in _removalTimers.values) {
       t.cancel();
     }
+    for (final t in _bombRemovalTimers.values) {
+      t.cancel();
+    }
     super.dispose();
+  }
+
+  double _computeScore() {
+    if (_totalSpawned == 0) return 0.0;
+    final effective = _hits - _bombPenalty * _bombsHit;
+    return (effective / _totalSpawned).clamp(0.0, 1.0);
   }
 
   Duration _currentMoleLifetime() {
@@ -101,17 +130,24 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
     });
 
     _spawnTimer = Timer.periodic(_spawnInterval, (_) => _spawnMole());
+    _bombSpawnTimer = Timer.periodic(_bombSpawnInterval, (_) => _spawnBomb());
     _spawnMole();
+  }
+
+  List<int> _freeCells() {
+    final available = <int>[];
+    for (int i = 0; i < _rows * _cols; i++) {
+      if (!_activeMoles.containsKey(i) && !_activeBombs.contains(i)) {
+        available.add(i);
+      }
+    }
+    return available;
   }
 
   void _spawnMole() {
     if (_done || !mounted) return;
 
-    final occupied = _activeMoles.keys.toSet();
-    final available = <int>[];
-    for (int i = 0; i < _rows * _cols; i++) {
-      if (!occupied.contains(i)) available.add(i);
-    }
+    final available = _freeCells();
     if (available.isEmpty) return;
 
     final pos = available[_rng.nextInt(available.length)];
@@ -133,8 +169,48 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
     });
   }
 
+  void _spawnBomb() {
+    if (_done || !mounted) return;
+    if (_activeBombs.length >= _maxActiveBombs) return;
+
+    final available = _freeCells();
+    if (available.isEmpty) return;
+
+    final pos = available[_rng.nextInt(available.length)];
+
+    setState(() {
+      _activeBombs.add(pos);
+    });
+
+    _bombRemovalTimers[pos]?.cancel();
+    _bombRemovalTimers[pos] = Timer(_bombLifetime, () {
+      if (!mounted) return;
+      setState(() {
+        _activeBombs.remove(pos);
+      });
+      _bombRemovalTimers.remove(pos);
+    });
+  }
+
   void _whack(int pos) {
     if (!_started || _done) return;
+
+    if (_activeBombs.contains(pos)) {
+      _bombsHit++;
+      _activeBombs.remove(pos);
+      _bombRemovalTimers[pos]?.cancel();
+      _bombRemovalTimers.remove(pos);
+
+      _lastBombedIndex = pos;
+      _bombFeedbackTimer?.cancel();
+      _bombFeedbackTimer = Timer(const Duration(milliseconds: 500), () {
+        if (mounted) setState(() => _lastBombedIndex = null);
+      });
+
+      HapticFeedback.heavyImpact();
+      setState(() {});
+      return;
+    }
 
     if (_activeMoles.containsKey(pos)) {
       _hits++;
@@ -158,15 +234,22 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
     _done = true;
     _gameTimer?.cancel();
     _spawnTimer?.cancel();
+    _bombSpawnTimer?.cancel();
     for (final t in _removalTimers.values) {
       t.cancel();
     }
+    for (final t in _bombRemovalTimers.values) {
+      t.cancel();
+    }
 
-    final score = _totalSpawned > 0 ? _hits / _totalSpawned : 0.0;
+    final score = _computeScore();
 
     Future.delayed(const Duration(milliseconds: 400), () {
       widget.onComplete(
-        LevelOutcome(score: score, metrics: {'hits': _hits, 'missed': _missed}),
+        LevelOutcome(
+          score: score,
+          metrics: {'hits': _hits, 'missed': _missed, 'bombs_hit': _bombsHit},
+        ),
       );
     });
   }
@@ -181,10 +264,12 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
   @override
   void initState() {
     super.initState();
-    widget.registerPartialScoreGetter(() => LevelOutcome(
-          score: _totalSpawned > 0 ? (_hits / _totalSpawned).clamp(0.0, 1.0) : 0.0,
-          metrics: {'hits': _hits},
-        ));
+    widget.registerPartialScoreGetter(
+      () => LevelOutcome(
+        score: _computeScore(),
+        metrics: {'hits': _hits, 'bombs_hit': _bombsHit},
+      ),
+    );
   }
 
   @override
@@ -195,13 +280,29 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
         children: [
           LevelHud(
             timerText: _formatTime(_secondsRemaining),
-            trailing: Text(
-              'hits $_hits',
-              style: const TextStyle(
-                color: NunuColors.textSecondary,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'hits $_hits',
+                  style: const TextStyle(
+                    color: NunuColors.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (_bombsHit > 0) ...[
+                  const SizedBox(width: 10),
+                  Text(
+                    '💣 $_bombsHit',
+                    style: const TextStyle(
+                      color: NunuColors.errorMain,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
           Padding(
@@ -274,27 +375,49 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
               itemCount: _rows * _cols,
               itemBuilder: (_, i) {
                 final hasMole = _activeMoles.containsKey(i);
+                final hasBomb = _activeBombs.contains(i);
                 final wasJustWhacked = _lastWhackedIndex == i;
+                final wasJustBombed = _lastBombedIndex == i;
+
+                final Color borderColor;
+                if (hasBomb) {
+                  borderColor = NunuColors.errorMain;
+                } else if (hasMole) {
+                  borderColor = NunuColors.warningMain;
+                } else {
+                  borderColor = NunuColors.primaryDark.withOpacity(0.3);
+                }
+
+                final Color? glowColor = hasBomb
+                    ? NunuColors.errorMain
+                    : hasMole
+                    ? NunuColors.warningMain
+                    : null;
+
+                final Color fillColor;
+                if (wasJustBombed) {
+                  fillColor = NunuColors.errorMain.withOpacity(0.35);
+                } else if (wasJustWhacked) {
+                  fillColor = NunuColors.successMain.withOpacity(0.3);
+                } else {
+                  fillColor = NunuColors.backgroundPaper;
+                }
 
                 return GestureDetector(
                   onTap: _started && !_done ? () => _whack(i) : null,
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
                     decoration: BoxDecoration(
-                      color: wasJustWhacked
-                          ? NunuColors.successMain.withOpacity(0.3)
-                          : NunuColors.backgroundPaper,
+                      color: fillColor,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: hasMole
-                            ? NunuColors.warningMain
-                            : NunuColors.primaryDark.withOpacity(0.3),
-                        width: hasMole ? 3 : 1,
+                        color: borderColor,
+                        width: hasMole || hasBomb ? 3 : 1,
                       ),
-                      boxShadow: hasMole
+                      boxShadow: glowColor != null
                           ? [
                               BoxShadow(
-                                color: NunuColors.warningMain.withOpacity(0.3),
+                                color: glowColor.withOpacity(0.3),
                                 blurRadius: 12,
                               ),
                             ]
@@ -303,11 +426,23 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
                     child: Center(
                       child: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 150),
-                        child: hasMole
+                        child: hasBomb
+                            ? const Text(
+                                '💣',
+                                key: ValueKey('bomb'),
+                                style: TextStyle(fontSize: 36),
+                              )
+                            : hasMole
                             ? const Text(
                                 '🐹',
                                 key: ValueKey('mole'),
                                 style: TextStyle(fontSize: 36),
+                              )
+                            : wasJustBombed
+                            ? const Text(
+                                '☠️',
+                                key: ValueKey('boom'),
+                                style: TextStyle(fontSize: 28),
                               )
                             : wasJustWhacked
                             ? const Text(
@@ -392,6 +527,11 @@ class _LevelWhackAMoleState extends State<LevelWhackAMole> {
             const Text(
               '5 minutes — moles get faster',
               style: TextStyle(color: NunuColors.textSecondary, fontSize: 12),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'every 💣 you tap costs you 5 moles',
+              style: TextStyle(color: NunuColors.errorMain, fontSize: 12),
             ),
           ],
         ),
